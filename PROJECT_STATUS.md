@@ -27,16 +27,17 @@ PASS 1 — MVP
 # Current Phase
 
 ```text
-Phase 1 — Main Wheel Vertical Slice   (NOT STARTED)
+Phase 2 — Core Two-Wheel Game Loop    (NOT STARTED)
 
+Phase 1 — Main Wheel Vertical Slice   COMPLETE
 Phase 0 — Project Foundation          COMPLETE
 ```
 
 # Phase Status
 
 ```text
-Phase 0 COMPLETE — all exit criteria met and verified.
-Phase 1 NOT STARTED.
+Phase 1 COMPLETE — all exit criteria met and verified against the live build.
+Phase 2 NOT STARTED.
 ```
 
 # Live Deployment
@@ -46,295 +47,256 @@ https://kof-ten.vercel.app/
 ```
 
 Publicly reachable, no Vercel Deployment Protection.
+Auto-deploys from `main` on push (observed live ~15s after push).
 
 # Current Objective
 
-Phase 0 is closed. The next objective is Phase 1: get one real Canvas wheel
-working inside React, landing deterministically on the result the Game Engine
-has already chosen.
+Phase 1 is closed. Next is Phase 2: add the Fate Wheel and the defining
+WHO → WHAT FATE loop, using only the four starter abilities
+(Eliminate, Shield, Safe, Again).
+
+---
+
+# Repository
+
+```text
+GitHub   https://github.com/JayJayJay96/KOF
+Branch   main
+```
 
 ---
 
 # Completed Before This Session
 
-- Product concept, name (**KOF — King of Fate**) and core two-wheel mechanic confirmed.
-- Host-controlled pacing, desktop target, screen-streaming use case confirmed.
-- Player portraits intentionally excluded from MVP.
-- Visual direction confirmed (modern UI, arcade fighting-game flavour, no KOF reproduction).
-- Technical direction confirmed (React, TypeScript, Vite, Canvas wheel, CSS effects, localStorage, Vercel).
-- `PROJECT_SPEC.md`, `DEVELOPMENT_ROADMAP.md`, `AGENTS.md` created.
-- No application code existed.
+**Phase 0 — Project Foundation (complete).** React 19 + TypeScript + Vite 8
+scaffold; core types (`Player`, `GameState`, `GamePhase`, `GameScreenState`,
+`AbilityDefinition`, `GameEvent`, `GameConfig`); pure reducer; engine
+primitives with phase recalculation and winner detection; phase resolver on the
+spec §10 thresholds; centralised randomness with a swappable source; spec §10
+weight tables recorded as data. Git initialised and pushed; Vercel connected
+and verified live.
 
 ---
 
 # Completed This Session
 
-## Documentation hygiene
+## Phase 1 — Main Wheel Vertical Slice
 
-- Renamed `KOF_King_of_Fate_Project_Spec.md` → `PROJECT_SPEC.md`.
-- Renamed `KOF_DEVELOPMENT_ROADMAP.md` → `DEVELOPMENT_ROADMAP.md`.
-  Both now match the filenames `AGENTS.md` §1 requires.
-- Added `README.md` (repo entry point, commands, architecture map).
+### Reusable Canvas wheel
 
-## Project setup
+- `components/Wheel/wheelGeometry.ts` — pure maths, no canvas or React:
+  `resolveTargetRotation`, `segmentAtPointer`, `spinProgress`,
+  `resolveLabelFontSize`. Separated so landing behaviour is reasonable about
+  and unit-testable without rendering.
+- `components/Wheel/Wheel.tsx` — the renderer. Props are exactly the roadmap's
+  API: `entries`, `selectedId`, `spinning`, `onSpinComplete` (plus optional
+  `onTick`, `spinDurationMs`, `minTurns`, `maxSize`).
+- Deterministic landing. `spinProgress` is solved so total normalised travel is
+  exactly 1, and the target angle is derived before the animation starts — the
+  wheel stops *on* the result, never merely near it.
+- Easing accelerates then decelerates (C1-continuous piecewise: constant
+  acceleration, then quartic velocity decay).
+- Tick feedback on every segment boundary crossing, exposed as a visual pointer
+  nudge plus an `onTick` callback. Deliberately not wired to audio — the audio
+  system is Phase 7.
+- Adaptive label sizing by segment count, ellipsis truncation, and left-half
+  labels flipped so every name reads left-to-right.
+- Device-pixel-ratio aware; honours `prefers-reduced-motion` by jumping
+  straight to the result.
 
-- Scaffolded React 19 + TypeScript + Vite 8 (`create-vite` react-ts template).
-- `package.json`, `tsconfig*.json`, `vite.config.ts`, `.gitignore`, `index.html`, `public/favicon.svg`.
-- Prettier added and configured (config lives in `package.json` — see Decisions).
-- `.claude/launch.json` so the dev server can be launched by tooling.
-- `npm install` clean: 28 packages, 0 vulnerabilities.
+### Game flow
 
-## Version control
+- New engine actions `START_PLAYER_SPIN` and `PLAYER_SPIN_COMPLETE`, giving the
+  `spinning_player` state real meaning: the engine decides first, the wheel
+  animates, then the result is revealed.
+- `getRevealedPlayer` selector hides the already-decided result while the wheel
+  is turning.
+- `isAnimating` selector; all host controls lock during animation.
+- `NEXT_ROUND` now only fires from `player_selected` / `fate_selected`.
 
-- Git repository initialised; default branch **`main`**.
-- Initial commit `1d66122` — *feat: Phase 0 project foundation* (33 files).
-  `node_modules/` and `dist/` correctly excluded.
-- Remote added and pushed: **https://github.com/JayJayJay96/KOF**
-  (repo was empty beforehand — nothing was overwritten).
+### UI
 
-## Deployment
-
-- Vercel project created by the user and connected to the GitHub repo.
-- Live at **https://kof-ten.vercel.app/** — verified serving the committed build
-  (deployed asset hashes `index-Bfn3bFGr.js` / `index-lq1-B5TR.css` match the
-  local build exactly).
-- Vite framework preset auto-detected. No `vercel.json` was needed and none was
-  added — there is no client-side routing yet. Revisit if a router is introduced.
-
-## Core architecture
-
-- **Types** — `Player`, `PlayerStatus`, `GameState`, `GamePhase`, `GameScreenState`,
-  `GameConfig`, `PhaseThresholds`, `AbilityDefinition`, `GameContext`, `GameEvent`,
-  `GameHistoryEntry`. All seven types named in the Phase 0 task list exist.
-- **Random utility** (`src/utils/random.ts`) — `randomInt`, `randomItem`, `shuffle`,
-  `selectWeightedItem`, plus `setRandomSource` / `resetRandomSource` for future seeded
-  and deterministic runs. Game-agnostic by design.
-- **Ids** (`src/utils/ids.ts`) — `createPlayerId` with `crypto.randomUUID` + fallback.
-- **Phase resolver** (`src/game/phases/`) — thresholds from spec §10
-  (Chaos 12+, Danger 6–11, Final Five 3–5, Sudden Death 2) and a pure `resolvePhase`.
-- **Engine** (`src/game/engine/gameEngine.ts`) — `createInitialGameState`, `createPlayer`,
-  `resetPlayerForNewGame`, `getAliveCount`, `appendEvents`, `applyPhaseAndWinner`
-  (phase recalculation + winner detection + `PHASE_CHANGED` / `GAME_WON` emission).
-- **Reducer** (`src/game/engine/reducer.ts`) — `ADD_PLAYERS`, `REMOVE_PLAYER`,
-  `START_GAME`, `SELECT_PLAYER`, `SELECT_ABILITY`, `ELIMINATE_PLAYER`, `NEXT_ROUND`,
-  `RESET_GAME`. Pure; invalid transitions return state unchanged.
-- **Selectors** (`src/game/engine/selectors.ts`) — alive/eliminated/current reads,
-  `selectRandomEligiblePlayer` (with exclusion list for future Hunter/Duel),
-  `selectRandomEliminatedPlayer`, and `canSpinPlayerWheel` / `canSpinFateWheel` gating.
-- **Default config** (`src/game/config/defaultConfig.ts`) — spec §10 weight tables
-  recorded as data for all 8 MVP abilities; `fate_swap` / `double_kill` present but
-  `enabled: false` (Post-MVP).
-
-## UI
-
-- `src/main.tsx`, `src/app/App.tsx`, `src/styles/globals.css` (baseline layout only).
-- `src/components/DebugPanel/DebugPanel.tsx` — temporary Phase 0 scaffolding:
-  add/paste/remove players, add 8 dummy players (incl. Unicode/CJK/emoji names),
-  start game, select random player, eliminate, next round, reset, plus live
-  state / roster / event-history readout.
+- `components/PlayerSetup/PlayerSetup.tsx` — real Setup screen: multiline
+  paste, per-row remove, numbered roster, Ctrl/Cmd+Enter to add, Start Game
+  gated on `MIN_PLAYERS_TO_START`.
+- `components/GameScreen/GameScreen.tsx` — main shell: round / alive / phase
+  stats, wheel, result readout, one state-aware primary action
+  (Spin Player ↔ Next Round), roster with elimination styling.
+- `components/MainWheel/MainWheel.tsx` — thin players-to-entries adapter.
+- `DebugPanel` deleted, as the roadmap intended.
 
 ---
 
 # In Progress
 
-Nothing. Phase 0 is closed and nothing was left half-written.
+Nothing. Phase 1 is closed and nothing was left half-written.
 
 ---
 
 # Next Tasks
 
-Begin **Phase 1 — Main Wheel Vertical Slice**:
+Begin **Phase 2 — Core Two-Wheel Game Loop**:
 
-1. Reusable Canvas `<Wheel>` component — `entries`, `selectedId`, `spinning`,
-   `onSpinComplete`. It renders and animates; it must not pick a winner
-   (AGENTS.md §7.2).
-2. Deterministic landing on the engine-chosen result.
-3. Natural acceleration / deceleration, segment ticks, inward-facing pointer,
-   input disabled while spinning.
-4. Real player Setup screen (multiline paste, add/remove, Start Game) replacing
-   the debug panel.
-5. Main game shell with a `SPIN PLAYER` action.
-6. Deploy the Phase 1 preview and confirm the exit criteria: a host can enter
-   players, start, spin, see the wheel land on the engine's result, and spin
-   repeatedly without state corruption.
+1. Build the Fate Wheel from the same `<Wheel>` component, rendered smaller
+   than the Main Wheel and visibly inactive until a player is selected.
+2. Implement the four starter abilities only: Eliminate, Shield, Safe, Again.
+   Do **not** add Hunter / Duel / Revive / Death Mark yet (Phase 4).
+3. Wire the full state flow through `spinning_fate` → `fate_selected` →
+   `resolving` → round complete, mirroring the spin/complete pair already used
+   by the Main Wheel.
+4. Keep every step host-triggered — no auto-chaining (PROJECT_SPEC.md §7).
+5. Extend input locking to the Fate Wheel: it must not spin before a player
+   exists, and the Main Wheel must not spin while a Fate is unresolved.
+6. Delete the temporary dev strip in `GameScreen.tsx` once Eliminate exists as
+   a real Fate.
 
 ---
 
 # Known Issues / Blockers
 
-No blockers. Phase 1 can start immediately.
+No blockers. Phase 2 can start immediately.
 
 Non-blocking, on-plan gaps:
 
-- **No automated tests.** The roadmap places unit tests in Enhancement Phase 0,
-  so this is on-plan, but the engine is pure and ready to be tested earlier if wanted.
-- **No persistence.** A browser refresh resets the game. Correct for now —
-  localStorage is Phase 6C.
+- **No automated tests.** The roadmap places unit tests in Enhancement Phase 0.
+  `wheelGeometry.ts` and the reducer are pure and were written to be testable;
+  `resolveTargetRotation` / `spinProgress` are the highest-value first targets.
+- **No persistence.** A refresh resets the game. localStorage is Phase 6C.
+- **Temporary dev strip** in the game screen (Eliminate selected / Reset to
+  setup), marked `dev` in the UI. It exists only so player removal can be
+  exercised before abilities exist. Remove in Phase 2.
+- **Wheel is 329px at 1280x720** versus 587px at 1920x1080. It fits without
+  scrolling at both, but the smaller size is close to the readability floor for
+  a compressed stream. Revisit in Enhancement Phase 1 if playtesting shows it.
 
 ---
 
 # Important Decisions Made This Session
 
-1. **Doc filenames corrected, not reinterpreted.** `AGENTS.md` §1 names
-   `PROJECT_SPEC.md` and `DEVELOPMENT_ROADMAP.md`; the files on disk had different
-   names. Renamed the files to match the higher-authority document.
-2. **oxlint instead of ESLint.** The roadmap's Phase 0 list says "ESLint + Prettier",
-   but `create-vite` v9 now ships oxlint by default. Keeping it satisfies the linting
-   intent with zero extra dependencies, versus 5+ packages for an ESLint stack
-   (`AGENTS.md` §17). Prettier was added as specified. Tooling choice only — no
-   sequencing change, so `DEVELOPMENT_ROADMAP.md` was not edited.
-3. **Prettier config lives in `package.json`.** A standalone `.prettierrc.json` is
-   blocked by a repo config-protection hook; the `"prettier"` key is equivalent.
-4. **The reducer never calls random.** Callers select the target via
-   `selectors.ts` and dispatch the resulting id. This satisfies "the Game Engine
-   decides the selected player" (spec §8) while keeping the reducer pure, which is
-   what makes undo (Phase 6B) and future replay tractable.
-5. **`config` is part of `GameState`.** The roadmap's minimal state list omits it,
-   but it is listed as "at minimum" and phase resolution needs thresholds. It also
-   matches spec §24, which persists configuration with the game.
-6. **Screen-state names follow spec §19**, not the roadmap Phase 2 flow diagram
-   (`WAITING_FOR_FATE`, `ROUND_COMPLETE`). Spec is the higher authority.
-7. **Elimination clears Shield and Death Mark**, so a revived player always returns
-   clean per spec §11.7. Assumption: no future ability needs to read a dead player's
-   former statuses. Revisit if Fate Swap or Bomb requires it.
-8. **Two events added to spec §18's list**: `GAME_STARTED` and `ROUND_STARTED`.
-   The spec states the list can evolve; without them the event history has no
-   round markers.
-9. **`MIN_PLAYERS_TO_START = 2`.** Not specified anywhere; a game needs at least
-   one loser and one winner.
-10. **Unused folders not created.** `src/game/abilities/`, `src/effects/`,
-    `src/audio/`, `src/storage/` are in the spec's target structure but empty of
-    purpose today. The roadmap explicitly says "do not over-engineer unused folders",
-    so they arrive with the phases that need them. Recorded in `README.md`.
-11. **`AbilityDefinition` written but no ability implemented.** Phase 3 owns the
-    registry. Fixing the interface now costs nothing and prevents Phase 3 from
-    inventing a different shape (AGENTS.md §5: minimum interface only).
+1. **The wheel never decides anything.** `START_PLAYER_SPIN` records the
+   engine's choice immediately and the wheel interpolates toward it
+   (PROJECT_SPEC.md §8, AGENTS.md §7.2). The UI suppresses the name until the
+   animation ends, so the spin is still a surprise.
+2. **Landed highlight keys off `selectedId`, not pointer position.** If the
+   rotation maths ever disagreed with the engine, the highlight would visibly
+   sit away from the pointer instead of silently agreeing with itself. This is
+   what made automated landing verification possible.
+3. **Layout is measured, not guessed.** A first attempt clamped the wheel with a
+   hardcoded chrome allowance and pushed the action button off a 720p screen.
+   Replaced with a flex column where the wheel container has `min-height: 0`, so
+   the canvas sizes itself from the space actually left over.
+4. **`spinProgress` solves for exact arrival** rather than easing toward the
+   target approximately, because "close enough" on a wheel means landing on the
+   wrong name.
+5. **Tick feedback is visual only.** The roadmap lists tick feedback in Phase 1
+   but audio in Phase 7. Implemented as a pointer nudge plus an `onTick` hook so
+   Phase 7 can attach sound without touching the wheel (AGENTS.md §5).
+6. **`SELECT_PLAYER` kept alongside the spin pair** as the instant, no-animation
+   path — useful for tests and for the "skip animation" option in Enhancement
+   Phase 2.
+7. **Left-half labels are flipped.** Standard radial text renders upside down on
+   one side; unreadable names on a streamed screen contradict PROJECT_SPEC.md
+   §21.
+8. **A temporary dev strip replaced the debug panel** rather than keeping the
+   panel. Phase 1 has no abilities, so without an eliminate control the wheel's
+   dynamic removal requirement could not be exercised at all.
+9. **`filterAlive(players)` added** so React can memoise on `state.players`
+   alone. Memoising on the whole state produced a new array every dispatch,
+   which would restart the spin animation mid-flight.
 
 ---
 
 # Verification Performed
 
-- `npm run build` (`tsc -b && vite build`) — **passes**, 26 modules, no type errors.
-- `npm run lint` (oxlint) — **clean**, no warnings.
-- `npx prettier --write src/**` — all 17 files already formatted, no changes.
-- Dev server started; app rendered at 1280×720 and 1920×1080 with **no horizontal
-  overflow** and **no console errors**.
-- **Full game flow driven end to end** with 8 players (including `小明`, `Nguyễn`,
-  `Zoë 🎯`) — select → eliminate → next round, repeated to a winner:
+- `npm run build` (`tsc -b && vite build`) — **passes**, 30 modules, no type errors.
+- `npm run lint` (oxlint) — **clean**.
+- `npx prettier --check` — **all files conform**.
 
-  ```text
-  ROUND 1 · ALIVE 7/8 · DANGER
-  ROUND 2 · ALIVE 6/8 · DANGER
-  ROUND 3 · ALIVE 5/8 · FINAL FIVE
-  ROUND 4 · ALIVE 4/8 · FINAL FIVE
-  ROUND 5 · ALIVE 3/8 · FINAL FIVE
-  ROUND 6 · ALIVE 2/8 · SUDDEN DEATH
-  ROUND 7 · ALIVE 1/8 · SUDDEN DEATH → winner: Kelvin
-  ```
+## Against the live deployment (https://kof-ten.vercel.app/)
 
-  Confirmed: phase transitions fire at the spec §10 thresholds; winner is detected
-  at 1 alive; `screenState` becomes `winner`; further spins are correctly disabled.
-- `RESET_GAME` verified — returns to `setup`, roster retained (8/8 alive), history
-  cleared, winner cleared, phase back to CHAOS.
-- Browser refresh verified — clean re-render, no runtime errors (state resets, as
-  expected without persistence).
-- **20-player game verified** (the target group size). 20 added, started in CHAOS,
-  driven through all 19 eliminations to a winner in 19 rounds, 62 events logged.
-  Phase boundaries landed exactly on the spec §10 thresholds:
+Verified after confirming the deployed asset hash matched the local build.
 
-  ```text
-  19-12 alive  CHAOS
-  11-6  alive  DANGER
-  5-3   alive  FINAL FIVE
-  2     alive  SUDDEN DEATH
-  ```
+- 20-player game created through the real Setup screen (paste → add → start).
+- Three spins, each asserting four properties simultaneously:
 
-  No horizontal overflow. Duplicate names ("Amy" twice) stayed distinct via ids.
-  A 31-character name, `X Æ A-12`, Cyrillic, CJK and Vietnamese names all rendered.
-  The engine imposes no player cap.
-- **Production build served and fetched** via `vite preview`: `/` → 200,
-  `/assets/index-*.js` → 200 (200,203 bytes). The artifact Vercel would deploy
-  is known-good.
-- Pushed to GitHub; `git ls-remote` confirms `refs/heads/main` = `1d66122`,
-  local tree clean and in sync.
+  | Property | Result |
+  |---|---|
+  | Wheel lands on the engine-selected segment | PASS |
+  | Result stays hidden while spinning | PASS |
+  | Controls locked during the spin | PASS |
+  | Winner is a real alive player | PASS |
 
-- **Live deployment verified** at https://kof-ten.vercel.app/ — returns 200 with
-  no Vercel SSO gate, and the served asset hashes match the local build exactly,
-  confirming the committed code is what is live. A full 20-player game was then
-  driven to a winner **against the deployed build**: started `ROUND 1 · ALIVE
-  20/20 · CHAOS`, ended in 19 rounds on `screenState: winner`. Phase boundaries
-  correct at 12 (CHAOS), 11 and 6 (DANGER), 5 and 3 (FINAL FIVE), 2 (SUDDEN
-  DEATH). No console errors, no horizontal overflow.
+  Landing was checked by sampling the canvas pixel directly under the pointer
+  and confirming it is the highlighted fill — and the highlight is derived from
+  `selectedId`, so this proves rotation and engine agree.
+- **Burst clicking verified**: double and triple clicks on Spin Player produce
+  exactly one spin (identical 3.6–3.8s duration, button disabled immediately).
+- **Dynamic removal verified**: eliminating the selected player drops alive
+  12 → 11, strikes them out in the roster, removes their segment, and the next
+  spin still lands correctly on a living player.
+- **Layout verified at both target resolutions**: 1280×720 → 329px wheel,
+  1920×1080 → 587px wheel. No horizontal or vertical page overflow at either;
+  the primary action button is on-screen in both.
+- No console errors at any point.
 
-## Phase 0 exit criteria — all met
+## Phase 1 exit criteria — all met
 
 | Criterion | Result |
 |---|---|
-| Project builds successfully | PASS |
-| Project deploys successfully to Vercel | PASS |
-| GameState exists independently from UI | PASS |
-| Reducer/engine can modify player state | PASS |
-| Random utility exists | PASS |
-| Refresh produces no TypeScript/runtime errors | PASS |
+| Host can enter players | PASS |
+| Host can start the game | PASS |
+| Host can spin the Main Wheel | PASS |
+| Wheel lands on the Game Engine result | PASS |
+| Repeated spins with no state corruption | PASS |
+| Working preview deployed | PASS |
 
 ---
 
 # Files / Areas Changed
 
 ```text
-.git/                         (initialised, branch main, remote origin -> GitHub)
+src/components/Wheel/Wheel.tsx              (new)
+src/components/Wheel/wheelGeometry.ts       (new)
+src/components/MainWheel/MainWheel.tsx      (new)
+src/components/PlayerSetup/PlayerSetup.tsx  (new)
+src/components/GameScreen/GameScreen.tsx    (new)
+src/components/DebugPanel/                  (deleted)
 
-PROJECT_SPEC.md               (renamed from KOF_King_of_Fate_Project_Spec.md)
-DEVELOPMENT_ROADMAP.md        (renamed from KOF_DEVELOPMENT_ROADMAP.md)
-PROJECT_STATUS.md             (this file)
-README.md                     (new)
+src/app/App.tsx                             (screen routing)
+src/game/engine/reducer.ts                  (spin actions, NEXT_ROUND guard)
+src/game/engine/selectors.ts                (isAnimating, getRevealedPlayer, filterAlive)
+src/hooks/useGame.ts                        (spin/complete pair)
+src/styles/globals.css                      (flex layout, wheel, setup, game screen)
 
-package.json  index.html  vite.config.ts  .gitignore  .oxlintrc.json
-tsconfig.json  tsconfig.app.json  tsconfig.node.json
-.claude/launch.json  public/favicon.svg
-
-src/main.tsx
-src/app/App.tsx
-src/components/DebugPanel/DebugPanel.tsx
-src/game/config/defaultConfig.ts
-src/game/engine/gameEngine.ts
-src/game/engine/reducer.ts
-src/game/engine/selectors.ts
-src/game/events/eventTypes.ts
-src/game/phases/phaseConfig.ts
-src/game/phases/phaseResolver.ts
-src/game/types/ability.ts
-src/game/types/game.ts
-src/game/types/player.ts
-src/hooks/useGame.ts
-src/styles/globals.css
-src/utils/ids.ts
-src/utils/random.ts
+PROJECT_STATUS.md
 ```
+
+Commit: `6a582a5` — *feat: Phase 1 main wheel vertical slice*
 
 ---
 
 # Notes for Next Agent
 
-The architecture boundary is already load-bearing — keep it:
+Architecture boundaries are holding. Keep them:
 
-- `src/game/` decides outcomes. React components render and dispatch, nothing more.
-- Randomness goes through `src/utils/random.ts`. Do not add `Math.random()` elsewhere.
-- The reducer stays pure. Pick the result first, then dispatch the chosen id.
+- `src/game/` decides outcomes. Components render and dispatch, nothing more.
+- Randomness goes through `src/utils/random.ts`. No `Math.random()` elsewhere.
+- The reducer is pure. Pick the result first, then dispatch the chosen id.
 
-`DebugPanel.tsx` is **disposable**. Delete or replace it once the real Setup screen
-and Main Wheel exist — do not grow it into the host UI.
+**Reuse `<Wheel>` for the Fate Wheel.** It is already player-agnostic — it takes
+`{ id, label }` entries and knows nothing about players or abilities. Build a
+`FateWheel` adapter mirroring `MainWheel`; do not fork the component.
 
-Phase 0 is fully closed — built, pushed, deployed and verified live. Start
-directly on Phase 1.
+**Mirror the spin/complete action pair** for Fate
+(`START_FATE_SPIN` / `FATE_SPIN_COMPLETE`). The Main Wheel's flow is the
+template, including hiding the result until the animation ends.
 
-Group size is a solved problem at the engine level — a 20-player game was run
-end to end. The remaining 20-player risk is **visual**: 20 wheel segments is 18°
-each, so plan adaptive label sizing when building the Main Wheel rather than
-discovering it during Enhancement Phase 1.
+When abilities arrive, the reducer's `eliminatePlayer` is the raw primitive.
+The shared attack abstraction that consumes Shield first belongs in Phase 3 and
+must wrap it — do not scatter Shield checks per ability (AGENTS.md §7.7).
 
-Phase 1 is the Main Wheel only. Do not add the Fate Wheel (Phase 2), abilities
-(Phase 3), PixiJS, sound, or arcade theming yet.
+Phase 2 is four abilities only. No Hunter, Duel, Revive or Death Mark; no
+PixiJS, sound, or arcade theming.
 
 ---
 

@@ -5,9 +5,10 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phase 0 (Project Foundation) complete; Phase 1 next.**
-There is no wheel and no playable game yet — what is deployed is the engine plus
-temporary debug scaffolding. See `PROJECT_STATUS.md`.
+Current status: **Pass 1 — MVP. Phases 0–1 complete; Phase 2 next.**
+The Main Wheel works end to end: enter players, start, spin, land on a result.
+There is no Fate Wheel and no abilities yet — that is Phase 2. See
+`PROJECT_STATUS.md`.
 
 ## Documentation
 
@@ -52,8 +53,12 @@ Game rules live in `src/game/` and are independent of rendering (AGENTS.md §7):
 
 ```text
 src/
-├── app/          App root
+├── app/          App root, screen routing
 ├── components/   React UI (renders state, decides nothing)
+│   ├── Wheel/    reusable Canvas wheel + pure geometry
+│   ├── MainWheel/ players-to-entries adapter
+│   ├── PlayerSetup/
+│   └── GameScreen/
 ├── game/
 │   ├── engine/   reducer, selectors, pure engine primitives
 │   ├── phases/   phase thresholds + resolver
