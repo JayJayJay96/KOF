@@ -27,18 +27,31 @@ PASS 1 — MVP
 # Current Phase
 
 ```text
-Phase 0 — Project Foundation
+Phase 1 — Main Wheel Vertical Slice   (NOT STARTED)
+
+Phase 0 — Project Foundation          COMPLETE
 ```
 
 # Phase Status
 
 ```text
-IN PROGRESS — code complete, blocked on Vercel deployment
+Phase 0 COMPLETE — all exit criteria met and verified.
+Phase 1 NOT STARTED.
 ```
+
+# Live Deployment
+
+```text
+https://kof-ten.vercel.app/
+```
+
+Publicly reachable, no Vercel Deployment Protection.
 
 # Current Objective
 
-Set up the KOF codebase and establish the minimum architecture needed to begin the MVP without locking future gameplay, customisation, or presentation features.
+Phase 0 is closed. The next objective is Phase 1: get one real Canvas wheel
+working inside React, landing deterministically on the result the Game Engine
+has already chosen.
 
 ---
 
@@ -79,6 +92,15 @@ Set up the KOF codebase and establish the minimum architecture needed to begin t
 - Remote added and pushed: **https://github.com/JayJayJay96/KOF**
   (repo was empty beforehand — nothing was overwritten).
 
+## Deployment
+
+- Vercel project created by the user and connected to the GitHub repo.
+- Live at **https://kof-ten.vercel.app/** — verified serving the committed build
+  (deployed asset hashes `index-Bfn3bFGr.js` / `index-lq1-B5TR.css` match the
+  local build exactly).
+- Vite framework preset auto-detected. No `vercel.json` was needed and none was
+  added — there is no client-side routing yet. Revisit if a router is introduced.
+
 ## Core architecture
 
 - **Types** — `Player`, `PlayerStatus`, `GameState`, `GamePhase`, `GameScreenState`,
@@ -115,35 +137,35 @@ Set up the KOF codebase and establish the minimum architecture needed to begin t
 
 # In Progress
 
-Nothing partially written. Phase 0 code is complete; only the Vercel deployment
-step of the phase remains (see Known Issues).
+Nothing. Phase 0 is closed and nothing was left half-written.
 
 ---
 
 # Next Tasks
 
-1. **Deploy the first Vercel preview.** This is the last outstanding Phase 0
-   exit criterion. The repo is on GitHub, so the shortest path is
-   vercel.com → Add New → Project → import `JayJayJay96/KOF`. Vite is
-   auto-detected (build `npm run build`, output `dist`); no `vercel.json` is
-   needed as there is no client-side routing yet. Requires a Vercel login, so
-   it could not be done from a non-interactive session.
-2. **Verify Phase 0 exit criteria** and mark the phase COMPLETE.
-3. Then begin **Phase 1 — Main Wheel Vertical Slice**:
-   - reusable Canvas `<Wheel>` component (`entries`, `selectedId`, `spinning`, `onSpinComplete`),
-   - deterministic landing on the engine-chosen result,
-   - real player Setup screen (multiline paste) replacing the debug panel,
-   - main game shell with `SPIN PLAYER`.
+Begin **Phase 1 — Main Wheel Vertical Slice**:
+
+1. Reusable Canvas `<Wheel>` component — `entries`, `selectedId`, `spinning`,
+   `onSpinComplete`. It renders and animates; it must not pick a winner
+   (AGENTS.md §7.2).
+2. Deterministic landing on the engine-chosen result.
+3. Natural acceleration / deceleration, segment ticks, inward-facing pointer,
+   input disabled while spinning.
+4. Real player Setup screen (multiline paste, add/remove, Start Game) replacing
+   the debug panel.
+5. Main game shell with a `SPIN PLAYER` action.
+6. Deploy the Phase 1 preview and confirm the exit criteria: a host can enter
+   players, start, spin, see the wheel land on the engine's result, and spin
+   repeatedly without state corruption.
 
 ---
 
 # Known Issues / Blockers
 
-- **Vercel deployment not performed.** The Vercel CLI is not installed and no
-  stored credential exists; `vercel login` needs interactive browser/email auth,
-  which a non-interactive session cannot complete. Phase 0 therefore cannot be
-  marked COMPLETE yet. Everything else in the phase is done and verified,
-  including serving the real production build locally.
+No blockers. Phase 1 can start immediately.
+
+Non-blocking, on-plan gaps:
+
 - **No automated tests.** The roadmap places unit tests in Enhancement Phase 0,
   so this is on-plan, but the engine is pure and ready to be tested earlier if wanted.
 - **No persistence.** A browser refresh resets the game. Correct for now —
@@ -236,7 +258,24 @@ step of the phase remains (see Known Issues).
 - Pushed to GitHub; `git ls-remote` confirms `refs/heads/main` = `1d66122`,
   local tree clean and in sync.
 
-Not verified: Vercel preview deployment (blocked on interactive login).
+- **Live deployment verified** at https://kof-ten.vercel.app/ — returns 200 with
+  no Vercel SSO gate, and the served asset hashes match the local build exactly,
+  confirming the committed code is what is live. A full 20-player game was then
+  driven to a winner **against the deployed build**: started `ROUND 1 · ALIVE
+  20/20 · CHAOS`, ended in 19 rounds on `screenState: winner`. Phase boundaries
+  correct at 12 (CHAOS), 11 and 6 (DANGER), 5 and 3 (FINAL FIVE), 2 (SUDDEN
+  DEATH). No console errors, no horizontal overflow.
+
+## Phase 0 exit criteria — all met
+
+| Criterion | Result |
+|---|---|
+| Project builds successfully | PASS |
+| Project deploys successfully to Vercel | PASS |
+| GameState exists independently from UI | PASS |
+| Reducer/engine can modify player state | PASS |
+| Random utility exists | PASS |
+| Refresh produces no TypeScript/runtime errors | PASS |
 
 ---
 
@@ -286,8 +325,8 @@ The architecture boundary is already load-bearing — keep it:
 `DebugPanel.tsx` is **disposable**. Delete or replace it once the real Setup screen
 and Main Wheel exist — do not grow it into the host UI.
 
-Before starting Phase 1, close out Phase 0: deploy the Vercel preview, then flip
-Phase Status to COMPLETE. Git is already set up and pushed.
+Phase 0 is fully closed — built, pushed, deployed and verified live. Start
+directly on Phase 1.
 
 Group size is a solved problem at the engine level — a 20-player game was run
 end to end. The remaining 20-player risk is **visual**: 20 wheel segments is 18°

@@ -3,8 +3,11 @@
 A host-controlled, arcade-styled elimination party game built around two wheels:
 **Who gets selected?** (Main Wheel) and **What fate happens to them?** (Fate Wheel).
 
-Current status: **Pass 1 — MVP, Phase 0 (Project Foundation)**.
-There is no wheel and no playable game yet — see `PROJECT_STATUS.md`.
+**Live:** https://kof-ten.vercel.app/
+
+Current status: **Pass 1 — MVP. Phase 0 (Project Foundation) complete; Phase 1 next.**
+There is no wheel and no playable game yet — what is deployed is the engine plus
+temporary debug scaffolding. See `PROJECT_STATUS.md`.
 
 ## Documentation
 
