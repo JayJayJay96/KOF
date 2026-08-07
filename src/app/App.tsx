@@ -1,24 +1,38 @@
 /**
  * Application root.
  *
- * Phase 1 routes between two screens on `screenState`: Setup, and the Main
- * Wheel game shell. The Fate Wheel, abilities and arcade presentation are
- * later phases.
+ * Phase 2 routes between the Setup screen and the two-wheel game shell.
+ * Arcade presentation, persistence and the advanced abilities are later phases.
  */
 
 import { useMemo } from 'react';
 import { useGame } from '../hooks/useGame';
 import { GameScreen } from '../components/GameScreen/GameScreen';
 import { PlayerSetup } from '../components/PlayerSetup/PlayerSetup';
-import { filterAlive, getRevealedPlayer } from '../game/engine/selectors';
+import { filterAlive, getRevealedAbilityId, getRevealedPlayer } from '../game/engine/selectors';
+import { getAvailableAbilities } from '../game/abilities';
 
 export default function App() {
-  const { state, dispatch, spinPlayer, completePlayerSpin } = useGame();
+  const {
+    state,
+    dispatch,
+    spinPlayer,
+    completePlayerSpin,
+    spinFate,
+    completeFateSpin,
+    resolveFate,
+  } = useGame();
 
-  // Memoised so the wheel receives a stable entries array; a fresh array on
-  // every render would restart the spin animation.
+  // Memoised so each wheel receives a stable entries array; a fresh array on
+  // every render would restart an in-flight spin animation.
   const alivePlayers = useMemo(() => filterAlive(state.players), [state.players]);
+  // Availability reads phase, roster and config, so it genuinely depends on the
+  // whole state. Recomputing per dispatch is cheap, and no dispatch happens
+  // mid-spin, so the Fate Wheel's entries stay stable while it animates.
+  const availableAbilities = useMemo(() => getAvailableAbilities(state), [state]);
+
   const revealedPlayer = getRevealedPlayer(state);
+  const revealedAbilityId = getRevealedAbilityId(state);
 
   const isSetup = state.screenState === 'setup';
 
@@ -37,15 +51,20 @@ export default function App() {
           <GameScreen
             state={state}
             alivePlayers={alivePlayers}
+            availableAbilities={availableAbilities}
             revealedPlayer={revealedPlayer}
+            revealedAbilityId={revealedAbilityId}
             dispatch={dispatch}
             spinPlayer={spinPlayer}
             completePlayerSpin={completePlayerSpin}
+            spinFate={spinFate}
+            completeFateSpin={completeFateSpin}
+            resolveFate={resolveFate}
           />
         )}
       </main>
 
-      <footer className="app__footer">Phase 1 — Main Wheel Vertical Slice</footer>
+      <footer className="app__footer">Phase 2 — Core Two-Wheel Game Loop</footer>
     </div>
   );
 }

@@ -1,40 +1,67 @@
 /**
- * Main game screen — Phase 1 shell.
+ * Main game screen — Phase 2 two-wheel loop.
  *
- * Scope is deliberately the Main Wheel only. No Fate Wheel (Phase 2), no
- * abilities (Phase 3), no arcade theming (Phase 7).
+ * WHO → WHAT FATE, with a host-triggered pause at every step. Nothing
+ * auto-chains (PROJECT_SPEC.md §7, AGENTS.md §8).
  *
- * The action button is state-aware and single-purpose at any moment
- * (AGENTS.md §8): it cannot start a second spin, and it cannot advance the
- * round while the wheel is turning.
+ * One primary action at a time, relabelled by state:
+ *
+ *   Spin Player -> Spin Fate -> Resolve -> Next Round
+ *
+ * Only Hunter/Duel/Revive/Death Mark are missing from the MVP ability set;
+ * those are Phase 4. No arcade theming yet — that is Phase 7.
  */
 
 import type { GameAction } from '../../game/engine/reducer';
+import type { AbilityDefinition } from '../../game/types/ability';
 import type { GameState } from '../../game/types/game';
 import type { Player } from '../../game/types/player';
-import { canAdvanceRound, canSpinPlayerWheel, isAnimating } from '../../game/engine/selectors';
+import {
+  canAdvanceRound,
+  canResolveFate,
+  canSpinFateWheel,
+  canSpinPlayerWheel,
+  isAnimating,
+} from '../../game/engine/selectors';
+import { getAbility } from '../../game/abilities';
 import { PHASE_LABELS } from '../../game/phases/phaseConfig';
 import { MainWheel } from '../MainWheel/MainWheel';
+import { FateWheel } from '../FateWheel/FateWheel';
 
 type GameScreenProps = {
   state: GameState;
   alivePlayers: Player[];
+  availableAbilities: AbilityDefinition[];
   revealedPlayer: Player | null;
+  revealedAbilityId: string | null;
   dispatch: (action: GameAction) => void;
   spinPlayer: () => void;
   completePlayerSpin: () => void;
+  spinFate: () => void;
+  completeFateSpin: () => void;
+  resolveFate: () => void;
 };
 
 export function GameScreen({
   state,
   alivePlayers,
+  availableAbilities,
   revealedPlayer,
+  revealedAbilityId,
   dispatch,
   spinPlayer,
   completePlayerSpin,
+  spinFate,
+  completeFateSpin,
+  resolveFate,
 }: GameScreenProps) {
-  const spinning = state.screenState === 'spinning_player';
+  const spinningPlayer = state.screenState === 'spinning_player';
+  const spinningFate = state.screenState === 'spinning_fate';
   const locked = isAnimating(state);
+  const isWinner = state.screenState === 'winner';
+
+  const revealedAbility = getAbility(revealedAbilityId);
+  const fateActive = revealedPlayer !== null && !isWinner;
 
   return (
     <section className="game">
@@ -44,93 +71,83 @@ export function GameScreen({
         <Stat label="Phase" value={PHASE_LABELS[state.phase]} />
       </div>
 
-      <div className="game__stage">
-        <MainWheel
-          players={alivePlayers}
-          selectedId={state.currentPlayerId}
-          spinning={spinning}
-          onSpinComplete={completePlayerSpin}
-        />
+      <div className="game__wheels">
+        <div className="game__wheel game__wheel--main">
+          <MainWheel
+            players={alivePlayers}
+            selectedId={state.currentPlayerId}
+            spinning={spinningPlayer}
+            onSpinComplete={completePlayerSpin}
+          />
+        </div>
 
-        <div className="game__result" aria-live="polite">
-          {spinning && <p className="game__result-pending">Spinning…</p>}
-          {!spinning && revealedPlayer && (
+        <div className="game__wheel game__wheel--fate">
+          <FateWheel
+            abilities={availableAbilities}
+            selectedId={state.currentAbilityId}
+            spinning={spinningFate}
+            active={fateActive}
+            onSpinComplete={completeFateSpin}
+          />
+        </div>
+      </div>
+
+      <div className="game__readout" aria-live="polite">
+        <p className="game__readout-line">
+          {spinningPlayer && <span className="game__pending">Spinning…</span>}
+          {!spinningPlayer && revealedPlayer && (
+            <span className="game__name">{revealedPlayer.name}</span>
+          )}
+          {!spinningPlayer && !revealedPlayer && !isWinner && (
+            <span className="game__pending">Who is next?</span>
+          )}
+          {revealedAbility && !spinningFate && (
             <>
-              <p className="game__result-label">Selected</p>
-              <p className="game__result-name">{revealedPlayer.name}</p>
+              <span className="game__arrow">→</span>
+              <span className="game__fate">
+                {revealedAbility.icon} {revealedAbility.name}
+              </span>
             </>
           )}
-          {!spinning && !revealedPlayer && state.screenState !== 'winner' && (
-            <p className="game__result-pending">Who is next?</p>
-          )}
-          {state.screenState === 'winner' && <p className="game__result-name">Game over</p>}
-        </div>
+          {spinningFate && <span className="game__pending"> → deciding fate…</span>}
+        </p>
+        {isWinner && <p className="game__winner">WINNER — {winnerName(state)}</p>}
+      </div>
 
-        <div className="game__actions">
-          {canAdvanceRound(state) ? (
-            <button
-              type="button"
-              className="button button--primary button--large"
-              onClick={() => dispatch({ type: 'NEXT_ROUND' })}
-            >
-              Next Round
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="button button--primary button--large"
-              onClick={spinPlayer}
-              disabled={!canSpinPlayerWheel(state)}
-            >
-              {spinning ? 'Spinning…' : 'Spin Player'}
-            </button>
-          )}
-        </div>
+      <div className="game__actions">
+        <PrimaryAction
+          state={state}
+          spinPlayer={spinPlayer}
+          spinFate={spinFate}
+          resolveFate={resolveFate}
+          dispatch={dispatch}
+        />
       </div>
 
       <div className="game__roster">
-        <h2 className="game__roster-heading">Players</h2>
         <ul className="game__roster-list">
-          {state.players.map((player) => {
-            const isOut = player.status === 'eliminated';
-            const isSelected = revealedPlayer?.id === player.id;
-            return (
-              <li
-                key={player.id}
-                className={[
-                  'game__roster-item',
-                  isOut ? 'is-out' : '',
-                  isSelected ? 'is-selected' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                {player.name}
-              </li>
-            );
-          })}
+          {state.players.map((player) => (
+            <li
+              key={player.id}
+              className={[
+                'game__roster-item',
+                player.status === 'eliminated' ? 'is-out' : '',
+                revealedPlayer?.id === player.id ? 'is-selected' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              {player.name}
+              {player.shield > 0 && <span title="Shield"> 🛡</span>}
+              {player.deathMark && <span title="Death Mark"> 💀</span>}
+            </li>
+          ))}
         </ul>
       </div>
 
-      {/*
-        TEMPORARY. Phase 1 has no abilities, so without this there is no way to
-        remove a player and exercise the wheel's dynamic re-render. Delete once
-        Eliminate exists as a real Fate in Phase 3.
-      */}
+      {/* TEMPORARY dev control. Reset is not yet a host feature (Phase 6D). */}
       <div className="game__dev">
         <span className="game__dev-tag">dev</span>
-        <button
-          type="button"
-          className="button button--small"
-          onClick={() => {
-            if (revealedPlayer) {
-              dispatch({ type: 'ELIMINATE_PLAYER', playerId: revealedPlayer.id });
-            }
-          }}
-          disabled={locked || !revealedPlayer || revealedPlayer.status !== 'alive'}
-        >
-          Eliminate selected
-        </button>
         <button
           type="button"
           className="button button--small"
@@ -142,6 +159,81 @@ export function GameScreen({
       </div>
     </section>
   );
+}
+
+/**
+ * The single contextual action. Exactly one of these is live at a time, which
+ * is what stops conflicting input during a round.
+ */
+function PrimaryAction({
+  state,
+  spinPlayer,
+  spinFate,
+  resolveFate,
+  dispatch,
+}: {
+  state: GameState;
+  spinPlayer: () => void;
+  spinFate: () => void;
+  resolveFate: () => void;
+  dispatch: (action: GameAction) => void;
+}) {
+  const className = 'button button--primary button--large';
+
+  if (state.screenState === 'winner') {
+    return (
+      <button type="button" className={className} onClick={() => dispatch({ type: 'RESET_GAME' })}>
+        New Game
+      </button>
+    );
+  }
+
+  if (canAdvanceRound(state)) {
+    return (
+      <button type="button" className={className} onClick={() => dispatch({ type: 'NEXT_ROUND' })}>
+        Next Round
+      </button>
+    );
+  }
+
+  if (canResolveFate(state)) {
+    return (
+      <button type="button" className={className} onClick={resolveFate}>
+        Resolve
+      </button>
+    );
+  }
+
+  if (state.screenState === 'spinning_fate') {
+    return (
+      <button type="button" className={className} disabled>
+        Spinning…
+      </button>
+    );
+  }
+
+  if (canSpinFateWheel(state)) {
+    return (
+      <button type="button" className={className} onClick={spinFate}>
+        Spin Fate
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={className}
+      onClick={spinPlayer}
+      disabled={!canSpinPlayerWheel(state)}
+    >
+      {state.screenState === 'spinning_player' ? 'Spinning…' : 'Spin Player'}
+    </button>
+  );
+}
+
+function winnerName(state: GameState): string {
+  return state.players.find((player) => player.id === state.winnerId)?.name ?? '—';
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

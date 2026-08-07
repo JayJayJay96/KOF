@@ -115,11 +115,10 @@ export function Wheel({
     }
 
     // Labels drawn in a second pass so no segment fill covers a neighbour's text.
-    ctx.font = `600 ${fontSize}px system-ui, "Segoe UI", Roboto, sans-serif`;
     ctx.textBaseline = 'middle';
 
-    const maxLabelWidth = radius * 0.6;
-    const labelInset = 14;
+    const maxLabelWidth = radius * 0.7;
+    const labelInset = 12;
 
     for (let i = 0; i < count; i += 1) {
       // Keyed off the engine's result, not the pointer position. If the two
@@ -133,7 +132,7 @@ export function Wheel({
       ctx.rotate(angle);
       ctx.fillStyle = isLanded ? '#ffd479' : '#e8ecf3';
 
-      const label = truncateToWidth(ctx, entries[i].label, maxLabelWidth);
+      const label = fitLabel(ctx, entries[i].label, maxLabelWidth, fontSize);
 
       // Segments on the left half would otherwise render upside down. Flip
       // them so every name reads left-to-right (PROJECT_SPEC.md §21: names
@@ -277,6 +276,32 @@ export function Wheel({
       </div>
     </div>
   );
+}
+
+const LABEL_FONT_FAMILY = 'system-ui, "Segoe UI", Roboto, sans-serif';
+const MIN_LABEL_FONT = 10;
+
+/**
+ * Fit a label into its segment, setting ctx.font as a side effect.
+ *
+ * Shrinking is tried BEFORE truncating. The arc-height font size alone is not
+ * enough: a small wheel with few segments has generous arc height but little
+ * radial width, which previously reduced every Fate label to an ellipsis.
+ * Truncation is the last resort, once the floor font still does not fit.
+ */
+function fitLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  baseFontSize: number,
+): string {
+  for (let size = Math.round(baseFontSize); size > MIN_LABEL_FONT; size -= 1) {
+    ctx.font = `600 ${size}px ${LABEL_FONT_FAMILY}`;
+    if (ctx.measureText(text).width <= maxWidth) return text;
+  }
+
+  ctx.font = `600 ${MIN_LABEL_FONT}px ${LABEL_FONT_FAMILY}`;
+  return truncateToWidth(ctx, text, maxWidth);
 }
 
 /** Trim a label with an ellipsis until it fits the segment width. */

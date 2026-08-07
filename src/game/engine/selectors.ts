@@ -85,8 +85,23 @@ export function canSpinFateWheel(state: GameState): boolean {
   return state.screenState === 'player_selected' && state.currentPlayerId !== null;
 }
 
+/** Only a resolved Fate ends a round — the Fate step cannot be skipped. */
 export function canAdvanceRound(state: GameState): boolean {
-  return state.screenState === 'player_selected' || state.screenState === 'fate_selected';
+  return state.screenState === 'resolving';
+}
+
+/** The Fate Wheel is live only once a player is selected (PROJECT_SPEC.md §9). */
+export function canResolveFate(state: GameState): boolean {
+  return state.screenState === 'fate_selected' && state.currentAbilityId !== null;
+}
+
+/**
+ * The chosen ability, but only once it may be revealed.
+ * Hidden while the Fate Wheel is still turning, exactly as the player is.
+ */
+export function getRevealedAbilityId(state: GameState): string | null {
+  if (state.screenState === 'spinning_fate') return null;
+  return state.currentAbilityId;
 }
 
 export function isGameOver(state: GameState): boolean {

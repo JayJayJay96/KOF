@@ -24,6 +24,8 @@ import {
   resetPlayerForNewGame,
 } from './gameEngine';
 import { getAlivePlayers } from './selectors';
+import { applyGameEvents } from '../events/eventResolver';
+import { buildGameContext, getAbility } from '../abilities';
 
 /** A game needs at least two players to have a loser and a winner. */
 export const MIN_PLAYERS_TO_START = 2;
@@ -35,6 +37,9 @@ export type GameAction =
   | { type: 'START_PLAYER_SPIN'; playerId: string }
   | { type: 'PLAYER_SPIN_COMPLETE' }
   | { type: 'SELECT_PLAYER'; playerId: string }
+  | { type: 'START_FATE_SPIN'; abilityId: string }
+  | { type: 'FATE_SPIN_COMPLETE' }
+  | { type: 'RESOLVE_FATE' }
   | { type: 'SELECT_ABILITY'; abilityId: string }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'NEXT_ROUND' }
@@ -59,6 +64,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SELECT_PLAYER':
       return selectPlayer(state, action.playerId);
+
+    case 'START_FATE_SPIN':
+      return startFateSpin(state, action.abilityId);
+
+    case 'FATE_SPIN_COMPLETE':
+      return completeFateSpin(state);
+
+    case 'RESOLVE_FATE':
+      return resolveFate(state);
 
     case 'SELECT_ABILITY':
       return selectAbility(state, action.abilityId);
@@ -185,6 +199,60 @@ function selectPlayer(state: GameState, playerId: string): GameState {
   };
 }
 
+/**
+ * Begin a Fate Wheel spin toward an already-decided ability.
+ *
+ * Mirrors the Main Wheel pair: the engine picks, the wheel animates, the
+ * result is revealed on completion. The Fate Wheel cannot spin before a player
+ * exists (PROJECT_SPEC.md §9).
+ */
+function startFateSpin(state: GameState, abilityId: string): GameState {
+  if (state.screenState !== 'player_selected') return state;
+  if (state.currentPlayerId === null) return state;
+
+  return {
+    ...state,
+    currentAbilityId: abilityId,
+    screenState: 'spinning_fate',
+  };
+}
+
+/** The Fate Wheel finished animating — reveal the ability and log it. */
+function completeFateSpin(state: GameState): GameState {
+  if (state.screenState !== 'spinning_fate') return state;
+  if (state.currentAbilityId === null) return state;
+
+  return {
+    ...state,
+    screenState: 'fate_selected',
+    history: appendEvents(state, [{ type: 'ABILITY_SELECTED', abilityId: state.currentAbilityId }]),
+  };
+}
+
+/**
+ * Resolve the revealed Fate.
+ *
+ * The ability produces events; eventResolver applies them. This function knows
+ * nothing about individual abilities — adding a new one never changes it.
+ *
+ * Screen state lands on 'resolving' so the host reads the outcome before
+ * advancing, unless the ability asked for another Fate roll (Again), in which
+ * case eventResolver has already returned the screen to 'player_selected'.
+ */
+function resolveFate(state: GameState): GameState {
+  if (state.screenState !== 'fate_selected') return state;
+
+  const ability = getAbility(state.currentAbilityId);
+  const playerId = state.currentPlayerId;
+  if (!ability || playerId === null) return state;
+
+  const events = ability.resolve(buildGameContext(state), playerId);
+  const resolved = applyGameEvents({ ...state, screenState: 'resolving' }, events);
+
+  // applyPhaseAndWinner may override screenState to 'winner'.
+  return applyPhaseAndWinner(resolved);
+}
+
 function selectAbility(state: GameState, abilityId: string): GameState {
   if (state.screenState !== 'player_selected') return state;
   if (state.currentPlayerId === null) return state;
@@ -234,10 +302,9 @@ function eliminatePlayer(state: GameState, playerId: string): GameState {
 }
 
 function nextRound(state: GameState): GameState {
-  // Never advance mid-animation, mid-setup, or after the game is decided.
-  if (state.screenState !== 'player_selected' && state.screenState !== 'fate_selected') {
-    return state;
-  }
+  // Only from a resolved Fate. This prevents skipping the Fate step, advancing
+  // mid-animation, or advancing once the game is decided.
+  if (state.screenState !== 'resolving') return state;
 
   const round = state.round + 1;
 

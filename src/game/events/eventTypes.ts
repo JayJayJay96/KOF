@@ -17,6 +17,9 @@ export type GameEvent =
   | { type: 'SHOW_MESSAGE'; message: string }
   | { type: 'WAIT_FOR_HOST' }
   | { type: 'REQUEST_PLAYER_SPIN'; purpose: string }
+  // Sibling of REQUEST_PLAYER_SPIN. Lets Again hand control back to the host
+  // for another Fate roll without the reducer switching on ability id.
+  | { type: 'REQUEST_FATE_SPIN'; purpose: string }
   | { type: 'ATTACK_PLAYER'; playerId: string; source: string }
   | { type: 'SHIELD_BLOCK'; playerId: string }
   | { type: 'ADD_SHIELD'; playerId: string }
