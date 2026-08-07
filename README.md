@@ -5,10 +5,11 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–1 complete; Phase 2 next.**
-The Main Wheel works end to end: enter players, start, spin, land on a result.
-There is no Fate Wheel and no abilities yet — that is Phase 2. See
-`PROJECT_STATUS.md`.
+Current status: **Pass 1 — MVP. Phases 0–2 complete; Phase 3 next.**
+The core loop is playable: enter players, then
+`Spin Player → Spin Fate → Resolve → Next Round` until one winner remains.
+Four Fates are implemented — Eliminate, Shield, Safe, Again. Hunter, Death Mark,
+Revive and Duel arrive in Phase 4. See `PROJECT_STATUS.md`.
 
 ## Documentation
 
@@ -57,12 +58,14 @@ src/
 ├── components/   React UI (renders state, decides nothing)
 │   ├── Wheel/    reusable Canvas wheel + pure geometry
 │   ├── MainWheel/ players-to-entries adapter
+│   ├── FateWheel/ abilities-to-entries adapter
 │   ├── PlayerSetup/
 │   └── GameScreen/
 ├── game/
-│   ├── engine/   reducer, selectors, pure engine primitives
+│   ├── abilities/ one file per Fate + the registry
+│   ├── engine/   reducer, selectors, shared attack flow
 │   ├── phases/   phase thresholds + resolver
-│   ├── events/   game event vocabulary
+│   ├── events/   event vocabulary + the only place events change state
 │   ├── types/    Player, GameState, AbilityDefinition
 │   └── config/   default game configuration
 ├── hooks/        React bindings for the engine
@@ -70,6 +73,12 @@ src/
 └── utils/        centralised randomness, ids
 ```
 
-`src/game/abilities/`, `src/effects/`, `src/audio/` and `src/storage/` are named in
-the spec's target structure but are not created yet — they arrive with the phases
-that need them.
+`src/effects/`, `src/audio/` and `src/storage/` are named in the spec's target
+structure but are not created yet — they arrive with the phases that need them.
+
+### Adding a Fate
+
+Write an `AbilityDefinition` in `src/game/abilities/`, then add it to `ABILITIES`
+in `src/game/abilities/index.ts`. That is the whole change — no component, wheel
+or reducer edit. Anything that causes elimination must go through
+`attackPlayer()` in `src/game/engine/attack.ts` so Shield keeps working.
