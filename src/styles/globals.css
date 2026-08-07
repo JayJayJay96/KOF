@@ -1,9 +1,9 @@
 /*
- * Phase 0 baseline styling only.
+ * Phase 1 baseline styling.
  *
  * This is NOT the arcade theme — that is Phase 7 (MVP Arcade Presentation).
- * The goal here is a readable, non-embarrassing root layout that proves the
- * app renders and scales between 1280x720 and 1920x1080 (PROJECT_SPEC.md §21).
+ * The goal is a clear, readable layout that scales between 1280x720 and
+ * 1920x1080 and stays legible after stream compression (PROJECT_SPEC.md §21).
  */
 
 :root {
@@ -31,22 +31,25 @@ body {
   color: var(--kof-text);
 }
 
+/* Full-height flex column. The game screen fills it and the wheel takes the
+   leftover space, so nothing needs to guess at chrome heights. */
 .app {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  min-height: 100vh;
-  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+  gap: 1rem;
+  height: 100vh;
+  overflow: hidden;
+  padding: 1rem clamp(1rem, 4vw, 3rem);
 }
 
 .app__header {
   border-bottom: 2px solid var(--kof-border);
-  padding-bottom: 1rem;
+  padding-bottom: 0.75rem;
 }
 
 .app__title {
   margin: 0;
-  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--kof-accent);
@@ -63,80 +66,106 @@ body {
   vertical-align: middle;
 }
 
-.app__meta {
-  margin: 0.5rem 0 0;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.12em;
-  color: var(--kof-muted);
-}
-
 .app__main {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .app__footer {
   border-top: 1px solid var(--kof-border);
   padding-top: 0.75rem;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--kof-muted);
 }
 
-/* --- Debug panel (temporary scaffolding) --- */
+/* --- Buttons --- */
 
-.debug-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-  padding: 1.25rem;
-  border: 1px dashed var(--kof-border);
-  border-radius: 8px;
+.button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 4px;
   background: var(--kof-surface);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    color 120ms ease;
 }
 
-.debug-panel__title {
-  margin: 0;
+.button:hover:not(:disabled) {
+  border-color: var(--kof-accent);
+  color: var(--kof-accent);
+}
+
+.button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.button--primary:not(:disabled) {
+  border-color: var(--kof-accent);
+  color: var(--kof-accent);
+  font-weight: 700;
+}
+
+.button--primary:hover:not(:disabled) {
+  background: var(--kof-accent);
+  color: #0d0f14;
+}
+
+.button--large {
+  padding: 0.8rem 2.5rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.button--small {
+  padding: 0.3rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+/* --- Setup screen --- */
+
+.setup__heading {
+  margin: 0 0 1rem;
   font-size: 1rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--kof-muted);
 }
 
-.debug-panel__stats {
+.setup__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.75rem;
-  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1.5rem;
+  align-items: start;
 }
 
-.debug-panel__stats dt {
-  font-size: 0.7rem;
+.setup__entry,
+.setup__roster {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 8px;
+  background: var(--kof-surface);
+}
+
+.setup__label {
+  margin: 0;
+  font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--kof-muted);
 }
 
-.debug-panel__stats dd {
-  margin: 0.15rem 0 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-}
-
-.debug-panel__block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.debug-panel__label {
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--kof-muted);
-}
-
-.debug-panel__textarea {
+.setup__textarea {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.6rem;
   border: 1px solid var(--kof-border);
   border-radius: 4px;
   background: var(--kof-bg);
@@ -145,94 +174,289 @@ body {
   resize: vertical;
 }
 
-.debug-panel__actions {
+.setup__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
 }
 
-.debug-panel button {
-  padding: 0.45rem 0.9rem;
+.setup__hint,
+.setup__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--kof-muted);
+}
+
+.setup__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.setup__list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 6%);
+}
+
+.setup__index {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--kof-muted);
+}
+
+.setup__name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.setup__remove {
+  padding: 0.1rem 0.45rem;
   border: 1px solid var(--kof-border);
   border-radius: 4px;
-  background: var(--kof-bg);
-  color: inherit;
-  font: inherit;
+  background: transparent;
+  color: var(--kof-muted);
+  font-size: 0.75rem;
   cursor: pointer;
 }
 
-.debug-panel button:hover:not(:disabled) {
-  border-color: var(--kof-accent);
-  color: var(--kof-accent);
+.setup__remove:hover {
+  border-color: var(--kof-danger);
+  color: var(--kof-danger);
 }
 
-.debug-panel button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+/* --- Game screen --- */
+
+.game {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
 }
 
-.debug-panel__columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-  gap: 1.25rem;
+.game__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
 }
 
-.debug-panel__columns h3 {
-  margin: 0;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
+.game__stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.game__stat-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--kof-muted);
 }
 
-.debug-panel__list {
+.game__stat-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+/* Stage owns the leftover vertical space; .wheel then claims what remains
+   after the result readout and action button. */
+.game__stage {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.game__result {
+  min-height: 3.75rem;
+  text-align: center;
+}
+
+.game__result-label {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.game__result-name {
+  margin: 0.15rem 0 0;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--kof-accent);
+  overflow-wrap: anywhere;
+}
+
+.game__result-pending {
+  margin: 1.2rem 0 0;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.game__roster-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.game__roster-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin: 0;
   padding: 0;
   list-style: none;
-  max-height: 16rem;
+  /* Capped so a 20-player roster cannot squeeze the wheel off-screen. */
+  max-height: 4.5rem;
   overflow-y: auto;
 }
 
-.debug-panel__list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0;
-  border-bottom: 1px solid rgb(255 255 255 / 5%);
+.game__roster-item {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 999px;
+  font-size: 0.9rem;
 }
 
-.debug-panel__list--events {
-  font-size: 0.85rem;
-}
-
-.debug-panel__list .is-current {
+.game__roster-item.is-selected {
+  border-color: var(--kof-accent);
   color: var(--kof-accent);
   font-weight: 700;
 }
 
-.debug-panel__list .is-eliminated {
-  color: var(--kof-muted);
+.game__roster-item.is-out {
+  opacity: 0.4;
   text-decoration: line-through;
 }
 
-.debug-panel__list .is-empty {
+.game__dev {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--kof-border);
+}
+
+.game__dev-tag {
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   color: var(--kof-muted);
-  font-style: italic;
-  border-bottom: none;
 }
 
-.debug-panel__meta {
-  font-size: 0.75rem;
-  color: var(--kof-muted);
+/* --- Wheel --- */
+
+/* Flex child with min-height:0 — its measured box is exactly the space left
+   over, which Wheel.tsx reads to size the square canvas. */
+.wheel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
 }
 
-.debug-panel__remove {
-  margin-left: auto;
-  padding: 0.1rem 0.4rem;
-  font-size: 0.75rem;
+.wheel__stage {
+  position: relative;
 }
 
-.debug-panel__remove:hover {
-  border-color: var(--kof-danger);
-  color: var(--kof-danger);
+.wheel__canvas {
+  display: block;
+  border-radius: 50%;
+  border: 2px solid var(--kof-border);
+}
+
+/* Pointer sits at 12 o'clock aiming inward (downward) into the wheel. */
+.wheel__pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  transform: translateX(-50%);
+  border-left: 13px solid transparent;
+  border-right: 13px solid transparent;
+  border-top: 24px solid var(--kof-accent);
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 60%));
+}
+
+/* Each tick remounts the pointer via key, replaying this nudge. */
+.wheel__pointer--ticking {
+  animation: wheel-tick 90ms ease-out;
+}
+
+@keyframes wheel-tick {
+  0% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+  45% {
+    transform: translateX(-50%) rotate(11deg);
+  }
+  100% {
+    transform: translateX(-50%) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wheel__pointer--ticking {
+    animation: none;
+  }
+}
+
+/*
+ * Short viewports (the 1280x720 streaming target).
+ *
+ * Reclaim vertical chrome so the wheel stays the dominant element rather than
+ * collapsing to its minimum size. Everything trimmed here is secondary: the
+ * phase-label footer, oversized title, and roster overflow.
+ */
+@media (max-height: 820px) {
+  .app {
+    gap: 0.6rem;
+    padding: 0.6rem clamp(1rem, 4vw, 3rem);
+  }
+
+  .app__title {
+    font-size: 1.5rem;
+  }
+
+  .app__header {
+    padding-bottom: 0.5rem;
+  }
+
+  .app__footer {
+    display: none;
+  }
+
+  .game__stats {
+    gap: 1.75rem;
+  }
+
+  .game__stat-value {
+    font-size: 1.15rem;
+  }
+
+  .game__result {
+    min-height: 3rem;
+  }
+
+  .game__roster-list {
+    max-height: 3rem;
+  }
 }

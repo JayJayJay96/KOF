@@ -11,8 +11,19 @@ import type { GameState } from '../types/game';
 import type { Player } from '../types/player';
 import { randomItem } from '../../utils/random';
 
+/**
+ * Roster-level filter.
+ *
+ * Exposed separately so React can memoise on `state.players` alone. Memoising
+ * on the whole state would produce a new array on every dispatch, which would
+ * restart the wheel animation mid-spin.
+ */
+export function filterAlive(players: readonly Player[]): Player[] {
+  return players.filter((player) => player.status === 'alive');
+}
+
 export function getAlivePlayers(state: GameState): Player[] {
-  return state.players.filter((player) => player.status === 'alive');
+  return filterAlive(state.players);
 }
 
 export function getEliminatedPlayers(state: GameState): Player[] {
@@ -54,12 +65,28 @@ export function canSpinPlayerWheel(state: GameState): boolean {
   return state.screenState === 'idle' && getAlivePlayers(state).length > 0;
 }
 
+/** True while a wheel animation owns the screen — all host input must be locked. */
+export function isAnimating(state: GameState): boolean {
+  return state.screenState === 'spinning_player' || state.screenState === 'spinning_fate';
+}
+
+/**
+ * The selected player, but only once it is allowed to be revealed.
+ *
+ * During 'spinning_player' the engine already knows the result; showing it
+ * would spoil the spin.
+ */
+export function getRevealedPlayer(state: GameState): Player | null {
+  if (state.screenState === 'spinning_player') return null;
+  return getCurrentPlayer(state);
+}
+
 export function canSpinFateWheel(state: GameState): boolean {
   return state.screenState === 'player_selected' && state.currentPlayerId !== null;
 }
 
 export function canAdvanceRound(state: GameState): boolean {
-  return state.screenState === 'fate_selected' || state.screenState === 'player_selected';
+  return state.screenState === 'player_selected' || state.screenState === 'fate_selected';
 }
 
 export function isGameOver(state: GameState): boolean {

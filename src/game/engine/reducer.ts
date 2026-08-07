@@ -1,9 +1,9 @@
 /**
  * Game reducer — the only place GameState changes.
  *
- * Scope: DEVELOPMENT_ROADMAP.md Phase 0 actions only. Fate abilities, the
- * shared attack abstraction and the event queue arrive in Phase 3; do not
- * add ability logic here.
+ * Scope: DEVELOPMENT_ROADMAP.md Phase 0 + Phase 1 actions. Fate abilities, the
+ * shared attack abstraction and the event queue arrive in Phase 3; do not add
+ * ability logic here.
  *
  * The reducer is PURE. It never calls Math.random(): callers pick the target
  * with selectors.ts and dispatch the chosen id. That keeps the action log
@@ -32,6 +32,8 @@ export type GameAction =
   | { type: 'ADD_PLAYERS'; names: string[] }
   | { type: 'REMOVE_PLAYER'; playerId: string }
   | { type: 'START_GAME' }
+  | { type: 'START_PLAYER_SPIN'; playerId: string }
+  | { type: 'PLAYER_SPIN_COMPLETE' }
   | { type: 'SELECT_PLAYER'; playerId: string }
   | { type: 'SELECT_ABILITY'; abilityId: string }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
@@ -48,6 +50,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_GAME':
       return startGame(state);
+
+    case 'START_PLAYER_SPIN':
+      return startPlayerSpin(state, action.playerId);
+
+    case 'PLAYER_SPIN_COMPLETE':
+      return completePlayerSpin(state);
 
     case 'SELECT_PLAYER':
       return selectPlayer(state, action.playerId);
@@ -119,6 +127,49 @@ function startGame(state: GameState): GameState {
   return applyPhaseAndWinner({ ...started, history: appendEvents(started, events) });
 }
 
+/**
+ * Begin a Main Wheel spin toward an already-decided player.
+ *
+ * The engine has picked the winner before the wheel moves (PROJECT_SPEC.md §8),
+ * so `currentPlayerId` is set immediately. The UI must not reveal it while
+ * `screenState` is 'spinning_player' — that is what makes the wheel a renderer
+ * rather than a decision-maker (AGENTS.md §7.2).
+ *
+ * Entering 'spinning_player' also locks every host control, so a double click
+ * cannot start a second spin.
+ */
+function startPlayerSpin(state: GameState, playerId: string): GameState {
+  if (state.screenState !== 'idle') return state;
+
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player || player.status !== 'alive') return state;
+
+  return {
+    ...state,
+    currentPlayerId: playerId,
+    currentAbilityId: null,
+    screenState: 'spinning_player',
+  };
+}
+
+/** The wheel finished animating — reveal the result and log it. */
+function completePlayerSpin(state: GameState): GameState {
+  if (state.screenState !== 'spinning_player') return state;
+  if (state.currentPlayerId === null) return state;
+
+  return {
+    ...state,
+    screenState: 'player_selected',
+    history: appendEvents(state, [{ type: 'PLAYER_SELECTED', playerId: state.currentPlayerId }]),
+  };
+}
+
+/**
+ * Instant selection with no animation.
+ *
+ * Kept alongside the spin pair for tests and for the "skip animation" option
+ * planned in Enhancement Phase 2.
+ */
 function selectPlayer(state: GameState, playerId: string): GameState {
   if (state.screenState !== 'idle') return state;
 
@@ -183,7 +234,10 @@ function eliminatePlayer(state: GameState, playerId: string): GameState {
 }
 
 function nextRound(state: GameState): GameState {
-  if (state.screenState === 'setup' || state.screenState === 'winner') return state;
+  // Never advance mid-animation, mid-setup, or after the game is decided.
+  if (state.screenState !== 'player_selected' && state.screenState !== 'fate_selected') {
+    return state;
+  }
 
   const round = state.round + 1;
 

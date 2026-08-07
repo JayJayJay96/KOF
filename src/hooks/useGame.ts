@@ -17,8 +17,10 @@ import type { GameState } from '../game/types/game';
 export type UseGameResult = {
   state: GameState;
   dispatch: (action: GameAction) => void;
-  /** Engine picks an eligible player, then dispatches SELECT_PLAYER. */
+  /** Engine picks an eligible player, then starts the wheel animation toward it. */
   spinPlayer: () => void;
+  /** Called by the wheel when its animation finishes; reveals the result. */
+  completePlayerSpin: () => void;
 };
 
 export function useGame(): UseGameResult {
@@ -30,8 +32,12 @@ export function useGame(): UseGameResult {
     const player = selectRandomEligiblePlayer(state);
     if (!player) return;
 
-    dispatch({ type: 'SELECT_PLAYER', playerId: player.id });
+    dispatch({ type: 'START_PLAYER_SPIN', playerId: player.id });
   }, [state]);
 
-  return { state, dispatch, spinPlayer };
+  const completePlayerSpin = useCallback(() => {
+    dispatch({ type: 'PLAYER_SPIN_COMPLETE' });
+  }, []);
+
+  return { state, dispatch, spinPlayer, completePlayerSpin };
 }
