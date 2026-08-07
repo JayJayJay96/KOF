@@ -1,0 +1,238 @@
+/*
+ * Phase 0 baseline styling only.
+ *
+ * This is NOT the arcade theme — that is Phase 7 (MVP Arcade Presentation).
+ * The goal here is a readable, non-embarrassing root layout that proves the
+ * app renders and scales between 1280x720 and 1920x1080 (PROJECT_SPEC.md §21).
+ */
+
+:root {
+  --kof-bg: #0d0f14;
+  --kof-surface: #171b23;
+  --kof-border: #2b313d;
+  --kof-text: #e8ecf3;
+  --kof-muted: #8b95a7;
+  --kof-accent: #ffb020;
+  --kof-danger: #ff4d4d;
+
+  color-scheme: dark;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--kof-bg);
+  color: var(--kof-text);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: 100vh;
+  padding: 1.5rem clamp(1rem, 4vw, 3rem);
+}
+
+.app__header {
+  border-bottom: 2px solid var(--kof-border);
+  padding-bottom: 1rem;
+}
+
+.app__title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--kof-accent);
+}
+
+.app__subtitle {
+  display: inline-block;
+  margin-left: 0.75rem;
+  font-size: 0.4em;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  color: var(--kof-muted);
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.app__meta {
+  margin: 0.5rem 0 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.12em;
+  color: var(--kof-muted);
+}
+
+.app__main {
+  flex: 1;
+}
+
+.app__footer {
+  border-top: 1px solid var(--kof-border);
+  padding-top: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--kof-muted);
+}
+
+/* --- Debug panel (temporary scaffolding) --- */
+
+.debug-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px dashed var(--kof-border);
+  border-radius: 8px;
+  background: var(--kof-surface);
+}
+
+.debug-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.debug-panel__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.debug-panel__stats dt {
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.debug-panel__stats dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.debug-panel__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.debug-panel__label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.debug-panel__textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 4px;
+  background: var(--kof-bg);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.debug-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.debug-panel button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 4px;
+  background: var(--kof-bg);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.debug-panel button:hover:not(:disabled) {
+  border-color: var(--kof-accent);
+  color: var(--kof-accent);
+}
+
+.debug-panel button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.debug-panel__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 1.25rem;
+}
+
+.debug-panel__columns h3 {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.debug-panel__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.debug-panel__list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 5%);
+}
+
+.debug-panel__list--events {
+  font-size: 0.85rem;
+}
+
+.debug-panel__list .is-current {
+  color: var(--kof-accent);
+  font-weight: 700;
+}
+
+.debug-panel__list .is-eliminated {
+  color: var(--kof-muted);
+  text-decoration: line-through;
+}
+
+.debug-panel__list .is-empty {
+  color: var(--kof-muted);
+  font-style: italic;
+  border-bottom: none;
+}
+
+.debug-panel__meta {
+  font-size: 0.75rem;
+  color: var(--kof-muted);
+}
+
+.debug-panel__remove {
+  margin-left: auto;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+.debug-panel__remove:hover {
+  border-color: var(--kof-danger);
+  color: var(--kof-danger);
+}
