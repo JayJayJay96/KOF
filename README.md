@@ -5,7 +5,7 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–2 complete; Phase 3 next.**
+Current status: **Pass 1 — MVP. Phases 0–3 complete; Phase 4 next.**
 The core loop is playable: enter players, then
 `Spin Player → Spin Fate → Resolve → Next Round` until one winner remains.
 Four Fates are implemented — Eliminate, Shield, Safe, Again. Hunter, Death Mark,
@@ -82,3 +82,8 @@ Write an `AbilityDefinition` in `src/game/abilities/`, then add it to `ABILITIES
 in `src/game/abilities/index.ts`. That is the whole change — no component, wheel
 or reducer edit. Anything that causes elimination must go through
 `attackPlayer()` in `src/game/engine/attack.ts` so Shield keeps working.
+
+Abilities return events; they never mutate state. `events/eventResolver.ts` owns
+what an event does, `events/eventQueue.ts` owns ordering. A multi-step ability
+suspends by emitting a blocking event (`WAIT_FOR_HOST`, `REQUEST_FATE_SPIN`,
+`REQUEST_PLAYER_SPIN`) and resumes when the host continues.
