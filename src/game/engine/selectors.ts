@@ -85,9 +85,17 @@ export function canSpinFateWheel(state: GameState): boolean {
   return state.screenState === 'player_selected' && state.currentPlayerId !== null;
 }
 
-/** Only a resolved Fate ends a round — the Fate step cannot be skipped. */
+/**
+ * Only a fully resolved Fate ends a round — the Fate step cannot be skipped,
+ * and pending events cannot be abandoned.
+ */
 export function canAdvanceRound(state: GameState): boolean {
-  return state.screenState === 'resolving';
+  return state.screenState === 'resolving' && state.eventQueue.length === 0;
+}
+
+/** Resolution is suspended on a blocking event, waiting for the host. */
+export function canContinueEvents(state: GameState): boolean {
+  return state.eventQueue.length > 0;
 }
 
 /** The Fate Wheel is live only once a player is selected (PROJECT_SPEC.md §9). */

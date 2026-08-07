@@ -40,6 +40,7 @@ export function createInitialGameState(config: GameConfig = createDefaultGameCon
     history: [],
     winnerId: null,
     config,
+    eventQueue: [],
   };
 }
 

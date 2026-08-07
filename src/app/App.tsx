@@ -26,6 +26,10 @@ export default function App() {
   // Memoised so each wheel receives a stable entries array; a fresh array on
   // every render would restart an in-flight spin animation.
   const alivePlayers = useMemo(() => filterAlive(state.players), [state.players]);
+  const eliminatedPlayers = useMemo(
+    () => state.players.filter((player) => player.status === 'eliminated'),
+    [state.players],
+  );
   // Availability reads phase, roster and config, so it genuinely depends on the
   // whole state. Recomputing per dispatch is cheap, and no dispatch happens
   // mid-spin, so the Fate Wheel's entries stay stable while it animates.
@@ -51,6 +55,7 @@ export default function App() {
           <GameScreen
             state={state}
             alivePlayers={alivePlayers}
+            eliminatedPlayers={eliminatedPlayers}
             availableAbilities={availableAbilities}
             revealedPlayer={revealedPlayer}
             revealedAbilityId={revealedAbilityId}
@@ -64,7 +69,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="app__footer">Phase 2 — Core Two-Wheel Game Loop</footer>
+      <footer className="app__footer">Phase 3 — Core Fate Ability System</footer>
     </div>
   );
 }

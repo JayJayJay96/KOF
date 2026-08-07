@@ -24,7 +24,7 @@ import {
   resetPlayerForNewGame,
 } from './gameEngine';
 import { getAlivePlayers } from './selectors';
-import { applyGameEvents } from '../events/eventResolver';
+import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
 import { buildGameContext, getAbility } from '../abilities';
 
 /** A game needs at least two players to have a loser and a winner. */
@@ -40,6 +40,7 @@ export type GameAction =
   | { type: 'START_FATE_SPIN'; abilityId: string }
   | { type: 'FATE_SPIN_COMPLETE' }
   | { type: 'RESOLVE_FATE' }
+  | { type: 'CONTINUE_EVENTS' }
   | { type: 'SELECT_ABILITY'; abilityId: string }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'NEXT_ROUND' }
@@ -73,6 +74,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'RESOLVE_FATE':
       return resolveFate(state);
+
+    case 'CONTINUE_EVENTS':
+      return continueEvents(state);
 
     case 'SELECT_ABILITY':
       return selectAbility(state, action.abilityId);
@@ -131,6 +135,7 @@ function startGame(state: GameState): GameState {
     currentAbilityId: null,
     winnerId: null,
     history: [],
+    eventQueue: [],
   };
 
   const events: GameEvent[] = [
@@ -247,10 +252,22 @@ function resolveFate(state: GameState): GameState {
   if (!ability || playerId === null) return state;
 
   const events = ability.resolve(buildGameContext(state), playerId);
-  const resolved = applyGameEvents({ ...state, screenState: 'resolving' }, events);
+  const queued = enqueueEvents({ ...state, screenState: 'resolving' }, events);
 
   // applyPhaseAndWinner may override screenState to 'winner'.
-  return applyPhaseAndWinner(resolved);
+  return applyPhaseAndWinner(drainEventQueue(queued));
+}
+
+/**
+ * Resume a suspended resolution.
+ *
+ * The queue stops at blocking events so the host can react between steps. This
+ * is what the Continue button dispatches; it is also how Phase 4's multi-step
+ * abilities will advance without the reducer knowing which ability is running.
+ */
+function continueEvents(state: GameState): GameState {
+  if (state.eventQueue.length === 0) return state;
+  return applyPhaseAndWinner(drainEventQueue(state));
 }
 
 function selectAbility(state: GameState, abilityId: string): GameState {
@@ -302,9 +319,11 @@ function eliminatePlayer(state: GameState, playerId: string): GameState {
 }
 
 function nextRound(state: GameState): GameState {
-  // Only from a resolved Fate. This prevents skipping the Fate step, advancing
-  // mid-animation, or advancing once the game is decided.
+  // Only from a fully resolved Fate. This prevents skipping the Fate step,
+  // advancing mid-animation, advancing past pending events, or advancing once
+  // the game is decided.
   if (state.screenState !== 'resolving') return state;
+  if (state.eventQueue.length > 0) return state;
 
   const round = state.round + 1;
 

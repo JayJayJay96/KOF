@@ -18,6 +18,7 @@ import type { GameState } from '../../game/types/game';
 import type { Player } from '../../game/types/player';
 import {
   canAdvanceRound,
+  canContinueEvents,
   canResolveFate,
   canSpinFateWheel,
   canSpinPlayerWheel,
@@ -27,10 +28,12 @@ import { getAbility } from '../../game/abilities';
 import { PHASE_LABELS } from '../../game/phases/phaseConfig';
 import { MainWheel } from '../MainWheel/MainWheel';
 import { FateWheel } from '../FateWheel/FateWheel';
+import { StatusPanel } from '../StatusPanel/StatusPanel';
 
 type GameScreenProps = {
   state: GameState;
   alivePlayers: Player[];
+  eliminatedPlayers: Player[];
   availableAbilities: AbilityDefinition[];
   revealedPlayer: Player | null;
   revealedAbilityId: string | null;
@@ -45,6 +48,7 @@ type GameScreenProps = {
 export function GameScreen({
   state,
   alivePlayers,
+  eliminatedPlayers,
   availableAbilities,
   revealedPlayer,
   revealedAbilityId,
@@ -124,26 +128,11 @@ export function GameScreen({
         />
       </div>
 
-      <div className="game__roster">
-        <ul className="game__roster-list">
-          {state.players.map((player) => (
-            <li
-              key={player.id}
-              className={[
-                'game__roster-item',
-                player.status === 'eliminated' ? 'is-out' : '',
-                revealedPlayer?.id === player.id ? 'is-selected' : '',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              {player.name}
-              {player.shield > 0 && <span title="Shield"> 🛡</span>}
-              {player.deathMark && <span title="Death Mark"> 💀</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <StatusPanel
+        alive={alivePlayers}
+        eliminated={eliminatedPlayers}
+        selectedId={revealedPlayer?.id ?? null}
+      />
 
       {/* TEMPORARY dev control. Reset is not yet a host feature (Phase 6D). */}
       <div className="game__dev">
@@ -184,6 +173,19 @@ function PrimaryAction({
     return (
       <button type="button" className={className} onClick={() => dispatch({ type: 'RESET_GAME' })}>
         New Game
+      </button>
+    );
+  }
+
+  // Resolution suspended on a blocking event — the host decides when to resume.
+  if (canContinueEvents(state)) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => dispatch({ type: 'CONTINUE_EVENTS' })}
+      >
+        Continue
       </button>
     );
   }

@@ -5,15 +5,14 @@
  * GameState. That keeps ability files declarative and means a new ability can
  * never invent a new way to mutate players (AGENTS.md §9).
  *
- * Phase 2 applies events immediately. The sequenced, animation-aware queue
- * (pauses, timing, choreography) is Phase 3 — this is the state half of it,
- * deliberately separated so adding sequencing later does not touch abilities.
+ * This file is the STATE half of resolution: what one event does. Ordering,
+ * pausing and host hand-offs live in eventQueue.ts. Keeping them apart means
+ * sequencing changes never touch the per-event rules, and vice versa.
  */
 
 import type { GameEvent } from './eventTypes';
 import type { GameState } from '../types/game';
 import type { Player } from '../types/player';
-import { appendEvents } from '../engine/gameEngine';
 
 /** MVP Shield stack cap (PROJECT_SPEC.md §11.2). */
 export const MAX_SHIELD = 1;
@@ -36,7 +35,7 @@ function mapPlayer(
  * presentation and history markers — they still reach the log, they simply do
  * not move state here.
  */
-function applyGameEvent(state: GameState, event: GameEvent): GameState {
+export function applyGameEvent(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
     case 'ADD_SHIELD':
       return mapPlayer(state, event.playerId, (player) => ({
@@ -83,23 +82,8 @@ function applyGameEvent(state: GameState, event: GameEvent): GameState {
           : player,
       );
 
-    // Hands control back to the host for another Fate roll (Again).
-    case 'REQUEST_FATE_SPIN':
-      return { ...state, screenState: 'player_selected', currentAbilityId: null };
-
+    // Blocking events are handled by the queue, not here — see eventQueue.ts.
     default:
       return state;
   }
-}
-
-/** Apply a batch of events and record every one of them in history. */
-export function applyGameEvents(state: GameState, events: readonly GameEvent[]): GameState {
-  if (events.length === 0) return state;
-
-  let next = state;
-  for (const event of events) {
-    next = applyGameEvent(next, event);
-  }
-
-  return { ...next, history: appendEvents(next, events) };
 }

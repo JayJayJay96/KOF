@@ -5,7 +5,7 @@
  * DEVELOPMENT_ROADMAP.md Phase 0 (minimal state shape).
  */
 
-import type { GameHistoryEntry } from '../events/eventTypes';
+import type { GameEvent, GameHistoryEntry } from '../events/eventTypes';
 import type { Player } from './player';
 
 export type GamePhase = 'chaos' | 'danger' | 'final_five' | 'sudden_death';
@@ -64,4 +64,13 @@ export type GameState = {
   history: GameHistoryEntry[];
   winnerId: string | null;
   config: GameConfig;
+
+  /**
+   * Events produced but not yet applied.
+   *
+   * Non-empty means resolution is paused waiting on the host. Draining stops at
+   * a blocking event so multi-step abilities (Hunter's target spin, Duel's
+   * versus sequence) have somewhere to suspend mid-resolution.
+   */
+  eventQueue: GameEvent[];
 };
