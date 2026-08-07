@@ -71,6 +71,14 @@ Set up the KOF codebase and establish the minimum architecture needed to begin t
 - `.claude/launch.json` so the dev server can be launched by tooling.
 - `npm install` clean: 28 packages, 0 vulnerabilities.
 
+## Version control
+
+- Git repository initialised; default branch **`main`**.
+- Initial commit `1d66122` — *feat: Phase 0 project foundation* (33 files).
+  `node_modules/` and `dist/` correctly excluded.
+- Remote added and pushed: **https://github.com/JayJayJay96/KOF**
+  (repo was empty beforehand — nothing was overwritten).
+
 ## Core architecture
 
 - **Types** — `Player`, `PlayerStatus`, `GameState`, `GamePhase`, `GameScreenState`,
@@ -114,12 +122,14 @@ step of the phase remains (see Known Issues).
 
 # Next Tasks
 
-1. **Initialise the git repository.** `C:\AILAB\KOF` is not a git repo yet.
-   `.gitignore` is in place. Not done this session — committing was not requested.
-2. **Deploy the first Vercel preview** and confirm the production build serves.
-   This is the last outstanding Phase 0 exit criterion.
-3. **Verify Phase 0 exit criteria** and mark the phase COMPLETE.
-4. Then begin **Phase 1 — Main Wheel Vertical Slice**:
+1. **Deploy the first Vercel preview.** This is the last outstanding Phase 0
+   exit criterion. The repo is on GitHub, so the shortest path is
+   vercel.com → Add New → Project → import `JayJayJay96/KOF`. Vite is
+   auto-detected (build `npm run build`, output `dist`); no `vercel.json` is
+   needed as there is no client-side routing yet. Requires a Vercel login, so
+   it could not be done from a non-interactive session.
+2. **Verify Phase 0 exit criteria** and mark the phase COMPLETE.
+3. Then begin **Phase 1 — Main Wheel Vertical Slice**:
    - reusable Canvas `<Wheel>` component (`entries`, `selectedId`, `spinning`, `onSpinComplete`),
    - deterministic landing on the engine-chosen result,
    - real player Setup screen (multiline paste) replacing the debug panel,
@@ -129,11 +139,11 @@ step of the phase remains (see Known Issues).
 
 # Known Issues / Blockers
 
-- **Vercel deployment not performed.** It needs account authentication and is an
-  outward-facing action, so it was not attempted without explicit approval.
-  Phase 0 therefore cannot be marked COMPLETE yet. Everything else in the phase
-  is done and verified locally.
-- **No git repository.** Nothing is version-controlled yet.
+- **Vercel deployment not performed.** The Vercel CLI is not installed and no
+  stored credential exists; `vercel login` needs interactive browser/email auth,
+  which a non-interactive session cannot complete. Phase 0 therefore cannot be
+  marked COMPLETE yet. Everything else in the phase is done and verified,
+  including serving the real production build locally.
 - **No automated tests.** The roadmap places unit tests in Enhancement Phase 0,
   so this is on-plan, but the engine is pure and ready to be tested earlier if wanted.
 - **No persistence.** A browser refresh resets the game. Correct for now —
@@ -206,14 +216,35 @@ step of the phase remains (see Known Issues).
   cleared, winner cleared, phase back to CHAOS.
 - Browser refresh verified — clean re-render, no runtime errors (state resets, as
   expected without persistence).
+- **20-player game verified** (the target group size). 20 added, started in CHAOS,
+  driven through all 19 eliminations to a winner in 19 rounds, 62 events logged.
+  Phase boundaries landed exactly on the spec §10 thresholds:
 
-Not verified: Vercel preview deployment (not performed).
+  ```text
+  19-12 alive  CHAOS
+  11-6  alive  DANGER
+  5-3   alive  FINAL FIVE
+  2     alive  SUDDEN DEATH
+  ```
+
+  No horizontal overflow. Duplicate names ("Amy" twice) stayed distinct via ids.
+  A 31-character name, `X Æ A-12`, Cyrillic, CJK and Vietnamese names all rendered.
+  The engine imposes no player cap.
+- **Production build served and fetched** via `vite preview`: `/` → 200,
+  `/assets/index-*.js` → 200 (200,203 bytes). The artifact Vercel would deploy
+  is known-good.
+- Pushed to GitHub; `git ls-remote` confirms `refs/heads/main` = `1d66122`,
+  local tree clean and in sync.
+
+Not verified: Vercel preview deployment (blocked on interactive login).
 
 ---
 
 # Files / Areas Changed
 
 ```text
+.git/                         (initialised, branch main, remote origin -> GitHub)
+
 PROJECT_SPEC.md               (renamed from KOF_King_of_Fate_Project_Spec.md)
 DEVELOPMENT_ROADMAP.md        (renamed from KOF_DEVELOPMENT_ROADMAP.md)
 PROJECT_STATUS.md             (this file)
@@ -255,8 +286,13 @@ The architecture boundary is already load-bearing — keep it:
 `DebugPanel.tsx` is **disposable**. Delete or replace it once the real Setup screen
 and Main Wheel exist — do not grow it into the host UI.
 
-Before starting Phase 1, close out Phase 0: init git, deploy the Vercel preview,
-then flip Phase Status to COMPLETE.
+Before starting Phase 1, close out Phase 0: deploy the Vercel preview, then flip
+Phase Status to COMPLETE. Git is already set up and pushed.
+
+Group size is a solved problem at the engine level — a 20-player game was run
+end to end. The remaining 20-player risk is **visual**: 20 wheel segments is 18°
+each, so plan adaptive label sizing when building the Main Wheel rather than
+discovering it during Enhancement Phase 1.
 
 Phase 1 is the Main Wheel only. Do not add the Fate Wheel (Phase 2), abilities
 (Phase 3), PixiJS, sound, or arcade theming yet.
