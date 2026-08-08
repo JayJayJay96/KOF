@@ -5,14 +5,16 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–6 complete; Phase 7 next.**
-The game is complete and survivable: enter players, then
-`Spin Player → Spin Fate → Resolve → Next Round` until one winner remains,
-with phase transitions and a winner screen along the way.
+Current status: **Pass 1 — MVP feature-complete. Phase 8 (playtesting) next.**
+Enter players, then `Spin Player → Spin Fate → Resolve → Next Round` until one
+winner remains — with impact effects, sound, phase transitions and a winner
+screen along the way.
 
 All eight MVP Fates work — Eliminate, Shield, Safe, Again, Death Mark, Hunter,
-Revive, Duel. Undo, save/resume and the host panel are in. Still missing:
-the arcade theme, effects and sound (Phase 7). See `PROJECT_STATUS.md`.
+Revive, Duel — alongside undo, save/resume and the host panel.
+
+Every MVP feature is built, so **the next step is playing real games**, not
+writing more code. See `PROJECT_STATUS.md`.
 
 **Host panel:** `Ctrl+Shift+H` — undo, roster edits, save controls, event history.
 
@@ -73,18 +75,25 @@ src/
 │   ├── events/   event vocabulary + the only place events change state
 │   ├── types/    Player, GameState, AbilityDefinition
 │   └── config/   default game configuration
+├── audio/        synthesised cues + event-to-sound map
+├── effects/      impact layer + event-to-effect map
 ├── hooks/        React bindings for the engine
 ├── storage/      localStorage save/resume, versioned
-├── styles/       baseline CSS (arcade theme is Phase 7)
+├── styles/       arcade theme
 └── utils/        centralised randomness, ids
 ```
 
-`src/effects/` and `src/audio/` are named in the spec's target structure but are
-not created yet — they arrive in Phase 7.
+All audio is generated at runtime from oscillators — there are no sound assets,
+so every cue is original and nothing needs licensing.
 
 Undo lives in `game/engine/undo.ts` as a wrapper *around* the reducer. It stores
 snapshots rather than replaying actions, because abilities use randomness during
 resolution and a replayed log would produce a different game.
+
+**Effects and audio are subscribers, not engine code.** They react to events the
+reducer already emits, so adding a sound or an effect means adding one registry
+entry in `audio/soundRegistry.ts` or `effects/effectRegistry.ts` — never a
+change to `src/game/`.
 
 ### Adding a Fate
 
