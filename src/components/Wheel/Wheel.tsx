@@ -16,6 +16,7 @@ import {
   segmentAtPointer,
   spinProgress,
 } from './wheelGeometry';
+import { randomFloat } from '../../utils/random';
 
 export type WheelEntry = {
   id: string;
@@ -209,7 +210,13 @@ export function Wheel({
     }
 
     const from = rotationRef.current;
-    const to = resolveTargetRotation(from, targetIndex, entries.length, minTurns);
+
+    // Stop somewhere inside the winning segment rather than dead centre. This
+    // is presentation only — the engine already decided WHICH entry wins; this
+    // decides where within it the pointer rests, which is what makes a spin
+    // feel close. Routed through utils/random per AGENTS.md §7.5.
+    const offset = randomFloat() * 2 - 1;
+    const to = resolveTargetRotation(from, targetIndex, entries.length, minTurns, offset);
 
     const reduceMotion =
       typeof window.matchMedia === 'function' &&

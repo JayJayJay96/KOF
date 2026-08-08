@@ -71,6 +71,21 @@ The game should **not auto-rush through events**.
 
 The host should manually trigger major steps because a large part of the fun is expected to happen between actions while everyone reacts, jokes, complains, celebrates, etc.
 
+### Amendment — the player spin flows into the Fate spin
+
+*Changed after Phase 7 playtesting.*
+
+"Who is selected" and "what happens to them" read as **one** question, and making the host click twice for it added a beat without adding drama. Once the Main Wheel lands, the Fate Wheel now starts on its own after a short pause that lets the name register.
+
+The host pauses that remain are the ones where people actually react: **Resolve** and **Next Round**.
+
+This does not apply to:
+
+- **Again**, whose pause is deliberate (§11.4);
+- **Death Mark**, which skips the Fate Wheel entirely (§11.6).
+
+During the pause the action button still reads `SPIN FATE`, so an impatient host can click to skip the wait.
+
 Example:
 
 ```text
@@ -80,11 +95,9 @@ Wheel spins
         ↓
 JASON selected
         ↓
-Pause / people react
+Short pause / people react
         ↓
-Host clicks SPIN FATE
-        ↓
-Fate Wheel spins
+Fate Wheel spins automatically
         ↓
 HUNTER selected
         ↓
@@ -695,6 +708,21 @@ Shield can block the attack.
 The original Hunter does not get eliminated by the Hunter ability.
 
 Target selection must exclude the Hunter.
+
+### Bounty
+
+*Added after Phase 7 playtesting.*
+
+If the hunt **kills**, the Hunter gains one Shield.
+
+```text
+Target eliminated  →  Hunter gains 🛡
+Target blocked     →  no reward
+```
+
+This turns Hunter from a coin-flip you survive into an outcome worth rolling. A Shielded target blocks the attack, so a blocked hunt pays nothing — the reward tracks the kill, not the attempt.
+
+The Shield stack cap of 1 (§11.2) still applies, so a Hunter who already holds a Shield gains nothing.
 
 Presentation:
 

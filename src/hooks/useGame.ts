@@ -22,6 +22,9 @@ import type { GameState } from '../game/types/game';
 import type { SavedGame } from '../storage/gameStorage';
 import { clearSave, loadGame, saveGame } from '../storage/gameStorage';
 
+/** Beat between the player landing and the Fate Wheel starting. */
+export const AUTO_FATE_DELAY_MS = 900;
+
 export type UseGameResult = {
   state: GameState;
   dispatch: (action: GameAction) => void;
@@ -47,6 +50,9 @@ export function useGame(): UseGameResult {
     createHistoryStack(createInitialGameState()),
   );
   const state = stack.present;
+
+  /** Set when a player spin lands, consumed by the auto-fate effect below. */
+  const autoFatePending = useRef(false);
 
   // Read once on mount. The host decides whether to resume, so this is not
   // loaded straight into the engine.
@@ -94,6 +100,9 @@ export function useGame(): UseGameResult {
   }, [state]);
 
   const completePlayerSpin = useCallback(() => {
+    // A landed player spin flows straight into the Fate spin (see the auto-fate
+    // effect below), so the host does not click twice for one decision.
+    autoFatePending.current = true;
     dispatchHistory({ type: 'PLAYER_SPIN_COMPLETE' });
   }, []);
 
@@ -124,6 +133,35 @@ export function useGame(): UseGameResult {
 
     dispatchHistory({ type: 'START_TARGET_SPIN', playerId: target.id });
   }, [state]);
+
+  /**
+   * Auto-continue from a landed player spin into the Fate spin.
+   *
+   * Deliberately narrow. It fires ONLY after the Main Wheel lands, because that
+   * is one host decision ("who now?") that used to cost two clicks. It does not
+   * fire after Again — spec §11.4 makes that pause intentional — and it does not
+   * fire when a Death Mark intercepts the round, because that skips Fate
+   * entirely and leaves `screenState` somewhere other than 'player_selected'.
+   *
+   * The short delay lets the selected name register before the second wheel
+   * starts moving; without it the reveal is lost under the next animation.
+   */
+  const spinFateRef = useRef(spinFate);
+  spinFateRef.current = spinFate;
+
+  useEffect(() => {
+    if (!autoFatePending.current) return;
+
+    // Anything other than a plain reveal (Death Mark, a win) cancels it.
+    if (state.screenState !== 'player_selected') {
+      autoFatePending.current = false;
+      return;
+    }
+
+    autoFatePending.current = false;
+    const timer = window.setTimeout(() => spinFateRef.current(), AUTO_FATE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [state.screenState]);
 
   const canUndo = useMemo(() => canUndoStack(stack), [stack]);
 

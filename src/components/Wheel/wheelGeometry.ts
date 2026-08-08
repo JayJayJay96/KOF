@@ -36,13 +36,33 @@ export function normalizeAngle(angle: number): number {
  * This is what makes landing deterministic: the engine's chosen result decides
  * the final angle up front, and the animation simply interpolates to it.
  */
+/**
+ * How far from a segment's centre the pointer may stop, as a fraction of the
+ * arc's half-width.
+ *
+ * Landing dead centre every time drains the tension out of a spin — a near-miss
+ * against the edge is most of the drama. 0.78 keeps the pointer clearly inside
+ * the winning segment (never closer than ~11% of the arc to a boundary), so the
+ * result stays unambiguous to a viewer.
+ */
+export const MAX_LANDING_OFFSET = 0.78;
+
 export function resolveTargetRotation(
   currentRotation: number,
   index: number,
   count: number,
   minTurns: number,
+  /**
+   * Where within the segment to stop: -1 is one edge, 0 the centre, +1 the
+   * other edge. Supplied by the caller so this stays a pure function and the
+   * landing point remains reproducible.
+   */
+  offsetWithinSegment = 0,
 ): number {
-  const base = POINTER_ANGLE - segmentCenterAngle(index, count);
+  const clamped = Math.max(-1, Math.min(1, offsetWithinSegment)) * MAX_LANDING_OFFSET;
+  const jitter = (segmentArc(count) / 2) * clamped;
+
+  const base = POINTER_ANGLE - segmentCenterAngle(index, count) - jitter;
   const minimum = currentRotation + minTurns * TWO_PI;
   const turns = Math.ceil((minimum - base) / TWO_PI);
   return base + turns * TWO_PI;
