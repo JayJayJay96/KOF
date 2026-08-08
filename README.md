@@ -5,11 +5,13 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–3 complete; Phase 4 next.**
-The core loop is playable: enter players, then
+Current status: **Pass 1 — MVP. Phases 0–4 complete; Phase 5 next.**
+The game is playable start to finish: enter players, then
 `Spin Player → Spin Fate → Resolve → Next Round` until one winner remains.
-Four Fates are implemented — Eliminate, Shield, Safe, Again. Hunter, Death Mark,
-Revive and Duel arrive in Phase 4. See `PROJECT_STATUS.md`.
+
+All eight MVP Fates work — Eliminate, Shield, Safe, Again, Death Mark, Hunter,
+Revive, Duel. Phase transitions, the Sudden Death treatment and the Winner
+screen still need their presentation (Phase 5). See `PROJECT_STATUS.md`.
 
 ## Documentation
 
@@ -87,3 +89,11 @@ Abilities return events; they never mutate state. `events/eventResolver.ts` owns
 what an event does, `events/eventQueue.ts` owns ordering. A multi-step ability
 suspends by emitting a blocking event (`WAIT_FOR_HOST`, `REQUEST_FATE_SPIN`,
 `REQUEST_PLAYER_SPIN`) and resumes when the host continues.
+
+There are three extension points, none of which requires touching the reducer:
+
+| To add | Where |
+|---|---|
+| A Fate | `game/abilities/` + one line in `ABILITIES` |
+| A Fate that picks a target | the same, plus a `resolveTargetSpin` hook |
+| A persistent status | `game/statuses/` + one line in `SELECTION_TRIGGERS` |
