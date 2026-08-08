@@ -9,10 +9,11 @@
  * derived from state on every render.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { Player } from '../../game/types/player';
 import { Wheel } from '../Wheel/Wheel';
 import type { WheelEntry } from '../Wheel/Wheel';
+import { playSound } from '../../audio/audioManager';
 
 type MainWheelProps = {
   players: Player[];
@@ -29,12 +30,20 @@ export function MainWheel({ players, selectedId, spinning, onSpinComplete }: Mai
     [players],
   );
 
+  // The wheel exposes onTick per segment boundary; this is where it becomes
+  // the ticking sound (PROJECT_SPEC.md §26).
+  const handleComplete = useCallback(() => {
+    playSound('wheelStop');
+    onSpinComplete();
+  }, [onSpinComplete]);
+
   return (
     <Wheel
       entries={entries}
       selectedId={selectedId}
       spinning={spinning}
-      onSpinComplete={onSpinComplete}
+      onSpinComplete={handleComplete}
+      onTick={() => playSound('wheelTick')}
     />
   );
 }

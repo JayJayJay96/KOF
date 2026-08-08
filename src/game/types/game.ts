@@ -51,6 +51,8 @@ export type GameConfig = {
     master: number;
     music: number;
     sfx: number;
+    /** Optional so saves written before Phase 7 still load; absent means unmuted. */
+    muted?: boolean;
   };
 };
 

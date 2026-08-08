@@ -34,7 +34,9 @@ import { FateWheel } from '../FateWheel/FateWheel';
 import { StatusPanel } from '../StatusPanel/StatusPanel';
 import { PhaseAnnouncement } from '../PhaseAnnouncement/PhaseAnnouncement';
 import { WinnerScreen } from '../WinnerScreen/WinnerScreen';
+import { EffectLayer } from '../../effects/EffectLayer';
 import { usePhaseAnnouncement } from '../../hooks/usePhaseAnnouncement';
+import { useScreenEffects } from '../../hooks/useScreenEffects';
 
 type GameScreenProps = {
   state: GameState;
@@ -79,8 +81,13 @@ export function GameScreen({
   // phase title over the winner overlay.
   const phaseTitle = usePhaseAnnouncement(state.phase, !isWinner);
 
+  // Shake lands on the game scene, never the page root, so the host panel and
+  // its controls stay still (PROJECT_SPEC.md §28).
+  const { effect, shaking } = useScreenEffects(state.history);
+
   return (
-    <section className="game">
+    <section className={`game${shaking ? ' game--shake' : ''}`}>
+      <EffectLayer effect={effect} />
       <PhaseAnnouncement title={phaseTitle} />
 
       {isWinner && (

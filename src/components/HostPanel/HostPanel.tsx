@@ -146,6 +146,33 @@ export function HostPanel({
       </section>
 
       <section className="host-panel__section">
+        <h3 className="host-panel__section-title">Audio</h3>
+        <div className="host-panel__actions">
+          <button
+            type="button"
+            className="button button--small"
+            onClick={() =>
+              dispatch({ type: 'SET_AUDIO', audio: { muted: !state.config.audio.muted } })
+            }
+          >
+            {state.config.audio.muted ? 'Unmute' : 'Mute'}
+          </button>
+        </div>
+        <label className="host-panel__slider">
+          <span>Volume</span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(state.config.audio.master * 100)}
+            onChange={(event) =>
+              dispatch({ type: 'SET_AUDIO', audio: { master: Number(event.target.value) / 100 } })
+            }
+          />
+        </label>
+      </section>
+
+      <section className="host-panel__section">
         <h3 className="host-panel__section-title">
           Players <span className="host-panel__count">{state.players.length}</span>
         </h3>

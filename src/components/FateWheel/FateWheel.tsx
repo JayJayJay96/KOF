@@ -10,10 +10,11 @@
  * The wheel is visibly inactive until a player is selected.
  */
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { AbilityDefinition } from '../../game/types/ability';
 import { Wheel } from '../Wheel/Wheel';
 import type { WheelEntry } from '../Wheel/Wheel';
+import { playSound } from '../../audio/audioManager';
 
 type FateWheelProps = {
   abilities: AbilityDefinition[];
@@ -40,6 +41,11 @@ export function FateWheel({
     [abilities],
   );
 
+  const handleComplete = useCallback(() => {
+    playSound('wheelStop');
+    onSpinComplete();
+  }, [onSpinComplete]);
+
   return (
     <div className={`fate-wheel${active ? '' : ' fate-wheel--inactive'}`}>
       <p className="fate-wheel__caption">{active ? '⚡ Fate' : '🔒 Waiting'}</p>
@@ -47,7 +53,8 @@ export function FateWheel({
         entries={entries}
         selectedId={selectedId}
         spinning={spinning}
-        onSpinComplete={onSpinComplete}
+        onSpinComplete={handleComplete}
+        onTick={() => playSound('wheelTick')}
         spinDurationMs={3200}
         minTurns={3}
       />

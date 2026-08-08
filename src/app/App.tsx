@@ -13,6 +13,7 @@ import { HostPanel } from '../components/HostPanel/HostPanel';
 import { ResumePrompt } from '../components/ResumePrompt/ResumePrompt';
 import { filterAlive, getRevealedAbilityId, getRevealedPlayer } from '../game/engine/selectors';
 import { getAvailableAbilities } from '../game/abilities';
+import { useGameAudio } from '../hooks/useGameAudio';
 
 export default function App() {
   const {
@@ -44,6 +45,9 @@ export default function App() {
   // whole state. Recomputing per dispatch is cheap, and no dispatch happens
   // mid-spin, so the Fate Wheel's entries stay stable while it animates.
   const availableAbilities = useMemo(() => getAvailableAbilities(state), [state]);
+
+  // Audio subscribes to the same events the effects do; the engine is unaware.
+  useGameAudio(state.history, state.config.audio);
 
   const revealedPlayer = getRevealedPlayer(state);
   const revealedAbilityId = getRevealedAbilityId(state);

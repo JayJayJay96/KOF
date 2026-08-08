@@ -13,7 +13,7 @@
  * so a stray double click can never corrupt a live game (AGENTS.md §8).
  */
 
-import type { GameState } from '../types/game';
+import type { GameConfig, GameState } from '../types/game';
 import type { GameEvent } from '../events/eventTypes';
 import type { Player } from '../types/player';
 import {
@@ -46,7 +46,8 @@ export type GameAction =
   | { type: 'SELECT_ABILITY'; abilityId: string }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'NEXT_ROUND' }
-  | { type: 'RESET_GAME' };
+  | { type: 'RESET_GAME' }
+  | { type: 'SET_AUDIO'; audio: Partial<GameConfig['audio']> };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -94,6 +95,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'RESET_GAME':
       return resetGame(state);
+
+    case 'SET_AUDIO':
+      return setAudio(state, action.audio);
 
     default:
       return state;
@@ -441,6 +445,17 @@ function resetGame(state: GameState): GameState {
   return {
     ...createInitialGameState(state.config),
     players: state.players.map(resetPlayerForNewGame),
+  };
+}
+
+/**
+ * Audio preferences live in config so they persist with the save (spec §24)
+ * rather than needing their own storage key.
+ */
+function setAudio(state: GameState, audio: Partial<GameConfig['audio']>): GameState {
+  return {
+    ...state,
+    config: { ...state.config, audio: { ...state.config.audio, ...audio } },
   };
 }
 

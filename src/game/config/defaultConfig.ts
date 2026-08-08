@@ -70,6 +70,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     master: 0.8,
     music: 0.5,
     sfx: 0.8,
+    muted: false,
   },
 };
 

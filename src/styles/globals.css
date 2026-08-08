@@ -1,9 +1,13 @@
 /*
- * Phase 1 baseline styling.
+ * Arcade presentation — Phase 7 (MVP Arcade Presentation).
  *
- * This is NOT the arcade theme — that is Phase 7 (MVP Arcade Presentation).
- * The goal is a clear, readable layout that scales between 1280x720 and
- * 1920x1080 and stays legible after stream compression (PROJECT_SPEC.md §21).
+ * Modern UI carrying classic arcade flavour (PROJECT_SPEC.md §4): dark field,
+ * high contrast, bold typography, angled panels, impact words. Deliberately
+ * restrained — the full treatment (layered shadows, slash lines, distortion)
+ * is Enhancement Phase 7.
+ *
+ * Everything must stay legible between 1280x720 and 1920x1080 and survive
+ * stream compression (§21), which is why text is large and contrast is high.
  */
 
 :root {
@@ -42,9 +46,13 @@ body {
   padding: 1rem clamp(1rem, 4vw, 3rem);
 }
 
+/* Accent rule under the title, brightest at the left like a cabinet marquee. */
 .app__header {
-  border-bottom: 2px solid var(--kof-border);
   padding-bottom: 0.75rem;
+  background-image: linear-gradient(90deg, var(--kof-accent), transparent 62%);
+  background-repeat: no-repeat;
+  background-position: bottom left;
+  background-size: 100% 2px;
 }
 
 .app__title {
@@ -115,11 +123,22 @@ body {
   color: #0d0f14;
 }
 
+/* Angled corners give the arcade-cabinet read the spec asks for (§4) without
+   the layout risk of actually skewing the element. */
 .button--large {
   padding: 0.8rem 2.5rem;
   font-size: 1.15rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  border-radius: 0;
+  clip-path: polygon(
+    0.7rem 0,
+    100% 0,
+    100% calc(100% - 0.7rem),
+    calc(100% - 0.7rem) 100%,
+    0 100%,
+    0 0.7rem
+  );
 }
 
 .button--small {
@@ -151,7 +170,16 @@ body {
   gap: 0.6rem;
   padding: 1rem;
   border: 1px solid var(--kof-border);
-  border-radius: 8px;
+  border-radius: 0;
+  /* Angled corner — arcade panel, not a rounded card. */
+  clip-path: polygon(
+    1.1rem 0,
+    100% 0,
+    100% calc(100% - 1.1rem),
+    calc(100% - 1.1rem) 100%,
+    0 100%,
+    0 1.1rem
+  );
   background: var(--kof-surface);
 }
 
@@ -346,6 +374,159 @@ body {
   letter-spacing: 0.06em;
   color: var(--kof-muted);
   overflow-wrap: anywhere;
+}
+
+/* --- Impact effects (PROJECT_SPEC.md §27, §28) --- */
+
+.effects {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  /* Never intercept a host click mid-round. */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.effects__flash {
+  position: absolute;
+  inset: 0;
+  animation: effect-flash 380ms ease-out forwards;
+}
+
+.effects__flash--kill {
+  background: rgb(255 60 60 / 55%);
+}
+
+.effects__flash--block {
+  background: rgb(120 200 255 / 45%);
+}
+
+.effects__flash--cool {
+  background: rgb(90 220 255 / 30%);
+}
+
+.effects__flash--dark {
+  background: rgb(20 0 30 / 70%);
+}
+
+.effects__flash--gold {
+  background: rgb(255 200 90 / 40%);
+}
+
+@keyframes effect-flash {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Big arcade impact word — outlined and skewed, per the spec's flavour brief. */
+.effects__title {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%) skewX(-8deg);
+  font-size: clamp(3rem, 12vw, 9rem);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-shadow:
+    0 0 6px rgb(0 0 0 / 90%),
+    0 6px 0 rgb(0 0 0 / 55%);
+  animation: effect-title 900ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.effects__title--kill {
+  color: #ff4d4d;
+}
+
+.effects__title--block {
+  color: #7ec8ff;
+}
+
+.effects__title--cool {
+  color: #6fe3ff;
+}
+
+.effects__title--dark {
+  color: #c88bff;
+}
+
+.effects__title--gold {
+  color: #ffd479;
+}
+
+@keyframes effect-title {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) skewX(-8deg) scale(0.55);
+  }
+  22% {
+    opacity: 1;
+    transform: translate(-50%, -50%) skewX(-8deg) scale(1.08);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) skewX(-8deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) skewX(-8deg) scale(1);
+  }
+}
+
+/* Level 1 DOM shake (spec §28). Applied to the game scene only, so the host
+   panel and its controls never move. */
+.game--shake {
+  animation: scene-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes scene-shake {
+  10%,
+  90% {
+    transform: translate3d(-3px, 1px, 0);
+  }
+  20%,
+  80% {
+    transform: translate3d(6px, -2px, 0);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translate3d(-9px, 2px, 0);
+  }
+  40%,
+  60% {
+    transform: translate3d(9px, -1px, 0);
+  }
+}
+
+.host-panel__slider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--kof-muted);
+}
+
+.host-panel__slider input {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .game--shake {
+    animation: none;
+  }
+
+  .effects__title {
+    animation: effect-flash 900ms ease-out forwards;
+  }
 }
 
 /* --- Phase atmosphere (PROJECT_SPEC.md §10) --- */
