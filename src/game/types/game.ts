@@ -73,4 +73,22 @@ export type GameState = {
    * versus sequence) have somewhere to suspend mid-resolution.
    */
   eventQueue: GameEvent[];
+
+  /**
+   * Set while an ability is suspended waiting for a target spin.
+   *
+   * Records which ability is mid-resolution so the engine can hand the chosen
+   * target back to it, and which players that spin must exclude (Hunter cannot
+   * target itself; a Duel opponent is not the initiator).
+   */
+  pendingTargetSpin: PendingTargetSpin | null;
+
+  /** The target chosen by the most recent target spin, for display. */
+  targetPlayerId: string | null;
+};
+
+export type PendingTargetSpin = {
+  abilityId: string;
+  purpose: string;
+  excludePlayerIds: string[];
 };

@@ -26,6 +26,7 @@ import {
 import { getAlivePlayers } from './selectors';
 import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
 import { buildGameContext, getAbility } from '../abilities';
+import { findSelectionTrigger } from '../statuses/statusTriggers';
 
 /** A game needs at least two players to have a loser and a winner. */
 export const MIN_PLAYERS_TO_START = 2;
@@ -37,6 +38,7 @@ export type GameAction =
   | { type: 'START_PLAYER_SPIN'; playerId: string }
   | { type: 'PLAYER_SPIN_COMPLETE' }
   | { type: 'SELECT_PLAYER'; playerId: string }
+  | { type: 'START_TARGET_SPIN'; playerId: string }
   | { type: 'START_FATE_SPIN'; abilityId: string }
   | { type: 'FATE_SPIN_COMPLETE' }
   | { type: 'RESOLVE_FATE' }
@@ -65,6 +67,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SELECT_PLAYER':
       return selectPlayer(state, action.playerId);
+
+    case 'START_TARGET_SPIN':
+      return startTargetSpin(state, action.playerId);
 
     case 'START_FATE_SPIN':
       return startFateSpin(state, action.abilityId);
@@ -136,6 +141,8 @@ function startGame(state: GameState): GameState {
     winnerId: null,
     history: [],
     eventQueue: [],
+    pendingTargetSpin: null,
+    targetPlayerId: null,
   };
 
   const events: GameEvent[] = [
@@ -171,23 +178,102 @@ function startPlayerSpin(state: GameState, playerId: string): GameState {
   };
 }
 
-/** The wheel finished animating — reveal the result and log it. */
+/**
+ * The Main Wheel finished animating.
+ *
+ * Two different things end here, distinguished by state rather than by ability:
+ * a normal round selection, or a target spin an ability is suspended on.
+ */
 function completePlayerSpin(state: GameState): GameState {
   if (state.screenState !== 'spinning_player') return state;
-  if (state.currentPlayerId === null) return state;
 
-  return {
+  if (state.pendingTargetSpin !== null) return completeTargetSpin(state);
+
+  if (state.currentPlayerId === null) return state;
+  return revealSelectedPlayer(state, state.currentPlayerId);
+}
+
+/**
+ * Reveal the selected player, then give persistent statuses a chance to fire.
+ *
+ * Death Mark replaces the round's Fate rather than being one, so this is where
+ * it intercepts. The reducer asks the status registry whether anything triggers
+ * and never learns which status it was (AGENTS.md §7.6).
+ */
+function revealSelectedPlayer(state: GameState, playerId: string): GameState {
+  const revealed: GameState = {
     ...state,
+    currentPlayerId: playerId,
     screenState: 'player_selected',
-    history: appendEvents(state, [{ type: 'PLAYER_SELECTED', playerId: state.currentPlayerId }]),
+    history: appendEvents(state, [{ type: 'PLAYER_SELECTED', playerId }]),
   };
+
+  const player = revealed.players.find((candidate) => candidate.id === playerId);
+  if (!player) return revealed;
+
+  const trigger = findSelectionTrigger(player);
+  if (!trigger) return revealed;
+
+  // A triggered status skips the Fate Wheel entirely.
+  const events = trigger.resolve(buildGameContext(revealed), playerId);
+  const queued = enqueueEvents({ ...revealed, screenState: 'resolving' }, events);
+
+  return applyPhaseAndWinner(drainEventQueue(queued));
+}
+
+/**
+ * A target spin landed — hand the target back to the suspended ability.
+ *
+ * The engine looks the ability up from `pendingTargetSpin`; it does not know
+ * whether Hunter or Duel asked for the spin.
+ */
+function completeTargetSpin(state: GameState): GameState {
+  const pending = state.pendingTargetSpin;
+  const targetId = state.targetPlayerId;
+  const sourceId = state.currentPlayerId;
+
+  if (!pending || targetId === null || sourceId === null) return state;
+
+  const ability = getAbility(pending.abilityId);
+
+  // `pendingTargetSpin` is deliberately NOT cleared here. It carries the
+  // exclusion list the Main Wheel is rendering from, and dropping it now would
+  // make the wheel's entries change the moment the target lands, jumping the
+  // highlight. NEXT_ROUND clears it. Re-entry is impossible because this only
+  // runs from 'spinning_player' and resolution leaves us in 'resolving'.
+  const cleared: GameState = {
+    ...state,
+    screenState: 'resolving',
+    history: appendEvents(state, [{ type: 'TARGET_SELECTED', playerId: targetId }]),
+  };
+
+  if (!ability?.resolveTargetSpin) return cleared;
+
+  const events = ability.resolveTargetSpin(buildGameContext(cleared), sourceId, targetId);
+  return applyPhaseAndWinner(drainEventQueue(enqueueEvents(cleared, events)));
+}
+
+/**
+ * Begin a target spin toward an already-decided target.
+ *
+ * Mirrors the other spin pairs: the engine picks first, the wheel animates.
+ */
+function startTargetSpin(state: GameState, playerId: string): GameState {
+  if (state.screenState !== 'special_event') return state;
+  if (state.pendingTargetSpin === null) return state;
+
+  const target = state.players.find((candidate) => candidate.id === playerId);
+  if (!target || target.status !== 'alive') return state;
+  if (state.pendingTargetSpin.excludePlayerIds.includes(playerId)) return state;
+
+  return { ...state, targetPlayerId: playerId, screenState: 'spinning_player' };
 }
 
 /**
  * Instant selection with no animation.
  *
  * Kept alongside the spin pair for tests and for the "skip animation" option
- * planned in Enhancement Phase 2.
+ * planned in Enhancement Phase 2. Runs status triggers exactly as a spin does.
  */
 function selectPlayer(state: GameState, playerId: string): GameState {
   if (state.screenState !== 'idle') return state;
@@ -195,13 +281,7 @@ function selectPlayer(state: GameState, playerId: string): GameState {
   const player = state.players.find((candidate) => candidate.id === playerId);
   if (!player || player.status !== 'alive') return state;
 
-  return {
-    ...state,
-    currentPlayerId: playerId,
-    currentAbilityId: null,
-    screenState: 'player_selected',
-    history: appendEvents(state, [{ type: 'PLAYER_SELECTED', playerId }]),
-  };
+  return revealSelectedPlayer({ ...state, currentAbilityId: null }, playerId);
 }
 
 /**
@@ -332,6 +412,8 @@ function nextRound(state: GameState): GameState {
     round,
     currentPlayerId: null,
     currentAbilityId: null,
+    targetPlayerId: null,
+    pendingTargetSpin: null,
     screenState: 'idle',
   };
 

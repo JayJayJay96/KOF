@@ -49,14 +49,27 @@ export function enqueueEvents(state: GameState, events: readonly GameEvent[]): G
 /**
  * Apply the screen-state effect of a blocking event.
  *
- * REQUEST_PLAYER_SPIN has no handler yet — Phase 4 adds target spins. It still
- * blocks, so an ability emitting it today would visibly stall rather than
- * silently skip its own attack step.
+ * REQUEST_PLAYER_SPIN records which ability is suspended so the engine can hand
+ * the chosen target back to it later. The exclusion list travels on the event,
+ * which is how "Hunter cannot target itself" stays a property of Hunter rather
+ * than a rule in the reducer.
  */
 function applyBlockingEvent(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
     case 'REQUEST_FATE_SPIN':
       return { ...state, screenState: 'player_selected', currentAbilityId: null };
+
+    case 'REQUEST_PLAYER_SPIN':
+      return {
+        ...state,
+        screenState: 'special_event',
+        targetPlayerId: null,
+        pendingTargetSpin: {
+          abilityId: state.currentAbilityId ?? '',
+          purpose: event.purpose,
+          excludePlayerIds: event.excludePlayerIds ?? [],
+        },
+      };
 
     case 'WAIT_FOR_HOST':
       return { ...state, screenState: 'resolving' };

@@ -36,6 +36,19 @@ export type AbilityDefinition = {
   /** Relative selection weight for the given phase. Return 0 to exclude. */
   getWeight: (phase: GamePhase) => number;
 
-  /** Pure resolution: returns events, never mutates state directly. */
+  /** Resolution: returns events, never mutates state directly. */
   resolve: (context: GameContext, selectedPlayerId: string) => GameEvent[];
+
+  /**
+   * Second half of a multi-step ability, called once a target spin lands.
+   *
+   * Only abilities that emit REQUEST_PLAYER_SPIN need this. The engine stores
+   * which ability is suspended and calls this with the chosen target, so the
+   * reducer never learns that Hunter or Duel exist.
+   */
+  resolveTargetSpin?: (
+    context: GameContext,
+    selectedPlayerId: string,
+    targetPlayerId: string,
+  ) => GameEvent[];
 };

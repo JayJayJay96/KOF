@@ -4,8 +4,8 @@
  * AGENTS.md §7.6: abilities are data. Adding one means adding a file and a
  * line here — never editing a wheel, a component, or a switch statement.
  *
- * Phase 2 registers the four starter abilities only. Hunter, Death Mark,
- * Revive and Duel arrive in Phase 4; Double Kill and Fate Swap are Post-MVP.
+ * All eight MVP abilities are registered. Double Kill and Fate Swap are
+ * Post-MVP and remain disabled in the default config.
  */
 
 import type { AbilityDefinition, GameContext } from '../types/ability';
@@ -16,12 +16,20 @@ import { eliminateAbility } from './eliminate';
 import { shieldAbility } from './shield';
 import { safeAbility } from './safe';
 import { againAbility } from './again';
+import { deathMarkAbility } from './deathMark';
+import { hunterAbility } from './hunter';
+import { reviveAbility } from './revive';
+import { duelAbility } from './duel';
 
 export const ABILITIES: readonly AbilityDefinition[] = [
   eliminateAbility,
   shieldAbility,
   safeAbility,
   againAbility,
+  deathMarkAbility,
+  hunterAbility,
+  reviveAbility,
+  duelAbility,
 ];
 
 export const ABILITY_BY_ID: Record<string, AbilityDefinition> = Object.fromEntries(

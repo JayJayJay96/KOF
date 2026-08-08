@@ -291,11 +291,12 @@ body {
   flex: 1 1 62%;
 }
 
-/* Fate stays clearly secondary to the Main Wheel (PROJECT_SPEC.md §8, §20). */
+/* Fate stays clearly secondary to the Main Wheel (PROJECT_SPEC.md §8, §20),
+   but large enough that eight ability labels stay legible on a stream. */
 .game__wheel--fate {
-  flex: 0 1 30%;
-  max-width: 30%;
-  max-height: 46%;
+  flex: 0 1 36%;
+  max-width: 36%;
+  max-height: 58%;
   align-self: center;
 }
 
@@ -336,6 +337,15 @@ body {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--kof-muted);
+}
+
+/* Narration for multi-step abilities: Hunter, Duel, Death Mark. */
+.game__message {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  color: var(--kof-muted);
+  overflow-wrap: anywhere;
 }
 
 .game__winner {

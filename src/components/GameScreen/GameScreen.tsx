@@ -22,6 +22,10 @@ import {
   canResolveFate,
   canSpinFateWheel,
   canSpinPlayerWheel,
+  canSpinTarget,
+  getLatestMessage,
+  getMainWheelPlayers,
+  getMainWheelSelectedId,
   isAnimating,
 } from '../../game/engine/selectors';
 import { getAbility } from '../../game/abilities';
@@ -43,6 +47,7 @@ type GameScreenProps = {
   spinFate: () => void;
   completeFateSpin: () => void;
   resolveFate: () => void;
+  spinTarget: () => void;
 };
 
 export function GameScreen({
@@ -58,6 +63,7 @@ export function GameScreen({
   spinFate,
   completeFateSpin,
   resolveFate,
+  spinTarget,
 }: GameScreenProps) {
   const spinningPlayer = state.screenState === 'spinning_player';
   const spinningFate = state.screenState === 'spinning_fate';
@@ -66,6 +72,7 @@ export function GameScreen({
 
   const revealedAbility = getAbility(revealedAbilityId);
   const fateActive = revealedPlayer !== null && !isWinner;
+  const message = getLatestMessage(state);
 
   return (
     <section className="game">
@@ -78,8 +85,8 @@ export function GameScreen({
       <div className="game__wheels">
         <div className="game__wheel game__wheel--main">
           <MainWheel
-            players={alivePlayers}
-            selectedId={state.currentPlayerId}
+            players={getMainWheelPlayers(state)}
+            selectedId={getMainWheelSelectedId(state)}
             spinning={spinningPlayer}
             onSpinComplete={completePlayerSpin}
           />
@@ -115,6 +122,7 @@ export function GameScreen({
           )}
           {spinningFate && <span className="game__pending"> → deciding fate…</span>}
         </p>
+        {message && <p className="game__message">{message}</p>}
         {isWinner && <p className="game__winner">WINNER — {winnerName(state)}</p>}
       </div>
 
@@ -124,6 +132,7 @@ export function GameScreen({
           spinPlayer={spinPlayer}
           spinFate={spinFate}
           resolveFate={resolveFate}
+          spinTarget={spinTarget}
           dispatch={dispatch}
         />
       </div>
@@ -159,12 +168,14 @@ function PrimaryAction({
   spinPlayer,
   spinFate,
   resolveFate,
+  spinTarget,
   dispatch,
 }: {
   state: GameState;
   spinPlayer: () => void;
   spinFate: () => void;
   resolveFate: () => void;
+  spinTarget: () => void;
   dispatch: (action: GameAction) => void;
 }) {
   const className = 'button button--primary button--large';
@@ -173,6 +184,15 @@ function PrimaryAction({
     return (
       <button type="button" className={className} onClick={() => dispatch({ type: 'RESET_GAME' })}>
         New Game
+      </button>
+    );
+  }
+
+  // An ability is waiting on a target (Hunter, Duel).
+  if (canSpinTarget(state)) {
+    return (
+      <button type="button" className={className} onClick={spinTarget}>
+        Spin Target
       </button>
     );
   }

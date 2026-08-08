@@ -41,6 +41,8 @@ export function createInitialGameState(config: GameConfig = createDefaultGameCon
     winnerId: null,
     config,
     eventQueue: [],
+    pendingTargetSpin: null,
+    targetPlayerId: null,
   };
 }
 

@@ -12,7 +12,8 @@ import type { GameAction } from '../game/engine/reducer';
 import { gameReducer } from '../game/engine/reducer';
 import { createInitialGameState } from '../game/engine/gameEngine';
 import { canSpinPlayerWheel, selectRandomEligiblePlayer } from '../game/engine/selectors';
-import { canSpinFateWheel } from '../game/engine/selectors';
+import { canSpinFateWheel, canSpinTarget, getTargetPool } from '../game/engine/selectors';
+import { randomItem } from '../utils/random';
 import { selectWeightedAbility } from '../game/abilities';
 import type { GameState } from '../game/types/game';
 
@@ -26,6 +27,8 @@ export type UseGameResult = {
   spinFate: () => void;
   completeFateSpin: () => void;
   resolveFate: () => void;
+  /** Engine picks a target from the restricted pool, then spins toward it. */
+  spinTarget: () => void;
 };
 
 export function useGame(): UseGameResult {
@@ -61,6 +64,17 @@ export function useGame(): UseGameResult {
     dispatch({ type: 'RESOLVE_FATE' });
   }, []);
 
+  const spinTarget = useCallback(() => {
+    if (!canSpinTarget(state)) return;
+
+    // The pool already excludes whoever the ability barred, so a uniform pick
+    // is enough — the exclusion rule lives with the ability, not here.
+    const target = randomItem(getTargetPool(state));
+    if (!target) return;
+
+    dispatch({ type: 'START_TARGET_SPIN', playerId: target.id });
+  }, [state]);
+
   return {
     state,
     dispatch,
@@ -69,5 +83,6 @@ export function useGame(): UseGameResult {
     spinFate,
     completeFateSpin,
     resolveFate,
+    spinTarget,
   };
 }

@@ -16,7 +16,10 @@ export type GameEvent =
   | { type: 'ABILITY_SELECTED'; abilityId: string }
   | { type: 'SHOW_MESSAGE'; message: string }
   | { type: 'WAIT_FOR_HOST' }
-  | { type: 'REQUEST_PLAYER_SPIN'; purpose: string }
+  // excludePlayerIds keeps "Hunter cannot target itself" and "Duel opponent is
+  // not the initiator" as data on the event, not rules in the reducer.
+  | { type: 'REQUEST_PLAYER_SPIN'; purpose: string; excludePlayerIds?: string[] }
+  | { type: 'TARGET_SELECTED'; playerId: string }
   // Sibling of REQUEST_PLAYER_SPIN. Lets Again hand control back to the host
   // for another Fate roll without the reducer switching on ability id.
   | { type: 'REQUEST_FATE_SPIN'; purpose: string }

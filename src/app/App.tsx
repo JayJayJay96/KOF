@@ -21,6 +21,7 @@ export default function App() {
     spinFate,
     completeFateSpin,
     resolveFate,
+    spinTarget,
   } = useGame();
 
   // Memoised so each wheel receives a stable entries array; a fresh array on
@@ -65,11 +66,12 @@ export default function App() {
             spinFate={spinFate}
             completeFateSpin={completeFateSpin}
             resolveFate={resolveFate}
+            spinTarget={spinTarget}
           />
         )}
       </main>
 
-      <footer className="app__footer">Phase 3 — Core Fate Ability System</footer>
+      <footer className="app__footer">Phase 4 — Advanced MVP Fate Abilities</footer>
     </div>
   );
 }
