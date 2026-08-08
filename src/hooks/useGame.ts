@@ -1,38 +1,88 @@
 /**
  * React binding for the Game Engine.
  *
- * This hook is the ONLY bridge between React and the reducer. It also owns the
- * "engine decides first" step for both wheels: a spin picks the result here,
- * then dispatches it, so the reducer stays pure and each wheel animates toward
- * an already-known outcome (PROJECT_SPEC.md §8 and §16, AGENTS.md §7.2).
+ * This hook is the ONLY bridge between React and the reducer. It owns three
+ * things the reducer deliberately does not:
+ *
+ *   1. "engine decides first" — a spin picks its result here, then dispatches
+ *      it, so each wheel animates toward a known outcome (spec §8, §16).
+ *   2. undo — snapshots wrap the reducer without it knowing (spec §23).
+ *   3. persistence — autosave and resume (spec §24).
  */
 
-import { useCallback, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { GameAction } from '../game/engine/reducer';
-import { gameReducer } from '../game/engine/reducer';
 import { createInitialGameState } from '../game/engine/gameEngine';
+import { canUndo as canUndoStack, createHistoryStack, historyReducer } from '../game/engine/undo';
 import { canSpinPlayerWheel, selectRandomEligiblePlayer } from '../game/engine/selectors';
 import { canSpinFateWheel, canSpinTarget, getTargetPool } from '../game/engine/selectors';
-import { randomItem } from '../utils/random';
 import { selectWeightedAbility } from '../game/abilities';
+import { randomItem } from '../utils/random';
 import type { GameState } from '../game/types/game';
+import type { SavedGame } from '../storage/gameStorage';
+import { clearSave, loadGame, saveGame } from '../storage/gameStorage';
 
 export type UseGameResult = {
   state: GameState;
   dispatch: (action: GameAction) => void;
-  /** Engine picks an eligible player, then starts the Main Wheel animation. */
   spinPlayer: () => void;
   completePlayerSpin: () => void;
-  /** Engine picks a weighted ability, then starts the Fate Wheel animation. */
   spinFate: () => void;
   completeFateSpin: () => void;
   resolveFate: () => void;
-  /** Engine picks a target from the restricted pool, then spins toward it. */
   spinTarget: () => void;
+
+  canUndo: boolean;
+  undo: () => void;
+
+  /** A previous session found on load, until the host resumes or discards it. */
+  savedGame: SavedGame | null;
+  resumeSaved: () => void;
+  discardSaved: () => void;
+  saveNow: () => boolean;
 };
 
 export function useGame(): UseGameResult {
-  const [state, dispatch] = useReducer(gameReducer, undefined, () => createInitialGameState());
+  const [stack, dispatchHistory] = useReducer(historyReducer, undefined, () =>
+    createHistoryStack(createInitialGameState()),
+  );
+  const state = stack.present;
+
+  // Read once on mount. The host decides whether to resume, so this is not
+  // loaded straight into the engine.
+  const [savedGame, setSavedGame] = useState<SavedGame | null>(() => loadGame());
+
+  const dispatch = useCallback((action: GameAction) => dispatchHistory(action), []);
+
+  const undo = useCallback(() => dispatchHistory({ type: 'UNDO' }), []);
+
+  const resumeSaved = useCallback(() => {
+    if (!savedGame) return;
+    dispatchHistory({ type: 'RESTORE', state: savedGame.state });
+    setSavedGame(null);
+  }, [savedGame]);
+
+  const discardSaved = useCallback(() => {
+    clearSave();
+    setSavedGame(null);
+  }, []);
+
+  const saveNow = useCallback(() => saveGame(state), [state]);
+
+  // Autosave every change once a game is under way. Setup has nothing worth
+  // resuming, and saving it would offer a pointless prompt on next load.
+  const pendingResume = savedGame !== null;
+  const lastSaved = useRef<GameState | null>(null);
+
+  useEffect(() => {
+    // Do not overwrite the save the host has not yet decided about.
+    if (pendingResume) return;
+    if (state.screenState === 'setup') return;
+    if (lastSaved.current === state) return;
+
+    lastSaved.current = state;
+    saveGame(state);
+  }, [state, pendingResume]);
 
   const spinPlayer = useCallback(() => {
     if (!canSpinPlayerWheel(state)) return;
@@ -40,11 +90,11 @@ export function useGame(): UseGameResult {
     const player = selectRandomEligiblePlayer(state);
     if (!player) return;
 
-    dispatch({ type: 'START_PLAYER_SPIN', playerId: player.id });
+    dispatchHistory({ type: 'START_PLAYER_SPIN', playerId: player.id });
   }, [state]);
 
   const completePlayerSpin = useCallback(() => {
-    dispatch({ type: 'PLAYER_SPIN_COMPLETE' });
+    dispatchHistory({ type: 'PLAYER_SPIN_COMPLETE' });
   }, []);
 
   const spinFate = useCallback(() => {
@@ -53,15 +103,15 @@ export function useGame(): UseGameResult {
     const ability = selectWeightedAbility(state);
     if (!ability) return;
 
-    dispatch({ type: 'START_FATE_SPIN', abilityId: ability.id });
+    dispatchHistory({ type: 'START_FATE_SPIN', abilityId: ability.id });
   }, [state]);
 
   const completeFateSpin = useCallback(() => {
-    dispatch({ type: 'FATE_SPIN_COMPLETE' });
+    dispatchHistory({ type: 'FATE_SPIN_COMPLETE' });
   }, []);
 
   const resolveFate = useCallback(() => {
-    dispatch({ type: 'RESOLVE_FATE' });
+    dispatchHistory({ type: 'RESOLVE_FATE' });
   }, []);
 
   const spinTarget = useCallback(() => {
@@ -72,8 +122,10 @@ export function useGame(): UseGameResult {
     const target = randomItem(getTargetPool(state));
     if (!target) return;
 
-    dispatch({ type: 'START_TARGET_SPIN', playerId: target.id });
+    dispatchHistory({ type: 'START_TARGET_SPIN', playerId: target.id });
   }, [state]);
+
+  const canUndo = useMemo(() => canUndoStack(stack), [stack]);
 
   return {
     state,
@@ -84,5 +136,11 @@ export function useGame(): UseGameResult {
     completeFateSpin,
     resolveFate,
     spinTarget,
+    canUndo,
+    undo,
+    savedGame,
+    resumeSaved,
+    discardSaved,
+    saveNow,
   };
 }

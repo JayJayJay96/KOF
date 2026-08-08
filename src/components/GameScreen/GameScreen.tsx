@@ -26,7 +26,6 @@ import {
   getLatestMessage,
   getMainWheelPlayers,
   getMainWheelSelectedId,
-  isAnimating,
 } from '../../game/engine/selectors';
 import { getAbility } from '../../game/abilities';
 import { PHASE_LABELS } from '../../game/phases/phaseConfig';
@@ -70,7 +69,6 @@ export function GameScreen({
 }: GameScreenProps) {
   const spinningPlayer = state.screenState === 'spinning_player';
   const spinningFate = state.screenState === 'spinning_fate';
-  const locked = isAnimating(state);
   const isWinner = state.screenState === 'winner';
 
   const revealedAbility = getAbility(revealedAbilityId);
@@ -157,19 +155,6 @@ export function GameScreen({
         eliminated={eliminatedPlayers}
         selectedId={revealedPlayer?.id ?? null}
       />
-
-      {/* TEMPORARY dev control. Reset is not yet a host feature (Phase 6D). */}
-      <div className="game__dev">
-        <span className="game__dev-tag">dev</span>
-        <button
-          type="button"
-          className="button button--small"
-          onClick={() => dispatch({ type: 'RESET_GAME' })}
-          disabled={locked}
-        >
-          Reset to setup
-        </button>
-      </div>
     </section>
   );
 }

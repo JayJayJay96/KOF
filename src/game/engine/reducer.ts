@@ -102,25 +102,41 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
 // --- Setup ---
 
+/**
+ * Roster edits are legal during setup, and between rounds from the host panel.
+ *
+ * 'idle' is the only safe in-game moment: no wheel is turning, no ability is
+ * suspended, and `currentPlayerId` has already been cleared by NEXT_ROUND, so
+ * a roster change cannot strand a half-resolved round.
+ */
+function canEditRoster(state: GameState): boolean {
+  return state.screenState === 'setup' || state.screenState === 'idle';
+}
+
 function addPlayers(state: GameState, names: string[]): GameState {
-  if (state.screenState !== 'setup') return state;
+  if (!canEditRoster(state)) return state;
 
   const cleanNames = names.map((name) => name.trim()).filter((name) => name.length > 0);
   if (cleanNames.length === 0) return state;
 
-  return {
+  const added: GameState = {
     ...state,
     players: [...state.players, ...cleanNames.map(createPlayer)],
   };
+
+  // A late joiner changes the alive count, so the phase must be re-derived.
+  return state.screenState === 'setup' ? added : applyPhaseAndWinner(added);
 }
 
 function removePlayer(state: GameState, playerId: string): GameState {
-  if (state.screenState !== 'setup') return state;
+  if (!canEditRoster(state)) return state;
 
   const players = state.players.filter((player) => player.id !== playerId);
   if (players.length === state.players.length) return state;
 
-  return { ...state, players };
+  const removed: GameState = { ...state, players };
+
+  return state.screenState === 'setup' ? removed : applyPhaseAndWinner(removed);
 }
 
 // --- Game flow ---

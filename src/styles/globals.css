@@ -624,20 +624,251 @@ body {
   font-style: italic;
 }
 
-.game__dev {
+/* --- Host panel (PROJECT_SPEC.md §22) --- */
+
+/* Small, dim handle: the main screen is what gets streamed. */
+.host-panel__handle {
+  position: fixed;
+  right: 0;
+  bottom: 1.5rem;
+  z-index: 30;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--kof-border);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  background: var(--kof-surface);
+  color: var(--kof-muted);
+  font: inherit;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  opacity: 0.45;
+}
+
+.host-panel__handle:hover {
+  opacity: 1;
+  color: var(--kof-accent);
+  border-color: var(--kof-accent);
+}
+
+.host-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(24rem, 92vw);
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  border-left: 1px solid var(--kof-border);
+  background: var(--kof-surface);
+  box-shadow: -18px 0 40px rgb(0 0 0 / 45%);
+}
+
+.host-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.host-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--kof-accent);
+}
+
+.host-panel__hint,
+.host-panel__notice {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--kof-muted);
+}
+
+.host-panel__notice {
+  margin-top: 0.5rem;
+  color: var(--kof-accent);
+}
+
+.host-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--kof-border);
+}
+
+.host-panel__section--log {
+  flex: 1;
+  min-height: 8rem;
+}
+
+.host-panel__section-title {
+  margin: 0;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.host-panel__count {
+  color: var(--kof-text);
+}
+
+.host-panel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.host-panel__add {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.host-panel__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 4px;
+  background: var(--kof-bg);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.host-panel__players {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.host-panel__player {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid rgb(255 255 255 / 5%);
+}
+
+.host-panel__player .is-out {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+.host-panel__remove {
+  margin-left: auto;
+  padding: 0 0.35rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--kof-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.host-panel__remove:hover {
+  border-color: var(--kof-danger);
+  color: var(--kof-danger);
+}
+
+/* --- Event log --- */
+
+.event-log {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 22rem;
+  overflow-y: auto;
+  font-size: 0.85rem;
+}
+
+.event-log__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--kof-muted);
+}
+
+.event-log__round {
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgb(255 255 255 / 5%);
+}
+
+.event-log__round-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.event-log__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.event-log__line {
+  padding: 0.1rem 0;
+  overflow-wrap: anywhere;
+}
+
+/* --- Resume prompt (PROJECT_SPEC.md §24) --- */
+
+.resume {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(13 15 20 / 92%);
+}
+
+.resume__panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 2rem;
+  border: 1px solid var(--kof-border);
+  border-radius: 10px;
+  background: var(--kof-surface);
+  text-align: center;
+}
+
+.resume__title {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--kof-accent);
+}
+
+.resume__detail {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--kof-muted);
+}
+
+.resume__actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px dashed var(--kof-border);
-}
-
-.game__dev-tag {
-  font-size: 0.65rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--kof-muted);
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
 }
 
 /* --- Wheel --- */

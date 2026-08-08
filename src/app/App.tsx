@@ -1,14 +1,16 @@
 /**
  * Application root.
  *
- * Phase 2 routes between the Setup screen and the two-wheel game shell.
- * Arcade presentation, persistence and the advanced abilities are later phases.
+ * Routes between the Setup screen and the two-wheel game shell, and hosts the
+ * two things that sit above both: the resume prompt and the Host Panel.
  */
 
 import { useMemo } from 'react';
 import { useGame } from '../hooks/useGame';
 import { GameScreen } from '../components/GameScreen/GameScreen';
 import { PlayerSetup } from '../components/PlayerSetup/PlayerSetup';
+import { HostPanel } from '../components/HostPanel/HostPanel';
+import { ResumePrompt } from '../components/ResumePrompt/ResumePrompt';
 import { filterAlive, getRevealedAbilityId, getRevealedPlayer } from '../game/engine/selectors';
 import { getAvailableAbilities } from '../game/abilities';
 
@@ -22,6 +24,12 @@ export default function App() {
     completeFateSpin,
     resolveFate,
     spinTarget,
+    canUndo,
+    undo,
+    savedGame,
+    resumeSaved,
+    discardSaved,
+    saveNow,
   } = useGame();
 
   // Memoised so each wheel receives a stable entries array; a fresh array on
@@ -31,6 +39,7 @@ export default function App() {
     () => state.players.filter((player) => player.status === 'eliminated'),
     [state.players],
   );
+
   // Availability reads phase, roster and config, so it genuinely depends on the
   // whole state. Recomputing per dispatch is cheap, and no dispatch happens
   // mid-spin, so the Fate Wheel's entries stay stable while it animates.
@@ -73,7 +82,26 @@ export default function App() {
         )}
       </main>
 
-      <footer className="app__footer">Phase 4 — Advanced MVP Fate Abilities</footer>
+      <footer className="app__footer">Phase 6 — Host Safety &amp; Persistence</footer>
+
+      <HostPanel
+        state={state}
+        dispatch={dispatch}
+        canUndo={canUndo}
+        onUndo={undo}
+        onSaveNow={saveNow}
+        onClearSave={discardSaved}
+      />
+
+      {savedGame && (
+        <ResumePrompt
+          savedAt={savedGame.savedAt}
+          playerCount={savedGame.state.players.length}
+          round={savedGame.state.round}
+          onResume={resumeSaved}
+          onDiscard={discardSaved}
+        />
+      )}
     </div>
   );
 }
