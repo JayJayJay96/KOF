@@ -5,13 +5,14 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–4 complete; Phase 5 next.**
-The game is playable start to finish: enter players, then
-`Spin Player → Spin Fate → Resolve → Next Round` until one winner remains.
+Current status: **Pass 1 — MVP. Phases 0–5 complete; Phase 6 next.**
+The game is technically complete: enter players, then
+`Spin Player → Spin Fate → Resolve → Next Round` until one winner remains,
+with phase transitions and a winner screen along the way.
 
 All eight MVP Fates work — Eliminate, Shield, Safe, Again, Death Mark, Hunter,
-Revive, Duel. Phase transitions, the Sudden Death treatment and the Winner
-screen still need their presentation (Phase 5). See `PROJECT_STATUS.md`.
+Revive, Duel. Still missing before it is safe to run live: undo, save/resume,
+a host panel (Phase 6), and sound (Phase 7). See `PROJECT_STATUS.md`.
 
 ## Documentation
 

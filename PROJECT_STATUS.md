@@ -27,20 +27,22 @@ PASS 1 — MVP
 # Current Phase
 
 ```text
-Phase 5 — Game Phases & Endgame        (LARGELY PRE-BUILT, see Next Tasks)
+Phase 6 — Host Safety & Persistence     (NOT STARTED)
 
-Phase 4 — Advanced MVP Fate Abilities  COMPLETE
-Phase 3 — Core Fate Ability System     COMPLETE
-Phase 2 — Core Two-Wheel Game Loop     COMPLETE
-Phase 1 — Main Wheel Vertical Slice    COMPLETE
-Phase 0 — Project Foundation           COMPLETE
+Phase 5 — Game Phases & Endgame         COMPLETE
+Phase 4 — Advanced MVP Fate Abilities   COMPLETE
+Phase 3 — Core Fate Ability System      COMPLETE
+Phase 2 — Core Two-Wheel Game Loop      COMPLETE
+Phase 1 — Main Wheel Vertical Slice     COMPLETE
+Phase 0 — Project Foundation            COMPLETE
 ```
 
 # Phase Status
 
 ```text
-Phase 4 COMPLETE — all exit criteria met and verified against the live build.
-Phase 5 NOT STARTED, but most of its engine work already exists (below).
+Phase 5 COMPLETE — the game is now technically complete: a normal player
+list reaches one winner with no manual state editing.
+Phase 6 NOT STARTED.
 ```
 
 # Live Deployment
@@ -54,9 +56,9 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 # Current Objective
 
-All eight MVP Fates work and a full game can be played to a winner. Next is
-Phase 5, which is mostly presentation: the phase-transition overlay, the Sudden
-Death treatment and the Winner screen. The engine side of phases already works.
+Per the roadmap, Phase 5 is the first point where the product is technically a
+complete game. Next is Phase 6: make it survivable during a real streamed
+session — event history, undo, localStorage save/resume, and a host panel.
 
 ---
 
@@ -74,85 +76,80 @@ Branch   main
 **Phase 0.** React 19 + TypeScript + Vite 8; core types; pure reducer; phase
 resolver; centralised randomness; git + Vercel live.
 
-**Phase 1.** Reusable Canvas `<Wheel>` with deterministic landing; Setup screen;
-single state-aware action button.
+**Phase 1.** Reusable Canvas `<Wheel>` with deterministic landing; Setup screen.
 
-**Phase 2.** Fate Wheel reusing the same renderer; four starter abilities as
-data; ability registry; shared attack flow; full `WHO → WHAT FATE` loop.
+**Phase 2.** Fate Wheel; four starter abilities as data; ability registry;
+shared attack flow; full `WHO → WHAT FATE` loop.
 
-**Phase 3.** Event queue that suspends on blocking events; `CONTINUE_EVENTS`
-and the Continue button; status panel with badges and an eliminated section.
+**Phase 3.** Event queue that suspends on blocking events; status panel.
+
+**Phase 4.** All eight MVP Fates — Death Mark as a status trigger, Hunter and
+Duel as multi-step target-spin abilities, Revive with backward phase movement.
 
 ---
 
 # Completed This Session
 
-## Phase 4 — Advanced MVP Fate Abilities
+## Phase 5 — Game Phases & Endgame
 
-All eight MVP Fates now exist. Every elimination routes through
-`attackPlayer()`, so Shield works against all of them without any of them
-knowing Shield exists.
+**No reducer changes.** The engine side of phases was already built and verified
+in earlier phases: the phase resolver, phase-specific pools, backward
+recalculation after Revive, and winner detection. This phase was presentation.
 
-### 4A — Death Mark 💀
+### Phase transitions
 
-- `abilities/deathMark.ts` applies the mark.
-- `statuses/deathMarkTrigger.ts` + `statuses/statusTriggers.ts` handle
-  **activation**, which fires on the marked player's next Main Wheel selection
-  and replaces that round's Fate entirely.
-- Death Mark does not fit the Fate-pool pattern, so rather than branch the
-  reducer on an ability id it is registered as a **status trigger**. The reducer
-  asks the registry whether anything fires on selection. Bomb (post-MVP) has a
-  home now.
-- The full lifecycle required by AGENTS.md §7.8 is documented in the trigger file.
+- `hooks/usePhaseAnnouncement.ts` — notices `phase` moving and produces a
+  transient title. The engine already emits `PHASE_CHANGED`, so the hook only
+  observes; it owns no game state.
+- `components/PhaseAnnouncement/` — full-screen overlay using the spec §10
+  wording (`⚠ DANGER MODE ⚠`, `🔥 FINAL FIVE 🔥`, `☠ SUDDEN DEATH ☠`).
+- Auto-dismisses after ~1.9s rather than waiting for a host click: a phase
+  change is a reveal, not a decision (spec §7).
+- `pointer-events: none`, so it can never swallow a host click.
 
-### 4B — Hunter 🎯 and 4D — Duel ⚔
+### Sudden Death and phase atmosphere
 
-- First multi-step abilities. They emit `REQUEST_PLAYER_SPIN` to suspend the
-  queue; the engine hands the chosen target back through a new optional
-  `resolveTargetSpin` hook on `AbilityDefinition`.
-- `excludePlayerIds` travels **on the event**, so "Hunter cannot target itself"
-  and "a Duel opponent is not the initiator" stay properties of those abilities
-  rather than rules in the reducer.
-- New `START_TARGET_SPIN` action; the Main Wheel renders the restricted pool
-  during a target spin, so it visibly cannot land on an excluded player.
-- Duel resolves a 50/50 and attacks the loser. No dedicated duel wheel or VS
-  scene — Enhancement Phase 4 owns that.
+- A `data-phase` attribute on the root drives the accent colour per phase, so
+  **no component branches on phase**. Sudden Death additionally darkens the
+  field with a red vignette.
+- Accents escalate: Chaos `#ffb020` → Danger `#ff9d3d` → Final Five `#ff6b3d`
+  → Sudden Death `#ff4d4d`.
 
-### 4C — Revive ❤️
+### Winner screen
 
-- Unavailable when nobody is eliminated; weight 0 in Final Five and Sudden Death.
-- Revived players return alive, no Shield, no Death Mark, `revivedCount`
-  incremented. Phase recalculates and may move **backward** (spec §38).
-
-### Presentation
-
-- New readout line shows the latest `SHOW_MESSAGE`, which is how Hunter, Duel and
-  Death Mark narrate themselves without the UI knowing they exist.
-- Fate Wheel enlarged and its labels no longer carry icons — see decision 5.
+- `components/WinnerScreen/` — the spec §5C overlay: `KING OF FATE`, the name,
+  `WINNER`, confetti, and the New Game action. Replaces the previous one-line
+  winner text.
+- Confetti offsets are derived from the piece index, not `Math.random`.
+- The **no-survivors** case (everyone eliminated) renders `NO SURVIVORS` rather
+  than assuming a winner exists.
 
 ---
 
 # In Progress
 
-Nothing. Phase 4 is closed and nothing was left half-written.
+Nothing. Phase 5 is closed and nothing was left half-written.
 
 ---
 
 # Next Tasks
 
-**Phase 5 — Game Phases & Endgame.** Much of the engine work is already done and
-verified: the phase resolver, phase-specific Fate pools, backward recalculation
-after Revive, and winner detection. What remains is mostly presentation.
+**Phase 6 — Host Safety & Persistence.** The goal is recovering from mistakes
+during a live streamed session.
 
-1. **Phase transition overlay** — `PHASE_CHANGED` is already emitted and logged.
-   Show `⚠ DANGER MODE ⚠` style full-screen titles when it fires. The event
-   exists; nothing renders it yet.
-2. **Sudden Death treatment** — the reduced pool already works (verified:
-   Eliminate / Shield / Again / Hunter only). Needs the dedicated presentation.
-3. **Winner screen** — currently a single line of text plus a New Game button.
-   Spec §5C wants an overlay, confetti and a victory sound.
-4. Confirm the Phase 5 exit criterion: a normal player list reaches one winner
-   with no manual state editing. Already true in simulation; confirm in the UI.
+1. **6A — Event history UI.** The data already exists: `state.history` records
+   every event with its round, and `SHOW_MESSAGE` narration is already written
+   by the abilities. This is a rendering task, not an engine one.
+2. **6B — Undo.** Snapshot `GameState` before each mutating action and restore
+   the most recent. The reducer returns new state objects throughout, so
+   snapshots are cheap. Note that abilities now use randomness during `resolve`,
+   so undo must be snapshot-based — replaying actions would produce a different
+   outcome unless the random source is seeded.
+3. **6C — localStorage save/resume.** Persist players, round, phase, statuses,
+   history, config and current state; offer `RESUME` / `NEW GAME` on reload.
+   Add a `saveVersion` field now so old saves can be migrated later.
+4. **6D — Host panel.** Collapsible, `Ctrl+Shift+H`. Absorbs the temporary
+   `dev`-tagged "Reset to setup" button currently on the game screen.
 
 ---
 
@@ -162,173 +159,143 @@ No blockers.
 
 Non-blocking:
 
-- **No automated tests.** Still the largest gap. Verification runs the real
-  modules through Vite's dev module graph, which has caught genuine bugs, but
-  eight interacting abilities plus statuses and the queue is a lot of surface to
-  re-verify by hand each session. Roadmap schedules tests in Enhancement Phase 0.
-- **No persistence.** Refresh resets the game. localStorage is Phase 6C.
-- **Temporary dev control** — `dev`-tagged "Reset to setup" button. Becomes a
-  real host feature in Phase 6D.
+- **No automated tests.** Still the largest gap, and it grew this session: the
+  verification harness now has to cover eight abilities, a status trigger, the
+  queue, and three overlays. Roadmap schedules tests in Enhancement Phase 0.
+  Phase 6 touches undo and persistence, which are exactly the kind of
+  state-integrity features tests protect.
+- **No victory sound.** Spec §5C lists one, but the audio manager is Phase 7 and
+  the repo has no legally usable audio asset (spec §26). Deliberate — see
+  decision 4.
+- **No persistence.** Refresh resets the game. Phase 6C.
+- **Temporary dev control** — `dev`-tagged "Reset to setup" button. Phase 6D.
 - **Fate Wheel segments are equal-sized** while selection is weighted. Open
-  product decision from Phase 2; the wheel still does not communicate that
-  Eliminate is far likelier than Safe.
-- **Fate labels at 1280×720** shrink to about 13px with eight abilities (about
-  17px at larger viewports). Readable, but it is the tightest text on screen.
-  Enhancement Phase 1 owns wheel typography.
-- **Duel has no VS scene** and no duel wheel — the outcome is announced in the
-  readout. Deliberate for MVP; Enhancement Phase 4 owns it.
+  product decision from Phase 2.
+- **Duel has no VS scene.** Enhancement Phase 4 owns it.
 
 ---
 
 # Important Decisions Made This Session
 
-1. **Death Mark is a status trigger, not a Fate.** Its activation replaces a
-   round's Fate rather than being one. A reducer branch on ability id would have
-   broken AGENTS.md §7.6; a small trigger registry keeps the rule as data and
-   gives post-MVP Bomb somewhere to live.
-2. **Target spins are a generic mechanism.** `REQUEST_PLAYER_SPIN` +
-   `resolveTargetSpin` serve both Hunter and Duel, and the reducer never learns
-   which ability is suspended. Any future targeting ability reuses it.
-3. **Exclusions travel on the event.** Keeping `excludePlayerIds` as ability data
-   means the two-player forced-target edge case (spec §38) needs no special case
-   — the pool simply contains one candidate.
-4. **`pendingTargetSpin` is held until `NEXT_ROUND`.** It carries the exclusion
-   list the Main Wheel renders from. Clearing it on completion made the wheel's
-   entries change the instant the target landed, jumping the highlight.
-5. **Fate Wheel labels dropped their icons and the wheel grew.** With eight
-   entries the icon glyph cost pushed "Death Mark" to the 10px floor, which
-   fails spec §21 on a compressed stream. Name-only lifts the smallest label to
-   about 17px. Icons still appear in the readout at full size.
-6. **Abilities may use randomness inside `resolve` — this reverses a Phase 0
-   decision.** Revive and Duel need a random choice at resolution time. The
-   alternatives were threading ability-specific roll payloads through a generic
-   action, or teaching the reducer which abilities need which rolls. Determinism
-   is preserved by `setRandomSource`, which already exists for seeded runs, so
-   the original replayability argument still holds. Wheel results are still
-   decided before animation, because that is a rendering requirement.
+1. **Phase transitions auto-dismiss.** Spec §7 reserves host clicks for actual
+   choices; a phase change is a consequence, not a decision. Making the host
+   click through it would add a click to every threshold crossing.
+2. **Chaos has no announcement.** It is where games begin, so announcing it
+   would fire an overlay before anything has happened. This also means a game
+   that falls back to Chaos after a Revive transitions quietly — escalation is
+   the dramatic beat, not de-escalation.
+3. **Phase atmosphere is a CSS attribute, not component logic.** `data-phase` on
+   the root keeps every component ignorant of phase, and gives Enhancement
+   Phase 7E a single place to expand the per-phase treatment.
+4. **No victory sound, deliberately.** Building a one-off `Audio()` call now
+   would either be thrown away or become a shadow audio system that Phase 7 has
+   to reconcile, and there is no legally usable asset in the repo to play
+   (spec §26). Recorded as an intentional gap against the Phase 5C description.
+5. **Confetti is deterministic.** Index-derived offsets keep stray `Math.random`
+   out of the codebase (AGENTS.md §7.5) and make the celebration identical on
+   any replay of the same game.
 
 ---
 
 # Verification Performed
 
-- `npm run build` (`tsc -b && vite build`) — **passes**, 46 modules, no type errors.
+- `npm run build` (`tsc -b && vite build`) — **passes**, 49 modules, no type errors.
 - `npm run lint` (oxlint) — **clean**.
 - `npx prettier --check` — **all files conform**.
+- No orphaned CSS left behind by the removed winner line.
 
-## Ability rules — exercised against the real modules
-
-### Death Mark
-
-| Behaviour | Result |
-|---|---|
-| Mark applied and persists across rounds | PASS |
-| Selecting a *different* player does not trigger it | PASS |
-| Selecting the marked player skips the Fate Wheel | PASS |
-| Activation suspends at `WAIT_FOR_HOST` | PASS |
-| Mark consumed on activation | PASS |
-| Shield + Mark: both consumed, player survives (spec §38) | PASS |
-
-### Hunter
+## Phase announcement hook — exercised against the real module
 
 | Behaviour | Result |
 |---|---|
-| Suspends into `special_event` with a pending target spin | PASS |
-| Exclusion list contains the hunter | PASS |
-| Target pool and Main Wheel both exclude the hunter | PASS |
-| `START_TARGET_SPIN` on an excluded player is rejected | PASS |
-| Hunter survives its own roll; target is attacked | PASS |
-| Two players alive → target forced to the other player | PASS |
+| First render of a live game does not announce | PASS |
+| Chaos → Danger announces `⚠ DANGER MODE ⚠` | PASS |
+| Danger → Final Five announces `🔥 FINAL FIVE 🔥` | PASS |
+| Final Five → Sudden Death announces `☠ SUDDEN DEATH ☠` | PASS |
+| Auto-dismisses after its duration | PASS |
+| Backward move to Chaos stays silent | PASS |
+| Re-rendering the same phase does not re-announce | PASS |
+| Going inactive clears immediately | PASS |
 
-### Revive
-
-| Behaviour | Result |
-|---|---|
-| Hidden when nobody is eliminated | PASS |
-| Appears in Chaos once someone is out | PASS |
-| Returns alive, no Shield, no Mark, `revivedCount` incremented | PASS |
-| Reviving the same player twice → `revivedCount` 2 | PASS |
-| Phase moves backward: Final Five (5) → Danger (6) | PASS |
-
-### Duel
+## Overlays — rendered and inspected
 
 | Behaviour | Result |
 |---|---|
-| Suspends for an opponent spin | PASS |
-| Opponent pool excludes the initiator | PASS |
-| Exactly one participant loses | PASS |
-| Loser is always one of the two duellists | PASS |
+| Winner overlay shows KING OF FATE / name / WINNER | PASS |
+| 48 confetti pieces, all at distinct horizontal offsets | PASS |
+| New Game button fires its callback | PASS |
+| `aria-modal="true"` on the winner dialog | PASS |
+| No-survivors case renders `NO SURVIVORS`, no name, still offers New Game | PASS |
+| Phase overlay renders nothing when there is no title | PASS |
+| Phase overlay is `pointer-events: none`, `position: fixed`, `z-index: 40` | PASS |
 
-### Phase pools (spec §10)
+## Phase atmosphere
 
-Sudden Death collapses to exactly Eliminate / Shield / Again / Hunter. Chaos,
-Danger and Final Five carry the full pool minus zero-weight entries. Revive is
-correctly absent from Final Five and Sudden Death.
+Accent resolves correctly per phase (base `#ffb020`, Danger `#ff9d3d`, Final
+Five `#ff6b3d`, Sudden Death `#ff4d4d`), and Sudden Death applies its vignette.
 
-## Full-game simulation
+## Wiring
 
-200 games (40 each at 2, 5, 8, 12, 20 players) with all eight abilities live:
+A real game was driven to `screenState: 'winner'` through the reducer, then
+`GameScreen` was rendered with that state: the winner overlay appears with the
+correct name, and the old inline winner line is gone.
 
-- **every game reached a valid winner**;
-- **zero stuck states** — no empty ability pool, no empty target pool, no run
-  hit the step cap;
-- every queue empty at game end;
-- all eight abilities exercised across the runs.
+## Full-game simulation (regression)
 
-Mean rounds: 1.3 (n=2), 5.5 (n=5), 11.3 (n=8), 18.9 (n=12), 46.3 (n=20).
+200 games (40 each at 2, 5, 8, 12, 20 players):
 
-## Against the live deployment (https://kof-ten.vercel.app/)
+- **every game reached a valid winner** and emitted `GAME_WON`;
+- **zero stuck states**;
+- every game passed through Sudden Death;
+- average phase changes per game: 1.0 (n=2) to 3.3 (n=20).
 
-Verified after confirming the deployed asset hash matched the local build.
+## Live deployment (https://kof-ten.vercel.app/)
 
-- Full Hunter flow through the real buttons:
-  `Spin Player → Spin Fate → Resolve → Spin Target → Continue → Next Round`,
-  narrating "小明 becomes the Hunter" then "小明 hunts Bob".
-- Main Wheel visibly dropped the hunter from its entries during the target spin.
-- Death Mark applied and narrated; Shield badge rendered on a live player chip.
-- All eight Fate labels legible at 1280×720.
-- No page overflow, no console errors.
+Asset hash matched the local build. The deployed CSS contains
+`phase-announcement`, `winner__confetti`, `confetti-fall`, `data-phase` and
+`sudden_death`; the deployed JS contains `KING OF FATE`, `SUDDEN DEATH`,
+`DANGER MODE`, `FINAL FIVE` and `NO SURVIVORS`.
 
-## Phase 4 exit criteria — all met
+**Limitation — read this before trusting the above.** The Browser pane could not
+be displayed during this session, so the page never composited frames. That
+blocked screenshots and stalled `requestAnimationFrame`, which the wheel spin
+depends on. Consequently the overlays were verified by rendering the real
+components and hook directly, and by driving the real reducer — **not** by
+watching a phase transition or winner screen appear during an actual animated
+playthrough. Everything asserted above was executed, but a human should eyeball
+one full game before the Phase 8 validation pass.
+
+## Phase 5 exit criteria
 
 | Criterion | Result |
 |---|---|
-| All eight MVP abilities function | PASS |
-| Death Mark activates exactly once, on next selection | PASS |
-| Hunter cannot target itself | PASS |
-| Duel cannot select the same player twice | PASS |
-| Revive cannot appear when nobody is eliminated | PASS |
-| Shield blocks attacks from every source | PASS |
+| Automatic phase resolver with the spec thresholds | PASS (Phase 2) |
+| Phase-specific Fate pools | PASS (Phase 3) |
+| Phase transition shown when a threshold is crossed | PASS |
+| Sudden Death has a dedicated treatment and reduced pool | PASS |
+| Winner state with overlay and confetti | PASS |
+| Victory sound | DEFERRED to Phase 7 — see decision 4 |
+| Normal player list reaches one winner with no manual editing | PASS |
 
 ---
 
 # Files / Areas Changed
 
 ```text
-src/game/abilities/deathMark.ts        (new)
-src/game/abilities/hunter.ts           (new)
-src/game/abilities/revive.ts           (new)
-src/game/abilities/duel.ts             (new)
-src/game/statuses/statusTriggers.ts    (new)
-src/game/statuses/deathMarkTrigger.ts  (new)
+src/hooks/usePhaseAnnouncement.ts                      (new)
+src/components/PhaseAnnouncement/PhaseAnnouncement.tsx (new)
+src/components/WinnerScreen/WinnerScreen.tsx           (new)
 
-src/game/abilities/index.ts            (registers all eight)
-src/game/types/ability.ts              (resolveTargetSpin hook)
-src/game/types/game.ts                 (pendingTargetSpin, targetPlayerId)
-src/game/events/eventTypes.ts          (TARGET_SELECTED, excludePlayerIds)
-src/game/events/eventQueue.ts          (REQUEST_PLAYER_SPIN handler)
-src/game/engine/reducer.ts             (status triggers, target spin actions)
-src/game/engine/selectors.ts           (target pool, wheel source, latest message)
-src/game/engine/gameEngine.ts          (initial target-spin fields)
-src/hooks/useGame.ts                   (spinTarget)
-src/components/GameScreen/GameScreen.tsx (Spin Target, message line)
-src/components/FateWheel/FateWheel.tsx (name-only labels)
-src/app/App.tsx                        (spinTarget wiring, footer)
-src/styles/globals.css                 (message line, larger Fate wheel)
+src/game/phases/phaseConfig.ts             (PHASE_ANNOUNCEMENTS)
+src/components/GameScreen/GameScreen.tsx   (both overlays wired in)
+src/app/App.tsx                            (data-phase, footer)
+src/styles/globals.css                     (phase atmosphere, overlays, confetti)
 
 PROJECT_STATUS.md
+README.md
 ```
 
-Commit: `d5fc4c3` — *feat: Phase 4 advanced MVP fate abilities*
+Commit: `afe0c0b` — *feat: Phase 5 phase transitions and winner screen*
 
 ---
 
@@ -337,31 +304,33 @@ Commit: `d5fc4c3` — *feat: Phase 4 advanced MVP fate abilities*
 Architecture boundaries are holding. Keep them:
 
 - `src/game/` decides outcomes. Components render and dispatch, nothing more.
-- Randomness goes through `src/utils/random.ts` — that is now the *only*
-  constraint on randomness, since abilities may call it during `resolve`.
+- Randomness goes through `src/utils/random.ts`.
 - Abilities emit events. Only `eventResolver.ts` changes state; only
   `eventQueue.ts` decides ordering.
-- **Every elimination goes through `attackPlayer()`.** Four abilities and one
-  status trigger now depend on this being the single Shield checkpoint.
+- Every elimination goes through `attackPlayer()`.
 
-**Three extension points exist, and none requires touching the reducer:**
+Phase 5 needed **no engine changes at all** — a good sign the earlier phases put
+the rules in the right place. Phase 6 is the opposite: undo and persistence are
+squarely engine concerns.
 
-| To add | Where |
-|---|---|
-| A Fate | `abilities/` + one line in `ABILITIES` |
-| A targeting Fate | the same, plus `resolveTargetSpin` |
-| A persistent status | `statuses/` + one line in `SELECTION_TRIGGERS` |
+**Undo must be snapshot-based, not action-replay.** Since Phase 4, abilities use
+randomness during `resolve`, so replaying an action log would produce different
+outcomes. `historyStack.push(deepClone(state))` before each mutating action is
+what spec §23 describes, and it sidesteps the problem entirely.
 
-Phase 5 is mostly presentation. `PHASE_CHANGED` and `GAME_WON` are already
-emitted and logged — the work is rendering them, not producing them. Resist
-re-plumbing the engine for it.
+**Add `saveVersion` to the persisted shape from the very first commit** of 6C.
+Enhancement Phase 0 calls for it, and retrofitting a version onto saves that
+already exist in users' browsers is far harder than starting with one.
 
-Only one status may fire per selection, by design. Two statuses triggering at
-once would need an explicit interaction rule, and none exists — Bomb will have
-to define one.
+`GameState` is already a plain serialisable object — no class instances, no
+functions, no `Date` — so `JSON.stringify` is sufficient for both undo snapshots
+and localStorage.
 
-Tests remain the biggest gap. Phase 5 is a light engine phase, which makes it a
-good moment to add Vitest before Phase 6 touches undo and persistence.
+The temporary `dev`-tagged Reset button on the game screen should be absorbed
+into the Phase 6D host panel and removed from the main screen.
+
+Tests remain the biggest gap and Phase 6 is the riskiest phase to do without
+them: undo and save/restore are exactly where silent state corruption hides.
 
 ---
 
