@@ -27,8 +27,9 @@ PASS 1 — MVP
 # Current Phase
 
 ```text
-Phase 6 — Host Safety & Persistence     (NOT STARTED)
+Phase 7 — MVP Arcade Presentation       (NOT STARTED)
 
+Phase 6 — Host Safety & Persistence     COMPLETE
 Phase 5 — Game Phases & Endgame         COMPLETE
 Phase 4 — Advanced MVP Fate Abilities   COMPLETE
 Phase 3 — Core Fate Ability System      COMPLETE
@@ -40,9 +41,9 @@ Phase 0 — Project Foundation            COMPLETE
 # Phase Status
 
 ```text
-Phase 5 COMPLETE — the game is now technically complete: a normal player
-list reaches one winner with no manual state editing.
-Phase 6 NOT STARTED.
+Phase 6 COMPLETE — the host can now recover from an accidental action,
+a browser refresh, or a mistaken roster.
+Phase 7 NOT STARTED.
 ```
 
 # Live Deployment
@@ -56,9 +57,8 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 # Current Objective
 
-Per the roadmap, Phase 5 is the first point where the product is technically a
-complete game. Next is Phase 6: make it survivable during a real streamed
-session — event history, undo, localStorage save/resume, and a host panel.
+The game is complete and survivable. Next is Phase 7: the arcade presentation
+pass — theme, effect registry, and the first real audio system.
 
 ---
 
@@ -73,83 +73,97 @@ Branch   main
 
 # Completed Before This Session
 
-**Phase 0.** React 19 + TypeScript + Vite 8; core types; pure reducer; phase
-resolver; centralised randomness; git + Vercel live.
-
-**Phase 1.** Reusable Canvas `<Wheel>` with deterministic landing; Setup screen.
-
-**Phase 2.** Fate Wheel; four starter abilities as data; ability registry;
-shared attack flow; full `WHO → WHAT FATE` loop.
+**Phase 0–2.** React 19 + TypeScript + Vite 8; pure reducer; reusable Canvas
+wheel with deterministic landing; ability registry; shared attack flow; the
+full `WHO → WHAT FATE` loop.
 
 **Phase 3.** Event queue that suspends on blocking events; status panel.
 
-**Phase 4.** All eight MVP Fates — Death Mark as a status trigger, Hunter and
-Duel as multi-step target-spin abilities, Revive with backward phase movement.
+**Phase 4.** All eight MVP Fates, including Death Mark as a status trigger and
+Hunter/Duel as multi-step target-spin abilities.
+
+**Phase 5.** Phase transition overlay, Sudden Death atmosphere, winner screen.
 
 ---
 
 # Completed This Session
 
-## Phase 5 — Game Phases & Endgame
+## Phase 6 — Host Safety & Persistence
 
-**No reducer changes.** The engine side of phases was already built and verified
-in earlier phases: the phase resolver, phase-specific pools, backward
-recalculation after Revive, and winner detection. This phase was presentation.
+### 6A — Event history
 
-### Phase transitions
+- `game/events/eventLog.ts` turns raw events into readable lines and groups
+  them by round, newest first. Flow-control events (`WAIT_FOR_HOST`, the spin
+  requests, `ATTACK_PLAYER`) are dropped — they are mechanism, not story.
+- `components/EventLog/` renders it. It lives inside the Host Panel rather than
+  the main screen, which already shows the current narration line and has no
+  vertical space to spare at 1280×720.
 
-- `hooks/usePhaseAnnouncement.ts` — notices `phase` moving and produces a
-  transient title. The engine already emits `PHASE_CHANGED`, so the hook only
-  observes; it owns no game state.
-- `components/PhaseAnnouncement/` — full-screen overlay using the spec §10
-  wording (`⚠ DANGER MODE ⚠`, `🔥 FINAL FIVE 🔥`, `☠ SUDDEN DEATH ☠`).
-- Auto-dismisses after ~1.9s rather than waiting for a host click: a phase
-  change is a reveal, not a decision (spec §7).
-- `pointer-events: none`, so it can never swallow a host click.
+### 6B — Undo
 
-### Sudden Death and phase atmosphere
+- `game/engine/undo.ts` wraps `gameReducer` without modifying it.
+- **Snapshots, not replay.** Abilities have called randomness during `resolve`
+  since Phase 4, so replaying an action log would produce a *different* game.
+- **Wheel completions are not checkpoints**, so undoing after a spin returns to
+  before the spin rather than into a frozen animation.
+- Rejected transitions return the same state reference, which the wrapper uses
+  to avoid burning an undo slot on a no-op.
+- Stack bounded at `UNDO_LIMIT = 40`.
 
-- A `data-phase` attribute on the root drives the accent colour per phase, so
-  **no component branches on phase**. Sudden Death additionally darkens the
-  field with a red vignette.
-- Accents escalate: Chaos `#ffb020` → Danger `#ff9d3d` → Final Five `#ff6b3d`
-  → Sudden Death `#ff4d4d`.
+### 6C — Save / resume
 
-### Winner screen
+- `storage/gameStorage.ts`, key `kof.save.v1`, envelope
+  `{ saveVersion, savedAt (ISO 8601 UTC), state }`.
+- `saveVersion` ships from the first commit, as Enhancement Phase 0 requires.
+- A save with an unexpected version, unparseable JSON, or a structurally wrong
+  state is **discarded**, not loaded into the engine.
+- All localStorage access is wrapped: it throws in private browsing and on
+  quota, and a game must never be lost because saving failed.
+- Autosave on every change once a game is under way; setup is not saved.
+- `components/ResumePrompt/` offers RESUME / NEW GAME. Resuming is never
+  automatic.
 
-- `components/WinnerScreen/` — the spec §5C overlay: `KING OF FATE`, the name,
-  `WINNER`, confetti, and the New Game action. Replaces the previous one-line
-  winner text.
-- Confetti offsets are derived from the piece index, not `Math.random`.
-- The **no-survivors** case (everyone eliminated) renders `NO SURVIVORS` rather
-  than assuming a winner exists.
+### 6D — Host Panel
+
+- `components/HostPanel/`, toggled with **Ctrl+Shift+H**, plus a dim `HOST`
+  handle so it is discoverable without the shortcut.
+- Undo, Reset to setup, Fullscreen, Save now, Clear save, roster add/remove,
+  and the event history.
+- **Replaces the temporary `dev` strip** that had been on the game screen since
+  Phase 1.
+
+### Engine change
+
+- Roster edits are now legal in `idle` as well as `setup`, so a late joiner can
+  be added between rounds. `idle` is the only safe in-game moment: no wheel is
+  turning, no ability is suspended, and `currentPlayerId` is already cleared.
+  Adding or removing mid-game re-derives the phase.
 
 ---
 
 # In Progress
 
-Nothing. Phase 5 is closed and nothing was left half-written.
+Nothing. Phase 6 is closed and nothing was left half-written.
 
 ---
 
 # Next Tasks
 
-**Phase 6 — Host Safety & Persistence.** The goal is recovering from mistakes
-during a live streamed session.
+**Phase 7 — MVP Arcade Presentation.** The first phase where the product stops
+looking like an engineering prototype.
 
-1. **6A — Event history UI.** The data already exists: `state.history` records
-   every event with its round, and `SHOW_MESSAGE` narration is already written
-   by the abilities. This is a rendering task, not an engine one.
-2. **6B — Undo.** Snapshot `GameState` before each mutating action and restore
-   the most recent. The reducer returns new state objects throughout, so
-   snapshots are cheap. Note that abilities now use randomness during `resolve`,
-   so undo must be snapshot-based — replaying actions would produce a different
-   outcome unless the random source is seeded.
-3. **6C — localStorage save/resume.** Persist players, round, phase, statuses,
-   history, config and current state; offer `RESUME` / `NEW GAME` on reload.
-   Add a `saveVersion` field now so old saves can be migrated later.
-4. **6D — Host panel.** Collapsible, `Ctrl+Shift+H`. Absorbs the temporary
-   `dev`-tagged "Reset to setup" button currently on the game screen.
+1. **Arcade visual theme** — dark background, bold angled panels, strong
+   typography, high contrast. The `data-phase` hook added in Phase 5 is where
+   per-phase atmosphere should expand.
+2. **Effect registry** — map events to effects (flash, shake, K.O. overlay,
+   shield burst, skull pulse). Events already exist and are already emitted;
+   this is a subscriber, not new engine work.
+3. **Audio system** — `audio/audioManager.ts` and `soundRegistry.ts`. Wheel
+   tick, wheel stop, Fate impact, Shield block, KO, phase transition, winner.
+   **The wheel already exposes an `onTick` callback with no listener** — that is
+   the intended hook for tick audio.
+4. **Source legally usable audio assets** (spec §26). This is the real blocker
+   for item 3, not the code.
 
 ---
 
@@ -159,143 +173,139 @@ No blockers.
 
 Non-blocking:
 
-- **No automated tests.** Still the largest gap, and it grew this session: the
-  verification harness now has to cover eight abilities, a status trigger, the
-  queue, and three overlays. Roadmap schedules tests in Enhancement Phase 0.
-  Phase 6 touches undo and persistence, which are exactly the kind of
-  state-integrity features tests protect.
-- **No victory sound.** Spec §5C lists one, but the audio manager is Phase 7 and
-  the repo has no legally usable audio asset (spec §26). Deliberate — see
-  decision 4.
-- **No persistence.** Refresh resets the game. Phase 6C.
-- **Temporary dev control** — `dev`-tagged "Reset to setup" button. Phase 6D.
+- **No automated tests.** Still the largest gap. Phase 6's undo and storage
+  logic were verified through the harness, but this is exactly the kind of
+  state-integrity code that regression tests protect. Roadmap schedules them in
+  Enhancement Phase 0.
+- **No audio at all.** Phase 7, and gated on sourcing legally usable assets.
+- **"Clear save" during a live game is re-saved on the next action.** This is
+  intended — the game is still in progress, so autosave writes again. It only
+  stays cleared once the host resets to setup or stops playing. Worth knowing
+  before someone reports it as a bug.
 - **Fate Wheel segments are equal-sized** while selection is weighted. Open
   product decision from Phase 2.
 - **Duel has no VS scene.** Enhancement Phase 4 owns it.
+- **Host panel has no audio controls**, unlike the roadmap's 6D list — there is
+  no audio system for them to control yet.
 
 ---
 
 # Important Decisions Made This Session
 
-1. **Phase transitions auto-dismiss.** Spec §7 reserves host clicks for actual
-   choices; a phase change is a consequence, not a decision. Making the host
-   click through it would add a click to every threshold crossing.
-2. **Chaos has no announcement.** It is where games begin, so announcing it
-   would fire an overlay before anything has happened. This also means a game
-   that falls back to Chaos after a Revive transitions quietly — escalation is
-   the dramatic beat, not de-escalation.
-3. **Phase atmosphere is a CSS attribute, not component logic.** `data-phase` on
-   the root keeps every component ignorant of phase, and gives Enhancement
-   Phase 7E a single place to expand the per-phase treatment.
-4. **No victory sound, deliberately.** Building a one-off `Audio()` call now
-   would either be thrown away or become a shadow audio system that Phase 7 has
-   to reconcile, and there is no legally usable asset in the repo to play
-   (spec §26). Recorded as an intentional gap against the Phase 5C description.
-5. **Confetti is deterministic.** Index-derived offsets keep stray `Math.random`
-   out of the codebase (AGENTS.md §7.5) and make the celebration identical on
-   any replay of the same game.
+1. **Undo stores snapshots, not an action log.** Since Phase 4 abilities call
+   randomness during `resolve`, replaying actions would produce a different
+   game. `GameState` is plain and serialisable, so snapshots are cheap and
+   exact. This was flagged in the Phase 5 handoff and held up.
+2. **Wheel completions are not undo checkpoints.** Undo should reverse a *host
+   action*, and the state a completion consumes (`spinning_*`) is not somewhere
+   the host can safely be returned to, since no animation would be running.
+3. **Undo lives outside the reducer.** Keeping it as a wrapper means the reducer
+   remains a plain state machine and undo cannot corrupt game rules.
+4. **Corrupt or wrong-version saves are discarded, not repaired.** Guessing at a
+   malformed save would fail later and less obviously. This is also where
+   migrations will go when `saveVersion` increments.
+5. **Resume is offered, never automatic.** Reopening the tab to start a fresh
+   game is at least as common as wanting the old one back.
+6. **Roster edits are restricted to `idle`.** Allowing them mid-round would
+   strand a half-resolved round — a removed player could be the current target
+   of a suspended Hunter. The engine enforces this; the panel just hides the
+   controls.
+7. **No audio controls in the host panel**, despite the roadmap listing them for
+   6D. A volume slider with nothing to control is worse than its absence.
 
 ---
 
 # Verification Performed
 
-- `npm run build` (`tsc -b && vite build`) — **passes**, 49 modules, no type errors.
+- `npm run build` (`tsc -b && vite build`) — **passes**, 55 modules, no type errors.
 - `npm run lint` (oxlint) — **clean**.
 - `npx prettier --check` — **all files conform**.
-- No orphaned CSS left behind by the removed winner line.
+- No orphaned CSS from the removed dev strip.
 
-## Phase announcement hook — exercised against the real module
-
-| Behaviour | Result |
-|---|---|
-| First render of a live game does not announce | PASS |
-| Chaos → Danger announces `⚠ DANGER MODE ⚠` | PASS |
-| Danger → Final Five announces `🔥 FINAL FIVE 🔥` | PASS |
-| Final Five → Sudden Death announces `☠ SUDDEN DEATH ☠` | PASS |
-| Auto-dismisses after its duration | PASS |
-| Backward move to Chaos stays silent | PASS |
-| Re-rendering the same phase does not re-announce | PASS |
-| Going inactive clears immediately | PASS |
-
-## Overlays — rendered and inspected
+## Undo — exercised against the real module
 
 | Behaviour | Result |
 |---|---|
-| Winner overlay shows KING OF FATE / name / WINNER | PASS |
-| 48 confetti pieces, all at distinct horizontal offsets | PASS |
-| New Game button fires its callback | PASS |
-| `aria-modal="true"` on the winner dialog | PASS |
-| No-survivors case renders `NO SURVIVORS`, no name, still offers New Game | PASS |
-| Phase overlay renders nothing when there is no title | PASS |
-| Phase overlay is `pointer-events: none`, `position: fixed`, `z-index: 40` | PASS |
+| Undo reverses an elimination (5 alive → 6) | PASS |
+| Undo across a spin returns to `idle`, never mid-animation | PASS |
+| Rejected actions do not consume an undo slot | PASS |
+| Undo on an empty stack is a safe no-op | PASS |
+| Multi-step undo walks back several rounds | PASS |
+| Stack bounded at 40 entries | PASS |
+| `RESTORE` clears the past | PASS |
 
-## Phase atmosphere
+## Storage — exercised against the real module
 
-Accent resolves correctly per phase (base `#ffb020`, Danger `#ff9d3d`, Final
-Five `#ff6b3d`, Sudden Death `#ff4d4d`), and Sudden Death applies its vignette.
-
-## Wiring
-
-A real game was driven to `screenState: 'winner'` through the reducer, then
-`GameScreen` was rendered with that state: the winner overlay appears with the
-correct name, and the old inline winner line is gone.
-
-## Full-game simulation (regression)
-
-200 games (40 each at 2, 5, 8, 12, 20 players):
-
-- **every game reached a valid winner** and emitted `GAME_WON`;
-- **zero stuck states**;
-- every game passed through Sudden Death;
-- average phase changes per game: 1.0 (n=2) to 3.3 (n=20).
-
-## Live deployment (https://kof-ten.vercel.app/)
-
-Asset hash matched the local build. The deployed CSS contains
-`phase-announcement`, `winner__confetti`, `confetti-fall`, `data-phase` and
-`sudden_death`; the deployed JS contains `KING OF FATE`, `SUDDEN DEATH`,
-`DANGER MODE`, `FINAL FIVE` and `NO SURVIVORS`.
-
-**Limitation — read this before trusting the above.** The Browser pane could not
-be displayed during this session, so the page never composited frames. That
-blocked screenshots and stalled `requestAnimationFrame`, which the wheel spin
-depends on. Consequently the overlays were verified by rendering the real
-components and hook directly, and by driving the real reducer — **not** by
-watching a phase transition or winner screen appear during an actual animated
-playthrough. Everything asserted above was executed, but a human should eyeball
-one full game before the Phase 8 validation pass.
-
-## Phase 5 exit criteria
-
-| Criterion | Result |
+| Behaviour | Result |
 |---|---|
-| Automatic phase resolver with the spec thresholds | PASS (Phase 2) |
-| Phase-specific Fate pools | PASS (Phase 3) |
-| Phase transition shown when a threshold is crossed | PASS |
-| Sudden Death has a dedicated treatment and reduced pool | PASS |
-| Winner state with overlay and confetti | PASS |
-| Victory sound | DEFERRED to Phase 7 — see decision 4 |
-| Normal player list reaches one winner with no manual editing | PASS |
+| Empty storage loads as null | PASS |
+| Round-trips round, phase, screenState, roster, statuses, history | PASS |
+| Unicode names survive (`Jason\|Amy\|小明\|Zoë 🎯`) | PASS |
+| `savedAt` is ISO 8601 | PASS |
+| Envelope carries `saveVersion: 1` | PASS |
+| Wrong `saveVersion` rejected **and cleared** | PASS |
+| Unparseable JSON rejected and cleared | PASS |
+| Structurally invalid state rejected | PASS |
+| A resumed state is still playable | PASS |
+
+## Event log and roster rules
+
+Log output reads correctly, e.g. Round 01 → `Game started — 4 players`,
+`⚑ FINAL FIVE`, `🎡 Jason selected`, `🛡 Jason gains a Shield`. Flow-control
+events are hidden; an unknown player id degrades to "Unknown" rather than
+crashing. Roster add/remove works at `idle`, is rejected mid-round, and
+re-derives the phase.
+
+## Full-game regression through the undo wrapper
+
+150 games (30 each at 2, 5, 8, 12, 20 players) played entirely through
+`historyReducer`:
+
+- **every game reached a valid winner**, zero stuck states;
+- undo depth stayed bounded at 40;
+- unwinding every game completely left a valid state.
+
+## Against the live deployment (https://kof-ten.vercel.app/)
+
+Asset hash matched the local build.
+
+- Host handle present, dev strip gone, Ctrl+Shift+H opens and closes the panel.
+- Starting a game writes a `saveVersion: 1` save; setup does not.
+- **A real browser reload showed the resume prompt**, and Resume restored the
+  full roster including `小明` and `Zoë 🎯`, the round, and the event history.
+- Panel roster add/remove works, and Undo reverses both.
+- Save now / Clear save report back and match localStorage.
+- No page overflow, no console errors.
+
+## Phase 6 exit criteria
+
+The host can recover from an accidental action (undo), a browser refresh
+(save/resume), and a roster mistake (host panel) without restarting the
+session. **PASS.**
 
 ---
 
 # Files / Areas Changed
 
 ```text
-src/hooks/usePhaseAnnouncement.ts                      (new)
-src/components/PhaseAnnouncement/PhaseAnnouncement.tsx (new)
-src/components/WinnerScreen/WinnerScreen.tsx           (new)
+src/game/engine/undo.ts                          (new)
+src/storage/gameStorage.ts                       (new)
+src/game/events/eventLog.ts                      (new)
+src/components/EventLog/EventLog.tsx             (new)
+src/components/HostPanel/HostPanel.tsx           (new)
+src/components/ResumePrompt/ResumePrompt.tsx     (new)
 
-src/game/phases/phaseConfig.ts             (PHASE_ANNOUNCEMENTS)
-src/components/GameScreen/GameScreen.tsx   (both overlays wired in)
-src/app/App.tsx                            (data-phase, footer)
-src/styles/globals.css                     (phase atmosphere, overlays, confetti)
+src/hooks/useGame.ts                  (undo, autosave, resume)
+src/game/engine/reducer.ts            (roster edits legal at idle)
+src/components/GameScreen/GameScreen.tsx (dev strip removed)
+src/app/App.tsx                       (host panel, resume prompt, footer)
+src/styles/globals.css                (host panel, event log, resume prompt)
 
 PROJECT_STATUS.md
 README.md
 ```
 
-Commit: `afe0c0b` — *feat: Phase 5 phase transitions and winner screen*
+Commit: `d48c64b` — *feat: Phase 6 host safety and persistence*
 
 ---
 
@@ -308,29 +318,28 @@ Architecture boundaries are holding. Keep them:
 - Abilities emit events. Only `eventResolver.ts` changes state; only
   `eventQueue.ts` decides ordering.
 - Every elimination goes through `attackPlayer()`.
+- **Undo wraps the reducer from outside.** Do not move it inside, and do not
+  add an action log — randomness in `resolve` makes replay unsound.
 
-Phase 5 needed **no engine changes at all** — a good sign the earlier phases put
-the rules in the right place. Phase 6 is the opposite: undo and persistence are
-squarely engine concerns.
+Phase 7 should be almost entirely additive. Events are already emitted for
+everything worth reacting to, so the effect registry and audio manager are
+**subscribers**, not engine changes. If Phase 7 seems to need a reducer change,
+the missing piece is probably an event type.
 
-**Undo must be snapshot-based, not action-replay.** Since Phase 4, abilities use
-randomness during `resolve`, so replaying an action log would produce different
-outcomes. `historyStack.push(deepClone(state))` before each mutating action is
-what spec §23 describes, and it sidesteps the problem entirely.
+Two hooks already exist and are waiting for Phase 7:
 
-**Add `saveVersion` to the persisted shape from the very first commit** of 6C.
-Enhancement Phase 0 calls for it, and retrofitting a version onto saves that
-already exist in users' browsers is far harder than starting with one.
+- `<Wheel onTick>` — fires on every segment boundary, currently unused. This is
+  where tick audio belongs.
+- `data-phase` on the root — where per-phase atmosphere expands.
 
-`GameState` is already a plain serialisable object — no class instances, no
-functions, no `Date` — so `JSON.stringify` is sufficient for both undo snapshots
-and localStorage.
+**Audio is gated on assets, not code** (spec §26 requires legally usable
+sources). Sort the assets before writing the audio manager, or it will be
+written against nothing.
 
-The temporary `dev`-tagged Reset button on the game screen should be absorbed
-into the Phase 6D host panel and removed from the main screen.
+If any localStorage schema change is needed, bump `SAVE_VERSION` and add a
+migration in `loadGame` — the rejection path is already there.
 
-Tests remain the biggest gap and Phase 6 is the riskiest phase to do without
-them: undo and save/restore are exactly where silent state corruption hides.
+Tests remain the biggest gap.
 
 ---
 

@@ -5,14 +5,16 @@ A host-controlled, arcade-styled elimination party game built around two wheels:
 
 **Live:** https://kof-ten.vercel.app/
 
-Current status: **Pass 1 — MVP. Phases 0–5 complete; Phase 6 next.**
-The game is technically complete: enter players, then
+Current status: **Pass 1 — MVP. Phases 0–6 complete; Phase 7 next.**
+The game is complete and survivable: enter players, then
 `Spin Player → Spin Fate → Resolve → Next Round` until one winner remains,
 with phase transitions and a winner screen along the way.
 
 All eight MVP Fates work — Eliminate, Shield, Safe, Again, Death Mark, Hunter,
-Revive, Duel. Still missing before it is safe to run live: undo, save/resume,
-a host panel (Phase 6), and sound (Phase 7). See `PROJECT_STATUS.md`.
+Revive, Duel. Undo, save/resume and the host panel are in. Still missing:
+the arcade theme, effects and sound (Phase 7). See `PROJECT_STATUS.md`.
+
+**Host panel:** `Ctrl+Shift+H` — undo, roster edits, save controls, event history.
 
 ## Documentation
 
@@ -72,12 +74,17 @@ src/
 │   ├── types/    Player, GameState, AbilityDefinition
 │   └── config/   default game configuration
 ├── hooks/        React bindings for the engine
+├── storage/      localStorage save/resume, versioned
 ├── styles/       baseline CSS (arcade theme is Phase 7)
 └── utils/        centralised randomness, ids
 ```
 
-`src/effects/`, `src/audio/` and `src/storage/` are named in the spec's target
-structure but are not created yet — they arrive with the phases that need them.
+`src/effects/` and `src/audio/` are named in the spec's target structure but are
+not created yet — they arrive in Phase 7.
+
+Undo lives in `game/engine/undo.ts` as a wrapper *around* the reducer. It stores
+snapshots rather than replaying actions, because abilities use randomness during
+resolution and a replayed log would produce a different game.
 
 ### Adding a Fate
 
