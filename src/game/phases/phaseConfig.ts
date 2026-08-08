@@ -25,3 +25,17 @@ export const PHASE_LABELS: Record<GamePhase, string> = {
 };
 
 export const PHASE_ORDER: readonly GamePhase[] = ['chaos', 'danger', 'final_five', 'sudden_death'];
+
+/**
+ * Full-screen transition titles, verbatim from PROJECT_SPEC.md §10.
+ *
+ * Chaos has no announcement: it is where games begin, so declaring it would
+ * fire an overlay before anything has happened. A game that drops back to
+ * Chaos after a Revive therefore transitions quietly, which is the right
+ * emphasis — escalation is the dramatic beat, not de-escalation.
+ */
+export const PHASE_ANNOUNCEMENTS: Partial<Record<GamePhase, string>> = {
+  danger: '⚠ DANGER MODE ⚠',
+  final_five: '🔥 FINAL FIVE 🔥',
+  sudden_death: '☠ SUDDEN DEATH ☠',
+};

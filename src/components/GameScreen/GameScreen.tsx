@@ -33,6 +33,9 @@ import { PHASE_LABELS } from '../../game/phases/phaseConfig';
 import { MainWheel } from '../MainWheel/MainWheel';
 import { FateWheel } from '../FateWheel/FateWheel';
 import { StatusPanel } from '../StatusPanel/StatusPanel';
+import { PhaseAnnouncement } from '../PhaseAnnouncement/PhaseAnnouncement';
+import { WinnerScreen } from '../WinnerScreen/WinnerScreen';
+import { usePhaseAnnouncement } from '../../hooks/usePhaseAnnouncement';
 
 type GameScreenProps = {
   state: GameState;
@@ -74,8 +77,21 @@ export function GameScreen({
   const fateActive = revealedPlayer !== null && !isWinner;
   const message = getLatestMessage(state);
 
+  // Suppressed once the game is decided so a final elimination cannot fire a
+  // phase title over the winner overlay.
+  const phaseTitle = usePhaseAnnouncement(state.phase, !isWinner);
+
   return (
     <section className="game">
+      <PhaseAnnouncement title={phaseTitle} />
+
+      {isWinner && (
+        <WinnerScreen
+          winnerName={winnerName(state)}
+          onNewGame={() => dispatch({ type: 'RESET_GAME' })}
+        />
+      )}
+
       <div className="game__stats">
         <Stat label="Round" value={String(state.round)} />
         <Stat label="Alive" value={`${alivePlayers.length} / ${state.players.length}`} />
@@ -123,7 +139,6 @@ export function GameScreen({
           {spinningFate && <span className="game__pending"> → deciding fate…</span>}
         </p>
         {message && <p className="game__message">{message}</p>}
-        {isWinner && <p className="game__winner">WINNER — {winnerName(state)}</p>}
       </div>
 
       <div className="game__actions">
@@ -254,8 +269,9 @@ function PrimaryAction({
   );
 }
 
-function winnerName(state: GameState): string {
-  return state.players.find((player) => player.id === state.winnerId)?.name ?? '—';
+/** Null when everyone was eliminated — the game is over with no survivor. */
+function winnerName(state: GameState): string | null {
+  return state.players.find((player) => player.id === state.winnerId)?.name ?? null;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

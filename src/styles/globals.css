@@ -348,12 +348,179 @@ body {
   overflow-wrap: anywhere;
 }
 
-.game__winner {
-  margin: 0.25rem 0 0;
-  font-size: 1.2rem;
+/* --- Phase atmosphere (PROJECT_SPEC.md §10) --- */
+
+/* Each phase shifts the accent so the stakes read at a glance on a stream.
+   Sudden Death additionally darkens the field. */
+.app[data-phase='danger'] {
+  --kof-accent: #ff9d3d;
+}
+
+.app[data-phase='final_five'] {
+  --kof-accent: #ff6b3d;
+}
+
+.app[data-phase='sudden_death'] {
+  --kof-accent: #ff4d4d;
+  background:
+    radial-gradient(ellipse at 50% 40%, rgb(255 77 77 / 9%), transparent 62%), var(--kof-bg);
+}
+
+/* --- Phase transition overlay --- */
+
+.phase-announcement {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Must never swallow a host click. */
+  pointer-events: none;
+  background: rgb(13 15 20 / 62%);
+  animation: phase-fade 1.9s ease-out forwards;
+}
+
+.phase-announcement__title {
+  margin: 0;
+  padding: 0 1rem;
+  font-size: clamp(2rem, 7vw, 5rem);
   font-weight: 800;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
+  text-align: center;
   color: var(--kof-accent);
+  text-shadow: 0 0 28px rgb(0 0 0 / 80%);
+  animation: phase-pop 1.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes phase-fade {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes phase-pop {
+  0% {
+    transform: scale(0.72);
+  }
+  30% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* --- Winner overlay --- */
+
+.winner {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: rgb(13 15 20 / 88%);
+  animation: winner-fade-in 320ms ease-out;
+}
+
+@keyframes winner-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.winner__panel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 3rem;
+  text-align: center;
+}
+
+.winner__crown,
+.winner__label {
+  margin: 0;
+  font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.winner__name {
+  margin: 0.3rem 0;
+  font-size: clamp(2.5rem, 9vw, 6rem);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  color: var(--kof-accent);
+  overflow-wrap: anywhere;
+}
+
+.winner__label {
+  color: var(--kof-accent);
+}
+
+.winner .button {
+  margin-top: 1.25rem;
+}
+
+.winner__confetti {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.winner__confetti-piece {
+  position: absolute;
+  top: -6vh;
+  width: 9px;
+  height: 16px;
+  border-radius: 1px;
+  animation-name: confetti-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-10vh) rotate(0deg);
+  }
+  8% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.9;
+    transform: translateY(108vh) rotate(540deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .winner__confetti {
+    display: none;
+  }
+
+  .phase-announcement__title {
+    animation: none;
+  }
 }
 
 /* --- Fate wheel --- */

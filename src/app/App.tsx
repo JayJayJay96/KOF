@@ -42,7 +42,9 @@ export default function App() {
   const isSetup = state.screenState === 'setup';
 
   return (
-    <div className="app">
+    /* data-phase drives the phase atmosphere in CSS (PROJECT_SPEC.md §10).
+       Sudden Death gets its own treatment without any component branching. */
+    <div className="app" data-phase={isSetup ? undefined : state.phase}>
       <header className="app__header">
         <h1 className="app__title">
           KOF <span className="app__subtitle">King of Fate</span>
