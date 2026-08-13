@@ -20,37 +20,52 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   phaseThresholds: DEFAULT_PHASE_THRESHOLDS,
 
   abilities: {
+    // Rebalanced after Phase 7 playtesting. Measured over 5,220 rolls, the old
+    // spread left 19.4% of rolls changing nothing (Safe + Again) while only
+    // 20.7% involved a second player — and the two-player Fates were where all
+    // the reactions came from. These weights cut dead air to roughly 4% and
+    // push two-player Fates toward 35%.
     eliminate: {
       enabled: true,
-      weights: { chaos: 25, danger: 30, final_five: 40, sudden_death: 55 },
+      weights: { chaos: 22, danger: 28, final_five: 34, sudden_death: 50 },
     },
     shield: {
       enabled: true,
-      weights: { chaos: 15, danger: 10, final_five: 10, sudden_death: 15 },
+      weights: { chaos: 10, danger: 8, final_five: 8, sudden_death: 12 },
     },
+    // Pure relief, now rare. Kept because if EVERY roll matters the tension
+    // flatlines — an occasional clean escape is what makes the rest land.
     safe: {
       enabled: true,
-      weights: { chaos: 15, danger: 10, final_five: 5, sudden_death: 0 },
+      weights: { chaos: 4, danger: 3, final_five: 2, sudden_death: 0 },
     },
-    again: {
+    close_call: {
       enabled: true,
-      weights: { chaos: 10, danger: 7, final_five: 5, sudden_death: 10 },
+      weights: { chaos: 10, danger: 8, final_five: 6, sudden_death: 8 },
     },
     hunter: {
       enabled: true,
-      weights: { chaos: 10, danger: 12, final_five: 15, sudden_death: 20 },
+      weights: { chaos: 15, danger: 16, final_five: 18, sudden_death: 20 },
     },
     death_mark: {
       enabled: true,
-      weights: { chaos: 8, danger: 10, final_five: 10, sudden_death: 0 },
+      weights: { chaos: 10, danger: 10, final_five: 8, sudden_death: 0 },
     },
     revive: {
       enabled: true,
-      weights: { chaos: 7, danger: 5, final_five: 0, sudden_death: 0 },
+      weights: { chaos: 6, danger: 4, final_five: 0, sudden_death: 0 },
     },
     duel: {
       enabled: true,
-      weights: { chaos: 5, danger: 10, final_five: 15, sudden_death: 0 },
+      weights: { chaos: 13, danger: 14, final_five: 16, sudden_death: 0 },
+    },
+    steal_shield: {
+      enabled: true,
+      weights: { chaos: 9, danger: 8, final_five: 6, sudden_death: 6 },
+    },
+    double_fate: {
+      enabled: true,
+      weights: { chaos: 8, danger: 8, final_five: 6, sudden_death: 0 },
     },
 
     // Post-MVP (PROJECT_SPEC.md §12) — weights recorded, ability disabled.

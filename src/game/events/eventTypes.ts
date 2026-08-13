@@ -26,6 +26,8 @@ export type GameEvent =
   | { type: 'ATTACK_PLAYER'; playerId: string; source: string }
   | { type: 'SHIELD_BLOCK'; playerId: string }
   | { type: 'ADD_SHIELD'; playerId: string }
+  // Distinct from SHIELD_BLOCK: the Shield is taken, not spent absorbing a hit.
+  | { type: 'REMOVE_SHIELD'; playerId: string }
   | { type: 'ADD_DEATH_MARK'; playerId: string }
   | { type: 'REMOVE_DEATH_MARK'; playerId: string }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }

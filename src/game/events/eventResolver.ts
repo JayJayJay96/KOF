@@ -37,10 +37,20 @@ function mapPlayer(
  */
 export function applyGameEvent(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
+    // Eliminated players cannot be armed. Double Fate can roll Eliminate and
+    // then Shield in one resolution, and a Shield on a corpse would reappear if
+    // that player were later revived.
     case 'ADD_SHIELD':
+      return mapPlayer(state, event.playerId, (player) =>
+        player.status === 'alive'
+          ? { ...player, shield: Math.min(MAX_SHIELD, player.shield + 1) }
+          : player,
+      );
+
+    case 'REMOVE_SHIELD':
       return mapPlayer(state, event.playerId, (player) => ({
         ...player,
-        shield: Math.min(MAX_SHIELD, player.shield + 1),
+        shield: Math.max(0, player.shield - 1),
       }));
 
     case 'SHIELD_BLOCK':

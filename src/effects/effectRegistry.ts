@@ -33,6 +33,9 @@ export function effectForEvent(event: GameEvent): ScreenEffect | null {
     case 'ADD_SHIELD':
       return { title: 'SHIELD', tone: 'cool', flash: true, shake: false };
 
+    case 'REMOVE_SHIELD':
+      return { title: 'STOLEN', tone: 'dark', flash: true, shake: false };
+
     case 'ADD_DEATH_MARK':
       return { title: 'MARKED', tone: 'dark', flash: true, shake: false };
 

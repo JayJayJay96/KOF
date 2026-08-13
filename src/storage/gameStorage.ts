@@ -18,7 +18,16 @@
 import type { GameState } from '../game/types/game';
 
 export const SAVE_KEY = 'kof.save.v1';
-export const SAVE_VERSION = 1;
+
+/**
+ * 2 — Wave 1 Fate rework.
+ *
+ * `again` was removed from the registry, so a v1 save caught mid-round with
+ * `currentAbilityId: 'again'` would resume into a Fate that no longer resolves
+ * and strand the round. Bumping discards those saves instead, which is exactly
+ * what the version check exists for.
+ */
+export const SAVE_VERSION = 2;
 
 export type SaveEnvelope = {
   saveVersion: number;

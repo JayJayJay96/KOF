@@ -18,9 +18,24 @@ import {
 } from './wheelGeometry';
 import { randomFloat } from '../../utils/random';
 
+/**
+ * A coloured band drawn on a segment's rim.
+ *
+ * Generic on purpose. The wheel must not learn what a Death Mark is — callers
+ * map their own domain state to colours, which is how the same component
+ * serves both the player wheel and the Fate wheel.
+ */
+export type WheelMarker = {
+  color: string;
+  /** Optional glyph, drawn only when the segment is wide enough to fit it. */
+  icon?: string;
+};
+
 export type WheelEntry = {
   id: string;
   label: string;
+  /** Outermost first. Rendered as concentric rim bands. */
+  markers?: WheelMarker[];
 };
 
 export type WheelProps = {
@@ -35,6 +50,12 @@ export type WheelProps = {
   minTurns?: number;
   maxSize?: number;
 };
+
+/**
+ * Rim band thickness. Chosen to survive stream compression — a 2px line smears
+ * into the segment edge at typical bitrates (PROJECT_SPEC.md §21).
+ */
+const MARKER_BAND_WIDTH = 6;
 
 const SEGMENT_FILLS = ['#1f2733', '#2a3442'];
 const SEGMENT_FILLS_ACTIVE = ['#3a2a12', '#4a3616'];
@@ -116,6 +137,23 @@ export function Wheel({
       ctx.strokeStyle = 'rgba(255,255,255,0.07)';
       ctx.lineWidth = 1;
       ctx.stroke();
+
+      // Status bands on the rim. Deliberately a different channel from the
+      // landed highlight, which uses the FILL — so "who is marked" and "who
+      // just won" stay readable at the same time.
+      const markers = entries[i].markers;
+      if (markers && markers.length > 0) {
+        markers.forEach((marker, band) => {
+          const bandRadius = radius - MARKER_BAND_WIDTH * (band + 0.5) - 1;
+          if (bandRadius <= 0) return;
+
+          ctx.beginPath();
+          ctx.arc(center, center, bandRadius, start, start + arc);
+          ctx.strokeStyle = marker.color;
+          ctx.lineWidth = MARKER_BAND_WIDTH;
+          ctx.stroke();
+        });
+      }
     }
 
     // Labels drawn in a second pass so no segment fill covers a neighbour's text.

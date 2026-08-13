@@ -642,35 +642,42 @@ NOT TODAY.
 
 ---
 
-## 11.4 AGAIN
+## 11.4 AGAIN — REMOVED
+
+*Removed after Phase 7 playtesting. Replaced by Double Fate (§12).*
+
+Again re-rolled the Fate Wheel without adding anything. Measured over 5,220
+rolls it was 8.9% of all outcomes and changed nothing on the board — together
+with Safe it made almost a fifth of every spin dead air.
+
+Double Fate keeps the "spin again" energy and turns it into the most explosive
+result on the wheel instead of the emptiest.
+
+## 11.4b CLOSE CALL
+
+*Added after Phase 7 playtesting.*
 
 Icon:
 
 ```text
-🔄
+😰
 ```
 
 Effect:
 
-The same selected player remains active.
-
-The host spins the Fate Wheel again.
-
-Important:
-
-Do not immediately auto-spin.
-
-Flow:
+The player survives, but never for free:
 
 ```text
-Jason
- ↓
-Again
- ↓
-WAIT FOR HOST
- ↓
-Spin Fate again
+Has a Shield  →  the Shield is destroyed absorbing the graze
+No Shield     →  survives, but gains a Death Mark
 ```
+
+That branch is what keeps it from being a reskin of Death Mark. For a shielded
+player it is a real loss with no lingering threat; for an exposed player it is
+survival bought on credit.
+
+Safe (§11.3) still exists but is now rare. If every roll matters the tension
+flatlines — an occasional clean escape is what makes the rest land.
 
 ---
 
@@ -886,9 +893,21 @@ Possible statuses:
 
 ## STEAL SHIELD
 
+*Promoted to the live pool after Phase 7 playtesting.*
+
 Selected player steals a Shield from another Shielded player.
 
 If nobody owns a Shield, ability should not appear.
+
+Chosen because only ~21% of rolls involved a second player and those were the
+moments people actually reacted to. Steal Shield is the cheapest way to add
+another: it needs no target spin, because the victim is simply whoever is
+holding a Shield.
+
+The thief's own Shield is irrelevant — a second is still capped at the MVP
+maximum of 1 (§11.2), but the victim loses theirs regardless, which is the
+point of the roll. If the only Shield holder turns out to be the thief, the
+Fate announces that nothing was stolen rather than silently doing nothing.
 
 ---
 
@@ -910,11 +929,32 @@ Not MVP.
 
 ## DOUBLE FATE
 
+*Promoted to the live pool after Phase 7 playtesting, replacing Again (§11.4).*
+
 Current selected player receives two Fate rolls.
 
-Requires careful conflict-resolution rules.
+Conflict rules, now that it ships:
 
-Not MVP.
+- Both Fates resolve **in the order drawn**, through the normal event queue.
+  Shield then Eliminate means the Shield is up in time to absorb the hit;
+  Eliminate then Shield means the player is already gone and the Shield is
+  discarded, because an eliminated player can never be armed.
+- Draws are **without replacement**, so the same Fate never lands twice.
+- A Fate whose target is already dead produces no events rather than
+  double-killing.
+
+Exclusions:
+
+- **Itself**, which would recurse.
+- **Any Fate needing a target spin** (Hunter, Duel). The engine tracks one
+  pending target spin at a time, so two would overwrite each other and strand
+  the first ability mid-resolution. A real limitation, not an oversight.
+- **Sudden Death**, where two stacked Fates can produce an ending nobody can
+  follow.
+
+Note that two different Fates can still produce the same effect — Close Call
+without a Shield and Death Mark both mark the player. `deathMark` is a boolean,
+so this is harmless, but it does waste half the roll.
 
 ---
 

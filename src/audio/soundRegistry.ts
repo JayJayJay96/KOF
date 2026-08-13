@@ -26,6 +26,11 @@ export function soundForEvent(event: GameEvent): SoundName | null {
     case 'ADD_SHIELD':
       return 'shieldGain';
 
+    // Losing a Shield to theft or a graze reuses the block cue: from the
+    // victim's side it is the same metallic "your armour just went" moment.
+    case 'REMOVE_SHIELD':
+      return 'shieldBlock';
+
     case 'ADD_DEATH_MARK':
       return 'deathMark';
 

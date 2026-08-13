@@ -47,6 +47,9 @@ export function describeEvent(event: GameEvent, players: readonly Player[]): str
     case 'SHIELD_BLOCK':
       return `🛡 ${nameOf(players, event.playerId)} blocked it`;
 
+    case 'REMOVE_SHIELD':
+      return `🪝 ${nameOf(players, event.playerId)} loses their Shield`;
+
     case 'ADD_DEATH_MARK':
       return `💀 ${nameOf(players, event.playerId)} is marked`;
 

@@ -15,21 +15,25 @@ import { filterAlive, getEliminatedPlayers } from '../engine/selectors';
 import { eliminateAbility } from './eliminate';
 import { shieldAbility } from './shield';
 import { safeAbility } from './safe';
-import { againAbility } from './again';
+import { closeCallAbility } from './closeCall';
 import { deathMarkAbility } from './deathMark';
 import { hunterAbility } from './hunter';
 import { reviveAbility } from './revive';
 import { duelAbility } from './duel';
+import { stealShieldAbility } from './stealShield';
+import { DOUBLE_FATE_ID, doubleFateAbility, setDoubleFatePoolProvider } from './doubleFate';
 
 export const ABILITIES: readonly AbilityDefinition[] = [
   eliminateAbility,
   shieldAbility,
   safeAbility,
-  againAbility,
+  closeCallAbility,
   deathMarkAbility,
   hunterAbility,
   reviveAbility,
   duelAbility,
+  stealShieldAbility,
+  doubleFateAbility,
 ];
 
 export const ABILITY_BY_ID: Record<string, AbilityDefinition> = Object.fromEntries(
@@ -88,6 +92,20 @@ export function getAvailableAbilities(state: GameState): AbilityDefinition[] {
  * The engine chooses before the Fate Wheel animates (PROJECT_SPEC.md §16), and
  * randomness routes through utils/random.ts (AGENTS.md §7.5).
  */
+/**
+ * Fates that Double Fate may pair.
+ *
+ * Injected here rather than imported by `doubleFate.ts` so the module graph
+ * stays acyclic. Excludes itself (recursion) and anything needing a target
+ * spin — the engine tracks one pending target spin at a time, so two would
+ * overwrite each other mid-resolution.
+ */
+setDoubleFatePoolProvider((context) =>
+  getAvailableAbilities(context.state).filter(
+    (ability) => ability.id !== DOUBLE_FATE_ID && !ability.resolveTargetSpin,
+  ),
+);
+
 export function selectWeightedAbility(state: GameState): AbilityDefinition | null {
   const available = getAvailableAbilities(state);
   if (available.length === 0) return null;
