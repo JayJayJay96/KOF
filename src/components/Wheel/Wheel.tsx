@@ -45,7 +45,10 @@ export function Wheel({
   spinning,
   onSpinComplete,
   onTick,
-  spinDurationMs = 4200,
+  // Long enough that the final crawl (the last third of the spin) has real
+  // wall-clock time to breathe. A greasy tail compressed into a second reads
+  // as a stutter, not tension.
+  spinDurationMs = 6800,
   minTurns = 4,
   maxSize = 680,
 }: WheelProps) {

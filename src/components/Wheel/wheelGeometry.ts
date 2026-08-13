@@ -78,33 +78,73 @@ export function segmentAtPointer(rotation: number, count: number): number {
 }
 
 /**
- * Spin easing: accelerate, then decelerate — a wheel being pushed, not flicked.
+ * Spin easing — three phases: wind up, slow down, then CRAWL.
  *
- * Piecewise and C1-continuous:
- *   0..a   constant angular acceleration, velocity 0 -> V
- *   a..1   quartic decay of velocity, V -> 0
+ * The crawl is the whole point. An ordinary ease-out spends its travel early:
+ * the previous quartic profile covered 94% of the distance in the first half
+ * of its deceleration, so the wheel parked deep inside a segment almost
+ * immediately and the remaining "slowdown" crept across a sliver of arc nobody
+ * could read. No boundary was ever genuinely in play.
  *
- * V is solved so the total normalised distance is exactly 1, which means the
- * wheel always stops precisely on the target angle — never "close enough".
+ * Here the last CRAWL_TIME of the spin is reserved to cover CRAWL_DISTANCE of
+ * the travel — several segments, slowly, each tick longer than the last. That
+ * is where "it's on A but it's RIGHT at the edge of B" lives.
+ *
+ *   0 .. a          constant acceleration, velocity 0 -> V
+ *   a .. a+b        linear decay, V -> vCrawl        (the blur, bleeding off)
+ *   a+b .. 1        linear decay, vCrawl -> 0        (the greasy final creep)
+ *
+ * Velocity is continuous across both joins, so there is no visual jerk, and V
+ * is solved so total normalised distance is exactly 1 — the wheel still stops
+ * precisely on the target angle rather than "close enough".
  *
  * Returns progress in [0, 1] for input t in [0, 1].
  */
-export function spinProgress(t: number, accelFraction = 0.15): number {
+
+/** Share of the spin spent winding up to full speed. */
+export const ACCEL_TIME = 0.12;
+/** Share of the spin spent in the final creep. */
+export const CRAWL_TIME = 0.34;
+/** Share of the total travel saved for that creep. */
+export const CRAWL_DISTANCE = 0.085;
+
+const DECEL_TIME = 1 - ACCEL_TIME - CRAWL_TIME;
+/** Speed entering the crawl; solved so the crawl covers exactly CRAWL_DISTANCE. */
+const CRAWL_VELOCITY = (2 * CRAWL_DISTANCE) / CRAWL_TIME;
+/** Peak speed, solved so the three phases sum to exactly 1. */
+const PEAK_VELOCITY =
+  (1 - CRAWL_DISTANCE - (CRAWL_VELOCITY * DECEL_TIME) / 2) / ((ACCEL_TIME + DECEL_TIME) / 2);
+
+const ACCEL_DISTANCE = (PEAK_VELOCITY * ACCEL_TIME) / 2;
+const DECEL_DISTANCE = ((PEAK_VELOCITY + CRAWL_VELOCITY) * DECEL_TIME) / 2;
+
+export function spinProgress(t: number): number {
   if (t <= 0) return 0;
   if (t >= 1) return 1;
 
-  const a = Math.min(Math.max(accelFraction, 0.001), 0.5);
-  const peakVelocity = 4 / (1 + a);
-
-  if (t < a) {
-    return (peakVelocity * t * t) / (2 * a);
+  // Wind up.
+  if (t < ACCEL_TIME) {
+    return (PEAK_VELOCITY * t * t) / (2 * ACCEL_TIME);
   }
 
-  const u = (t - a) / (1 - a);
-  const accelDistance = (peakVelocity * a) / 2;
-  const decelDistance = (peakVelocity * (1 - a)) / 4;
+  // Bleed off speed.
+  if (t < ACCEL_TIME + DECEL_TIME) {
+    const u = t - ACCEL_TIME;
+    return (
+      ACCEL_DISTANCE +
+      PEAK_VELOCITY * u +
+      ((CRAWL_VELOCITY - PEAK_VELOCITY) * u * u) / (2 * DECEL_TIME)
+    );
+  }
 
-  return accelDistance + decelDistance * (1 - Math.pow(1 - u, 4));
+  // Creep home.
+  const w = t - ACCEL_TIME - DECEL_TIME;
+  return (
+    ACCEL_DISTANCE +
+    DECEL_DISTANCE +
+    CRAWL_VELOCITY * w -
+    (CRAWL_VELOCITY * w * w) / (2 * CRAWL_TIME)
+  );
 }
 
 /**

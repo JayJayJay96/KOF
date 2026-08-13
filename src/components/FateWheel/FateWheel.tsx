@@ -55,7 +55,7 @@ export function FateWheel({
         spinning={spinning}
         onSpinComplete={handleComplete}
         onTick={() => playSound('wheelTick')}
-        spinDurationMs={3200}
+        spinDurationMs={5200}
         minTurns={3}
       />
     </div>
