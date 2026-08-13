@@ -15,36 +15,32 @@
 # Current Version
 
 ```text
-Pre-MVP
+Pre-MVP — MVP feature-complete, in playtest iteration
 ```
 
 # Current Pass
 
 ```text
-PASS 1 — MVP
+PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```
 
 # Current Phase
 
 ```text
-Phase 8 — Full-Game Validation          (NOT STARTED — requires a human)
+Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
-Phase 7 — MVP Arcade Presentation       COMPLETE
-Phase 6 — Host Safety & Persistence     COMPLETE
-Phase 5 — Game Phases & Endgame         COMPLETE
-Phase 4 — Advanced MVP Fate Abilities   COMPLETE
-Phase 3 — Core Fate Ability System      COMPLETE
-Phase 2 — Core Two-Wheel Game Loop      COMPLETE
-Phase 1 — Main Wheel Vertical Slice     COMPLETE
-Phase 0 — Project Foundation            COMPLETE
+Fate rework Wave 1               COMPLETE
+Phases 0-7                       COMPLETE
 ```
 
 # Phase Status
 
 ```text
-Phase 7 COMPLETE — the game has effects, sound and an arcade look.
-Phase 8 NOT STARTED. It is a playtesting phase and cannot be completed
-by an agent alone — see Next Tasks.
+All MVP features exist and are deployed. The project is now in a
+playtest-and-tune loop driven by the host, not a build loop.
+
+Wave 1 of the Fate rework is shipped. Waves 2 and 3 are designed but
+NOT started — see Next Tasks.
 ```
 
 # Live Deployment
@@ -58,9 +54,9 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 # Current Objective
 
-Every MVP feature is built. The roadmap now requires a deliberate stop:
-**Phase 8 is playtesting, not coding.** Real games have to be played before the
-Enhancement Pass begins.
+Play real games. Wave 1 changed the Fate pool substantially in one go; the
+measurements prove it is no longer dead air, but not that it is *fun*. Wave 2
+(Bomb) should wait until Wave 1 has been felt in a real session.
 
 ---
 
@@ -75,113 +71,132 @@ Branch   main
 
 # Completed Before This Session
 
-**Phases 0–2.** React 19 + TypeScript + Vite 8; pure reducer; reusable Canvas
-wheel with deterministic landing; ability registry; shared attack flow.
-
-**Phase 3.** Event queue that suspends on blocking events; status panel.
-
-**Phase 4.** All eight MVP Fates, Death Mark as a status trigger, Hunter/Duel
-as multi-step target-spin abilities.
-
-**Phase 5.** Phase transitions, Sudden Death atmosphere, winner screen.
-
-**Phase 6.** Undo (snapshots), versioned localStorage save/resume, event
-history, host panel.
+**Phases 0–7.** React 19 + TypeScript + Vite 8; pure reducer; reusable Canvas
+wheel with deterministic landing; ability registry; shared attack flow; event
+queue that suspends on blocking events; all eight original MVP Fates; phase
+transitions and winner screen; undo, versioned save/resume, host panel;
+synthesised audio and the impact-effect layer.
 
 ---
 
 # Completed This Session
 
-## Phase 7 — MVP Arcade Presentation
+Four commits, all deployed and verified live.
 
-**No reducer logic changed.** Effects and audio are subscribers to events the
-engine already emitted. The only engine additions were a `SET_AUDIO` action and
-an optional `muted` flag, so audio preferences persist with the save.
+## `d7aaada` — first playtest pass
 
-### Audio — the asset blocker is gone
+- **Wheel lands anywhere within a segment**, not dead centre. Engine still picks
+  the winner; the wheel picks where inside it the pointer rests. Clamped to 0.78
+  of the half-arc so it never lands ambiguously on a boundary.
+- **Player spin flows into the Fate spin** — one click, not two. Contradicted
+  PROJECT_SPEC.md §3, so the spec was amended rather than left to drift. Does
+  not fire after Again, and cancels when a Death Mark intercepts.
+- **Hunter bounty** — a successful hunt earns the hunter a Shield. A blocked
+  hunt pays nothing; the reward tracks the kill, not the attempt.
 
-The previous handoff flagged audio as blocked on sourcing legally usable assets.
-**Every cue is now synthesised at runtime** from oscillators and a deterministic
-noise buffer:
+## `b374d59` — wheel skip bug
 
-- each sound is original work, satisfying PROJECT_SPEC.md §26;
-- zero asset bytes in the bundle;
-- the noise generator uses a fixed seed rather than `Math.random`, so a cue
-  sounds identical on every playback (AGENTS.md §7.5).
+The wheel honoured `prefers-reduced-motion` by **jumping straight to the
+result**. On a machine with OS animation effects disabled (the host's setup)
+that made the game look broken. Reduced motion should damp decoration, not
+delete the mechanic — the spin IS the game. Decorative motion (pointer nudge,
+shake, confetti, impact titles) still respects the media query via CSS.
 
-Twelve cues: wheel tick, wheel stop, fate reveal, eliminate, shield block,
-shield gain, death mark, hunter, duel, revive, phase change, winner.
+## `da09a44` — greasy deceleration
 
-`audio/audioManager.ts` is defensive throughout — a blocked context, a failed
-cue or a missing Web Audio implementation leaves the game running silently.
-An AudioContext stays suspended until a real gesture, so the first pointer or
-key event unlocks it.
+The old quartic ease-out spent 94% of its travel in the first half of the
+deceleration, so the wheel parked deep inside a segment almost immediately. No
+boundary was ever genuinely in play.
 
-**The wheel's `onTick` callback, unused since Phase 1, is now the ticking sound.**
+Now three phases: wind up, bleed off, **crawl**. The final `CRAWL_TIME` (34% of
+the spin) is reserved to cover `CRAWL_DISTANCE` (8.5% of travel). Velocity stays
+continuous across both joins; peak speed is still solved so total travel is
+exactly 1, so landing remains exact.
 
-### Effects
+Durations: main wheel 4200 → **6800ms**, Fate 3200 → **5200ms**.
 
-- `effects/effectRegistry.ts` maps events to flash / shake / impact word.
-- `effects/EffectLayer.tsx` renders them; `pointer-events: none` so it can never
-  swallow a host click.
-- Impact words: `K.O.`, `BLOCK`, `SHIELD`, `MARKED`, `REVIVE`, `TARGET`, `DUEL`.
-- **Only elimination shakes.** If everything shook, nothing would read as impact.
-- Shake is applied to the game scene, not the page root, so the host panel and
-  its controls stay still (spec §28).
+Measured at 8 players, final five tick gaps went from `124/152/188/264/552ms` to
+`252/308/408/524/836ms`; ticks in the final third went from 1 to 3.
 
-### Shared subscription
+## `daa5bf9` — Fate rework Wave 1
 
-`hooks/useNewEvents.ts` reports only events appended since the last render, and
-**resyncs without replaying when the history shrinks**. Without that, undoing an
-elimination would re-fire the K.O. flash and sound.
+Driven by measurement over 5,220 rolls: 19.4% of rolls changed nothing, and only
+20.7% involved a second player — yet the two-player Fates were where every
+reaction came from.
 
-### Theme
+- **Again removed**, replaced by **Double Fate** (two Fates, order drawn).
+- **Close Call** replaces most of Safe: shielded → Shield destroyed; unshielded →
+  survives but marked. Always leaves something on the board.
+- **Steal Shield** promoted from Post-MVP. No target spin needed.
+- **Status rims on the wheel** — purple Death Mark, light blue Shield, concentric
+  when both. Status uses the **rim**, the landed result uses the **fill**, so
+  both read at once.
+- Weights retuned across all four phases.
+- `SAVE_VERSION` → 2 (a v1 save mid-round on `again` would strand the round).
 
-Angled panels and buttons via `clip-path`, a marquee-style accent rule under the
-title, and per-phase accent colours carried by the `data-phase` hook added in
-Phase 5.
+| | Before | After |
+|---|---|---|
+| Rolls that change nothing | 19.4% | **3.3%** |
+| Rolls involving a second player | 20.7% | **37.1%** |
 
-### Host panel
-
-Audio section added — mute toggle and volume slider. These were deliberately
-omitted in Phase 6 because there was nothing to control.
+180 games: all reached valid winners, zero stuck states, Shield cap never broken.
 
 ---
 
 # In Progress
 
-Nothing. Phase 7 is closed and nothing was left half-written.
+Nothing. Working tree clean, all work committed and deployed.
 
 ---
 
 # Next Tasks
 
-**Phase 8 — Full-Game Validation.** The roadmap is explicit that this phase is
-mandatory and that development should stop here: *"Stop feature development
-temporarily and play the game."*
+## Immediate — playtest Wave 1 (host-led, cannot be done by an agent)
 
-**This phase cannot be completed by an agent.** It needs real games with real
-people, and judgements about whether the game is *fun*. What an agent can do is
-prepare and record; what it cannot do is decide that Revive is annoying.
+The Fate pool changed a lot at once. The numbers prove it is not dead air; they
+say nothing about whether it is fun. Specific things to watch:
 
-Required test runs, per the roadmap: 5, 8, 12 and 15+ players.
+- **Is Hunter dominant?** It is now 16.9% of rolls *and* pays a Shield bounty on
+  a kill. Second-most-common Fate. If it feels oppressive, drop the bounty to
+  later phases only, or make it one-off.
+- **Does Close Call read as relief or as punishment?** It always costs something
+  now.
+- **Is Double Fate legible?** Two Fates resolving in sequence may be hard to
+  follow on a stream.
+- **Round length.** Animation per round is now ~12.9s (6.8 player + 0.9 beat +
+  5.2 Fate), up from ~8.3s. At 20 players that is roughly 12 minutes of spinning
+  per game. If it drags, the cheapest lever is shortening the **Fate** wheel — it
+  has fewer segments so it earns less from a long tail.
 
-Edge cases already verified in code but **not yet observed live by a human**:
-repeated Again, Death Mark + Shield, Hunter + Shield, Duel + Shield, Revive with
-one eliminated player, multiple Revives, Revive crossing a phase boundary,
-Hunter with two players, Duel with two players, refresh during a game, undo
-after elimination, undo after Revive.
+## Wave 2 — Bomb (designed, not started)
 
-Still genuinely untested anywhere: very long names, duplicate names, rapid
-double clicks during animation, browser resize mid-game, and a real streamed
-session at 1280×720.
+A status that passes to a newly selected player each round and detonates after N
+rounds. Highest anticipation-per-line-of-code available; the whole table tracks
+it every round.
 
-Balance questions the roadmap wants answered from play, not theory: average game
-duration, how quickly people die, whether Revive is annoying, whether Again
-happens too often, whether Final Five drags, whether Sudden Death feels fair,
-whether Duel is fun enough, which abilities generate the most reaction.
+- Belongs in `game/statuses/` alongside `deathMarkTrigger.ts`.
+- **Needs a round counter on the status**, which `statusTriggers.ts` does not
+  support yet — that is the one real addition.
+- **Rim colour is already free**: `WheelMarker` was built generic in Wave 1
+  exactly so Bomb could plug in without touching `Wheel`.
 
-**Then Phase 9** — tag `v0.1.0-mvp` — and only after that the Enhancement Pass.
+## Wave 3 — Linked Fate + rebalance
+
+Two players bound; one dies, the other takes a hit. Reuses the Hunter target-spin
+machinery.
+
+**Caution:** Bomb + Death Mark + Linked Fate simultaneously means players
+tracking three overlapping timers. PROJECT_SPEC.md §45 requires the viewer
+experience stay simple. Ship Bomb and *watch* before adding Linked Fate.
+
+## Still outstanding from earlier phases
+
+- **No automated tests.** The largest structural gap. Roadmap schedules them in
+  Enhancement Phase 0. Verification is currently done by driving the real modules
+  through Vite's dev module graph in the browser — effective, and it has caught
+  real bugs, but it is re-done by hand every session.
+- Phase 8's untested edge cases: very long names, duplicate names, rapid clicking
+  during animation, browser resize mid-game, and a real streamed session.
 
 ---
 
@@ -189,173 +204,102 @@ whether Duel is fun enough, which abilities generate the most reaction.
 
 No blockers.
 
-Non-blocking:
-
-- **No automated tests.** The largest remaining gap, and it has grown every
-  phase. The roadmap schedules them in Enhancement Phase 0, which is now the
-  next coding work after playtesting.
-- **No music.** `config.audio.music` exists but nothing plays a loop; the
-  roadmap's Phase 7 audio list is SFX-only and phase music is Enhancement 7E.
+- **Double Fate can waste half a roll.** Close Call (unshielded) and Death Mark
+  both emit `ADD_DEATH_MARK`. `deathMark` is a boolean so it is harmless, but the
+  pairing produces one effect from two Fates. Fixable by excluding
+  effect-colliding pairs; deliberately left to see if it annoys in play.
 - **"Clear save" during a live game is re-written by autosave** on the next
   action. Intended, but easy to mistake for a bug.
 - **Fate Wheel segments are equal-sized** while selection is weighted. Open
-  product decision from Phase 2 — the wheel still does not communicate that
-  Eliminate is far likelier than Safe.
+  product decision since Phase 2 — the wheel does not communicate that Eliminate
+  is far likelier than Safe.
+- **No music.** `config.audio.music` exists but nothing plays a loop.
 - **Duel has no VS scene.** Enhancement Phase 4 owns it.
-- **PixiJS not used.** Correct: CSS/DOM effects have not become limiting, and
-  Guardrail 4 says not to add it for fun. Enhancement Phase 7C is the decision
-  point.
 
 ---
 
 # Important Decisions Made This Session
 
-1. **Audio is synthesised, not sourced.** This removed a blocker rather than
-   deferring it again. Every cue is generated from oscillators and noise, which
-   makes it original work under spec §26, costs zero bundle bytes, and means no
-   licence audit is ever needed. The trade-off is that the sounds are
-   deliberately simple and arcade-like rather than produced samples — worth
-   revisiting in Enhancement 7D if the flavour needs more depth.
-2. **Deterministic noise.** A fixed seed instead of `Math.random` keeps stray
-   randomness out of the codebase and makes every playback identical.
-3. **Only elimination shakes.** Impact has to be scarce to read as impact.
-4. **The event subscription never replays on rewind.** Undo shrinks the history;
-   replaying it would re-fire effects for events the host just undid.
-5. **Shake targets the game scene, not the root** — spec §28 requires host
-   controls not to shake.
-6. **Audio settings live in `config`, not a separate store**, so they persist
-   with the save and survive resume for free. `muted` is optional so
-   pre-Phase-7 saves still load, with absent meaning unmuted — no version bump
-   needed.
-7. **Theme kept restrained.** Angled clipping and a marquee rule deliver the
-   arcade read without the layered shadows and distortion that Enhancement
-   Phase 7 owns. Phase 7's exit criterion is comprehension, not spectacle.
+1. **Reduced motion damps decoration, never the mechanic.** The spin is the
+   product; skipping it made the game look broken. Decorative motion still
+   respects the media query.
+2. **The crawl is reserved distance, not just slower easing.** Any ease-out
+   concentrates travel early. Explicitly reserving a share of the *distance* for
+   the final third is what puts a boundary genuinely in play.
+3. **Wheel jitter is presentation, not game logic.** The engine still decides
+   which entry wins; the wheel only decides where inside it to stop.
+4. **`WheelMarker` is generic.** The wheel does not know what a Death Mark is —
+   `MainWheel` maps domain status to colours. This is what let the Fate wheel
+   reuse the component untouched, and it is why Bomb will be nearly free.
+5. **Status on the rim, result in the fill.** Two independent visual channels, so
+   "who is marked" and "who just won" never compete.
+6. **Double Fate excludes target-spin Fates.** The engine tracks one pending
+   target spin; two would overwrite each other and strand the first ability. A
+   real limitation, documented in the spec rather than hidden.
+7. **Eliminated players cannot be armed.** Added to `eventResolver` so Double
+   Fate rolling Eliminate then Shield cannot leave armour on a corpse.
+8. **Save version bumped rather than migrated.** Removing `again` made v1 saves
+   unresumable; the rejection path built in Phase 6 exists for exactly this.
 
 ---
 
 # Verification Performed
 
-- `npm run build` (`tsc -b && vite build`) — **passes**, 62 modules, no type errors.
-- `npm run lint` (oxlint) — **clean**.
-- `npx prettier --check` — **all files conform**.
-- No duplicate CSS rules left behind by the theme pass.
+- `npm run build` — passes, 64 modules, no type errors.
+- `npm run lint` (oxlint) — clean.
+- `npx prettier --check` — all files conform.
+- Orphaned `again.ts` deleted after confirming no importers.
 
-## Registries — exercised against the real modules
-
-| Check | Result |
-|---|---|
-| Every ability outcome maps to an effect | PASS |
-| Every ability outcome maps to a sound | PASS |
-| `ATTACK_PLAYER` and `WAIT_FOR_HOST` are silent | PASS |
-| Hunter and Duel target requests map to distinct cues | PASS |
-| Only `ELIMINATE_PLAYER` sets `shake` | PASS |
-| `PHASE_CHANGED` / `GAME_WON` have no impact effect (own overlays) | PASS |
-
-## Audio manager
+Exercised against the real modules:
 
 | Check | Result |
 |---|---|
-| All twelve cues render without throwing | PASS |
-| Muting silences without throwing | PASS |
-| An unknown cue name is a safe no-op | PASS |
-| `unlockAudio` is safe to call with no gesture | PASS |
+| Wheel lands in the correct segment for every offset, 2–20 segments | PASS |
+| Landing offset never exceeds 0.78 of the half-arc | PASS |
+| Easing monotonic, exact endpoints, velocity continuous at both joins | PASS |
+| Spin animates under forced `prefers-reduced-motion` (46 rotation samples) | PASS |
+| Close Call branches correctly on Shield | PASS |
+| Steal Shield transfers, and hides when no Shield exists | PASS |
+| Double Fate resolves two Fates, never recurses, never target-spins | PASS |
+| Eliminated player cannot be given a Shield | PASS |
+| Death Mark and Shield rims render, and coexist with the landed fill | PASS |
+| Clean wheel renders no rims | PASS |
+| 180 full games — valid winner, no stuck states, Shield cap held | PASS |
 
-## Event subscription (the undo trap)
-
-| Check | Result |
-|---|---|
-| Only newly appended events are delivered | PASS |
-| Re-rendering the same history delivers nothing | PASS |
-| **A shrinking history (undo) replays nothing** | PASS |
-| Events appended after an undo are delivered once | PASS |
-
-## Against the live deployment (https://kof-ten.vercel.app/)
-
-Asset hash matched the local build.
-
-- **`K.O.` impact word and screen shake both fired** during a real elimination.
-- `TARGET` fired on a Hunter roll.
-- Host panel sections: Game, Save, **Audio**, Players, Event history.
-- Volume slider present; toggling Mute **persisted into the save**
-  (`state.config.audio.muted: true`).
-- Effect layer computed `pointer-events: none`.
-- No page overflow, no console errors.
-
-## Phase 7 exit criterion
-
-> "A person watching the stream should understand what happened without needing
-> the host to explain every state change."
-
-Each outcome now announces itself three ways: an impact word, a distinct sound,
-and a log line. **Met in construction — but this criterion is about a human
-viewer, and confirming it is exactly what Phase 8 is for.**
-
----
-
-# Files / Areas Changed
-
-```text
-src/audio/audioManager.ts               (new — synthesised cues)
-src/audio/soundRegistry.ts              (new — event to sound)
-src/effects/effectRegistry.ts           (new — event to effect)
-src/effects/EffectLayer.tsx             (new)
-src/hooks/useNewEvents.ts               (new — shared subscription)
-src/hooks/useGameAudio.ts               (new)
-src/hooks/useScreenEffects.ts           (new)
-
-src/game/types/game.ts                  (audio.muted)
-src/game/config/defaultConfig.ts        (muted default)
-src/game/engine/reducer.ts              (SET_AUDIO)
-src/components/MainWheel/MainWheel.tsx  (tick + stop audio)
-src/components/FateWheel/FateWheel.tsx  (tick + stop audio)
-src/components/GameScreen/GameScreen.tsx (effect layer, shake)
-src/components/HostPanel/HostPanel.tsx  (audio controls)
-src/app/App.tsx                         (audio subscriber, footer)
-src/styles/globals.css                  (effects, shake, arcade theme)
-
-PROJECT_STATUS.md
-README.md
-```
-
-Commit: `33f3d06` — *feat: Phase 7 arcade presentation, effects and audio*
+Live deployment verified after each commit by matching the deployed asset hash
+against the local build.
 
 ---
 
 # Notes for Next Agent
 
-**Read this first: the next phase is not a coding phase.**
+**The next step is playing, not building.** Wave 1 landed a lot of change at
+once. Do not start Wave 2 until the host has played real games and said what
+felt wrong.
 
-DEVELOPMENT_ROADMAP.md Phase 8 says "Stop feature development temporarily and
-play the game" and "Do not immediately begin Enhancement Pass without testing
-the actual complete MVP". Every MVP feature now exists. The correct next action
-is to help the user *play*, capture observations, and fix only what real games
-expose — not to start Enhancement Phase 0.
-
-If asked to continue coding regardless, the highest-value work that does not
-skip ahead is **adding the test suite** (Enhancement Phase 0), because it
-protects everything built so far and the engine is pure and ready for it.
-
-Architecture boundaries are holding after seven phases:
+Architecture boundaries have held for seven phases plus a rework. Keep them:
 
 - `src/game/` decides outcomes. Components render and dispatch.
-- Randomness goes through `src/utils/random.ts`.
+- Randomness goes through `src/utils/random.ts` — including inside `resolve`.
 - Abilities emit events. Only `eventResolver.ts` changes state; only
   `eventQueue.ts` decides ordering.
 - Every elimination goes through `attackPlayer()`.
 - Undo wraps the reducer from outside; snapshots, never replay.
-- **Effects and audio are subscribers.** Adding a cue or an effect means adding
-  a registry entry, never touching the engine.
+- Effects and audio are subscribers. Adding a cue means a registry entry.
+- **`Wheel` knows nothing about players, abilities or statuses.** Adapters map
+  domain state onto generic entries and markers.
 
-Phase 7 needed no reducer logic changes at all, which is the clearest signal yet
-that the event vocabulary is carrying its weight.
+Adding a Fate is still a two-file change: write the `AbilityDefinition`, add it
+to `ABILITIES`. Wave 1 added three Fates without touching the reducer, the
+wheels, or the event queue.
 
-If a new presentation feature seems to need an engine change, the missing piece
-is almost certainly an event type, not a branch.
+If a new mechanic seems to need an engine change, the missing piece is usually
+an event type or a status trigger, not a branch.
 
 ---
 
 # Last Updated
 
 ```text
-2026-08-08
+2026-08-10
 ```
