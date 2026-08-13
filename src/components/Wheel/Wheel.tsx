@@ -58,6 +58,13 @@ export type WheelProps = {
    * actually being thrown.
    */
   turnVariance?: number;
+  /**
+   * Wait this long after `spinning` goes true before the wheel actually moves.
+   *
+   * Lets two wheels share a screen without competing for attention: the second
+   * one holds still, visibly armed, until the first has had the room to itself.
+   */
+  startDelayMs?: number;
   maxSize?: number;
 };
 
@@ -82,6 +89,7 @@ export function Wheel({
   spinDurationMs = 6800,
   minTurns = 4,
   turnVariance = 1.8,
+  startDelayMs = 0,
   maxSize = 680,
 }: WheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -121,8 +129,8 @@ export function Wheel({
   //
   // A spin already in flight finishes on the terms it started with; new values
   // apply to the next one.
-  const timingRef = useRef({ spinDurationMs, minTurns, turnVariance });
-  timingRef.current = { spinDurationMs, minTurns, turnVariance };
+  const timingRef = useRef({ spinDurationMs, minTurns, turnVariance, startDelayMs });
+  timingRef.current = { spinDurationMs, minTurns, turnVariance, startDelayMs };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -288,6 +296,7 @@ export function Wheel({
       spinDurationMs: duration,
       minTurns: baseTurns,
       turnVariance: variance,
+      startDelayMs: delay,
     } = timingRef.current;
 
     const count = spinEntries.length;
@@ -297,18 +306,6 @@ export function Wheel({
       onSpinCompleteRef.current();
       return;
     }
-
-    const from = rotationRef.current;
-
-    // Stop somewhere inside the winning segment rather than dead centre, and
-    // travel a different distance each time. Both are presentation only — the
-    // engine already decided WHICH entry wins; this decides where within it the
-    // pointer rests and how hard the wheel was thrown to get there.
-    //
-    // Routed through utils/random per AGENTS.md §7.5.
-    const offset = edgeBiasedOffset(randomFloat());
-    const turns = baseTurns + randomFloat() * variance;
-    const to = resolveTargetRotation(from, targetIndex, count, turns, offset);
 
     // NOTE: the spin deliberately does NOT honour `prefers-reduced-motion` by
     // skipping. An earlier version jumped straight to the result, which on a
@@ -320,35 +317,69 @@ export function Wheel({
     // Hosts who want a shorter spin control it through `spinDurationMs`, which
     // the game screen derives from `config.animationSpeed`.
 
-    const startedAt = performance.now();
-    lastTickSegmentRef.current = segmentAtPointer(from, count);
+    let startTimer: number | null = null;
 
-    const step = (now: number) => {
-      const t = Math.min(1, (now - startedAt) / duration);
-      rotationRef.current = from + (to - from) * spinProgress(t);
+    const launch = () => {
+      startTimer = null;
 
-      const current = segmentAtPointer(rotationRef.current, count);
-      if (current !== lastTickSegmentRef.current) {
-        lastTickSegmentRef.current = current;
-        onTickRef.current?.();
-        setPointerKick((n) => n + 1);
-      }
+      // Read at launch, not when the effect ran: during a staggered start this
+      // wheel may have been repainted meanwhile, and starting from a stale
+      // angle would make it jump on its first frame.
+      const from = rotationRef.current;
 
-      drawRef.current();
+      // Stop somewhere inside the winning segment rather than dead centre, and
+      // travel a different distance each time. Both are presentation only — the
+      // engine already decided WHICH entry wins; this decides where within it
+      // the pointer rests and how hard the wheel was thrown to get there.
+      //
+      // Routed through utils/random per AGENTS.md §7.5.
+      const offset = edgeBiasedOffset(randomFloat());
+      const turns = baseTurns + randomFloat() * variance;
+      const to = resolveTargetRotation(from, targetIndex, count, turns, offset);
 
-      if (t < 1) {
-        frameRef.current = requestAnimationFrame(step);
-      } else {
-        rotationRef.current = to;
+      const startedAt = performance.now();
+      lastTickSegmentRef.current = segmentAtPointer(from, count);
+
+      const step = (now: number) => {
+        const t = Math.min(1, (now - startedAt) / duration);
+        rotationRef.current = from + (to - from) * spinProgress(t);
+
+        const current = segmentAtPointer(rotationRef.current, count);
+        if (current !== lastTickSegmentRef.current) {
+          lastTickSegmentRef.current = current;
+          onTickRef.current?.();
+          setPointerKick((n) => n + 1);
+        }
+
         drawRef.current();
-        frameRef.current = null;
-        onSpinCompleteRef.current();
-      }
+
+        if (t < 1) {
+          frameRef.current = requestAnimationFrame(step);
+        } else {
+          rotationRef.current = to;
+          drawRef.current();
+          frameRef.current = null;
+          onSpinCompleteRef.current();
+        }
+      };
+
+      frameRef.current = requestAnimationFrame(step);
     };
 
-    frameRef.current = requestAnimationFrame(step);
+    if (delay > 0) {
+      startTimer = window.setTimeout(launch, delay);
+    } else {
+      launch();
+    }
 
     return () => {
+      // Both are live during a staggered start: the timer before the wheel
+      // moves, the frame after. Leaving the timer would fire a spin into a
+      // round that has already moved on.
+      if (startTimer !== null) {
+        window.clearTimeout(startTimer);
+        startTimer = null;
+      }
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
         frameRef.current = null;

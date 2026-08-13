@@ -42,14 +42,26 @@ import { usePhaseAnnouncement } from '../../hooks/usePhaseAnnouncement';
 import { useScreenEffects } from '../../hooks/useScreenEffects';
 
 /**
- * Fate Wheel length while both wheels run together.
+ * How late the Fate Wheel launches when both wheels run in one round.
  *
- * Longer than the Main Wheel's 6800ms on purpose. Started at the same moment,
- * the shorter wheel would land first and announce WHAT before anyone knew WHO —
- * which inverts the sentence the whole game is built on. The 800ms gap is the
- * beat where the name is already up and the Fate is still crawling.
+ * The first attempt started them together and made the Fate Wheel 800ms longer.
+ * That got the reveal order right but split attention for the whole spin — two
+ * wheels moving at once, neither of them clearly the thing to watch.
+ *
+ * Staggering fixes that without giving the seconds back. The Main Wheel gets
+ * three seconds alone, which is where "who is it going to be" actually lives.
+ * The Fate Wheel is on screen the entire time, visibly armed and still, and
+ * launches into the Main Wheel's final crawl.
+ *
+ * ```text
+ * Main   0.0s ──────────────────────────► 6.8s
+ * Fate            3.0s ──────────────────────────► 8.2s
+ * ```
+ *
+ * WHO still lands before WHAT, now with a 1.4s gap rather than 0.8s, and the
+ * round costs 8.2s against 12.9s when the spins ran fully sequentially.
  */
-const DUAL_FATE_SPIN_MS = 7600;
+const DUAL_FATE_START_DELAY_MS = 3000;
 
 type GameScreenProps = {
   state: GameState;
@@ -153,7 +165,7 @@ export function GameScreen({
               spinning={spinningFate}
               active={fateActive}
               onSpinComplete={completeFateSpin}
-              spinDurationMs={dualSpin ? DUAL_FATE_SPIN_MS : undefined}
+              startDelayMs={dualSpin ? DUAL_FATE_START_DELAY_MS : 0}
             />
           </div>
         </div>

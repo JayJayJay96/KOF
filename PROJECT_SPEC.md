@@ -114,9 +114,18 @@ Game proceeds
 
 The two spins now start at the **same moment**. Auto-advance removed the extra click but not the extra wait: two full spins plus the beat between them ran ~12.9s of animation per round, which is about twelve minutes of watching wheels turn across a 20-player game.
 
-Ordering is preserved by **duration**, not by sequence. The Fate Wheel runs 800ms longer than the Main Wheel, so WHO still lands first and WHAT still lands second — the sentence the game is built on is unchanged. The round drops to ~7.8s.
+The Fate Wheel is **staggered**: it appears immediately, armed and motionless, and launches three seconds into the Main Wheel's spin.
 
-The moment the Main Wheel lands is now the best beat in the round: the name is up, the Fate is still crawling, and the situation line says what that player is carrying into it.
+```text
+Main   0.0s ──────────────────────────► 6.8s
+Fate            3.0s ──────────────────────────► 8.2s
+```
+
+That gives the Main Wheel three seconds alone, which is where "who is it going to be" actually lives, while still overlapping the two spins for most of their length. WHO lands before WHAT with a 1.4s gap between the reveals. The round costs ~8.2s against ~12.9s sequential.
+
+An earlier attempt started both wheels together and made the Fate Wheel 800ms longer instead. The reveal order came out right, but attention split for the whole spin — two wheels moving at once, neither of them clearly the thing to watch. The stagger keeps nearly all of the time saving and none of that problem.
+
+The moment the Main Wheel lands is the best beat in the round: the name is up, the Fate is still crawling, and the situation line says what that player is carrying into it.
 
 Rounds that do **not** spin together:
 

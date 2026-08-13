@@ -124,17 +124,30 @@ every spin now has a different speed curve. Previously every throw was identical
 New screen state `spinning_both`. The engine still picks both results before
 either wheel moves — this is presentation, not a second way to decide anything.
 
-Ordering is preserved by **duration, not sequence**: the Fate Wheel runs 800ms
-longer, so WHO still lands before WHAT. The state machine models this exactly —
-`spinning_both` ends when the *Main* Wheel lands, handing over to
-`spinning_fate` while the Fate Wheel is still turning.
+The Fate Wheel is **staggered by 3s**: it appears at once, armed and
+motionless, and launches three seconds into the Main Wheel's spin.
+
+```text
+Main   0.0s ──────────────────────────► 6.8s
+Fate            3.0s ──────────────────────────► 8.2s
+```
+
+The first version started both together and made the Fate Wheel 800ms longer.
+Reveal order was right, but attention split for the whole spin — two wheels
+moving, neither clearly the one to watch. The stagger gives the Main Wheel three
+seconds alone (where "who is it going to be" actually lives) and keeps almost
+all of the saving. WHO still lands before WHAT, now 1.4s apart.
+
+The state machine models this exactly — `spinning_both` ends when the *Main*
+Wheel lands, handing over to `spinning_fate` while the Fate Wheel is still
+turning.
 
 Rounds where a **Death Mark is armed** fall back to sequential: the mark replaces
 the Fate, so a parallel Fate would be discarded and its wheel left spinning over
 a resolution. The check is in `useGame`, because it is a question about which
 presentation to use; the reducer still lets a trigger win if one fires anyway.
 
-Round animation: **12.9s → 7.8s**. Host can switch back from the Host Panel.
+Round animation: **12.9s → 8.2s**. Host can switch back from the Host Panel.
 
 ## 3. A live situation line
 
@@ -275,13 +288,12 @@ merging is the host's call, not an agent's. The live site still runs Wave 1.
 Two rounds of change have landed without a live game between them. Things to
 watch, in rough order of how likely they are to be wrong:
 
-- **Does the overlap kill the "who is it?" tension?** This is the biggest risk in
-  the change. Previously the Main Wheel had the screen to itself; now a second
-  wheel is moving beside it. If attention splits badly, the fix is a short
-  stagger (start the Fate Wheel ~1.5s late and shorten it to match) rather than
-  reverting — the round length was a real problem.
-- **Is 7.8s now too fast?** The complaint before was that it dragged. The greasy
-  crawl still works, but the beat between the two reveals is 800ms rather than a
+- **Is the 3s stagger the right length?** The Main Wheel gets three seconds
+  alone before the Fate Wheel launches. If attention still splits, raise
+  `DUAL_FATE_START_DELAY_MS` in `GameScreen.tsx`; if the round drags, lower it.
+  It is a single constant and changes nothing else.
+- **Is 8.2s now too fast?** The complaint before was that it dragged. The greasy
+  crawl still works, but the beat between the two reveals is 1.4s rather than a
   whole spin.
 - **Does the situation line get read, or is it noise?** It sits under a very large
   name and a very large Fate. If nobody looks at it, it should get bigger or go.
@@ -352,9 +364,12 @@ No blockers.
    "more random" by any measure and felt mechanical, because the landings people
    notice are the extremes. Biasing toward the edges is the honest fix for the
    complaint that was actually made.
-3. **Reveal order is enforced by duration, not by sequence.** Overlapping the
-   spins would have inverted WHO → WHAT if both ran the same length. Making the
-   Fate Wheel 800ms longer keeps the game's sentence intact for free.
+3. **Reveal order is enforced by a start stagger, not by duration.** The first
+   attempt made the Fate Wheel 800ms longer, which ordered the reveals correctly
+   and still split attention for the whole spin. Delaying the *start* by 3s
+   gives the Main Wheel the screen during the part that matters and costs only
+   0.4s of the saving. The lesson generalises: when two animations compete, the
+   fix is usually when they begin, not how long they take.
 4. **A spin in flight finishes on the terms it started with.** Entries and timing
    are both latched at spin start. Once two wheels can turn at once, a parent
    re-render mid-spin is normal rather than exceptional, and any prop in the
@@ -397,7 +412,10 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | No situation line during `spinning_player` / `spinning_both` (spoiler check) | PASS, 0 leaks |
 | 466 Fate spins each carried a board-state line, none naming the Fate | PASS |
 | Death Mark on a shielded player narrates the Shield; still consumes it, still spends the mark | PASS |
-| Live UI: Main settles 6.98s, Fate 7.82s, both wheels in motion throughout | PASS |
+| Live UI: Main reveals at 6.92s, Fate at 8.24s, 1.32s apart | PASS |
+| Fate Wheel measurably still at 0.9s / 1.7s / 2.5s, moving from 3.7s | PASS |
+| Reset during the 3s delay clears the pending timer — no stray spin, no errors | PASS |
+| Host's one-at-a-time mode unaffected: Main 6.89s, Fate 13.0s | PASS |
 | Story rail renders tones, newest round first; toggle collapses and restores | PASS |
 | 1280×720: no horizontal overflow, action button at 669px of 720 | PASS |
 | Console clean after a full reload (the two React warnings were HMR artefacts) | PASS |
@@ -410,9 +428,11 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 without a live session between them. Do not start Wave 2 until the host has
 played real games and said what felt wrong.
 
-**If the host says the overlap hurts:** the lever is a stagger, not a revert.
-Start the Fate Wheel ~1.5s into the Main Wheel and shorten it to match — the
-round length was a genuine problem and going back reintroduces it.
+**If the host says the overlap still hurts:** the lever is
+`DUAL_FATE_START_DELAY_MS` in `GameScreen.tsx`, not a revert. The round length
+was a genuine problem and going back reintroduces it. Raising the delay past
+~4.5s stops being an overlap at all, at which point disabling
+`simultaneousSpin` is the honest choice.
 
 Architecture boundaries have held for seven phases plus two reworks. Keep them:
 
