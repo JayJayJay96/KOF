@@ -218,16 +218,15 @@ export function Wheel({
     const offset = randomFloat() * 2 - 1;
     const to = resolveTargetRotation(from, targetIndex, entries.length, minTurns, offset);
 
-    const reduceMotion =
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-    if (reduceMotion) {
-      rotationRef.current = to;
-      drawRef.current();
-      onSpinCompleteRef.current();
-      return;
-    }
+    // NOTE: the spin deliberately does NOT honour `prefers-reduced-motion` by
+    // skipping. An earlier version jumped straight to the result, which on a
+    // machine with OS animations disabled made the wheel look broken — the spin
+    // IS the game, not decoration. Reduced motion is still respected where it
+    // belongs: the pointer nudge, screen shake, confetti and impact titles are
+    // all disabled by media query in globals.css.
+    //
+    // Hosts who want a shorter spin control it through `spinDurationMs`, which
+    // the game screen derives from `config.animationSpeed`.
 
     const startedAt = performance.now();
     lastTickSegmentRef.current = segmentAtPointer(from, entries.length);
