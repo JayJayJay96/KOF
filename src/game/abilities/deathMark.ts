@@ -34,4 +34,15 @@ export const deathMarkAbility: AbilityDefinition = {
     { type: 'ADD_DEATH_MARK', playerId: selectedPlayerId },
     { type: 'SHOW_MESSAGE', message: 'MARKED. The next selection is fatal.' },
   ],
+
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    if (!player) return null;
+
+    // Re-marking is a no-op on a boolean, which looks like the game ignoring a
+    // roll unless the readout says why.
+    return player.deathMark
+      ? `${player.name} is already Marked — nothing new lands.`
+      : `${player.name} is Marked. Their next selection kills them.`;
+  },
 };

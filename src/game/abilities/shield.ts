@@ -26,4 +26,15 @@ export const shieldAbility: AbilityDefinition = {
   getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (_context, selectedPlayerId) => [{ type: 'ADD_SHIELD', playerId: selectedPlayerId }],
+
+  // Worth stating when it is wasted: the cap is invisible otherwise, and a
+  // second Shield landing on an already-shielded player looks like a bug.
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    if (!player) return null;
+
+    return player.shield > 0
+      ? `${player.name} already holds a Shield — this one is wasted.`
+      : `${player.name} gets armour.`;
+  },
 };

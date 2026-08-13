@@ -57,4 +57,15 @@ export const reviveAbility: AbilityDefinition = {
       { type: 'REVIVE_PLAYER', playerId: revived.id },
     ];
   },
+
+  // Who returns is rolled at resolution, so naming a candidate here would be a
+  // lie most of the time. The size of the pool is the honest tension.
+  describeStakes: (context) => {
+    const waiting = context.eliminatedPlayers.length;
+    if (waiting === 0) return null;
+
+    return waiting === 1
+      ? 'The one player who is out comes back.'
+      : `One of ${waiting} eliminated players comes back.`;
+  },
 };

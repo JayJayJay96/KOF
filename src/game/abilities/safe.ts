@@ -27,4 +27,9 @@ export const safeAbility: AbilityDefinition = {
   getWeight: (phase) => WEIGHTS[phase],
 
   resolve: () => [{ type: 'SHOW_MESSAGE', message: 'SAFE! Not today.' }],
+
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    return player ? `${player.name} walks away clean.` : null;
+  },
 };

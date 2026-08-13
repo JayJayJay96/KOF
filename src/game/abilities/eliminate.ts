@@ -29,4 +29,15 @@ export const eliminateAbility: AbilityDefinition = {
 
   resolve: (context, selectedPlayerId) =>
     attackPlayer(context.state, selectedPlayerId, 'eliminate'),
+
+  // The Shield check is the whole story here, and it is already on the board —
+  // saying it out loud turns a foregone conclusion into a visible reprieve.
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    if (!player) return null;
+
+    return player.shield > 0
+      ? `${player.name} is hit — 🛡 the Shield takes it.`
+      : `${player.name} is hit, with nothing to stop it.`;
+  },
 };

@@ -17,8 +17,10 @@ import { canUndo as canUndoStack, createHistoryStack, historyReducer } from '../
 import { canSpinPlayerWheel, selectRandomEligiblePlayer } from '../game/engine/selectors';
 import { canSpinFateWheel, canSpinTarget, getTargetPool } from '../game/engine/selectors';
 import { selectWeightedAbility } from '../game/abilities';
+import { findSelectionTrigger } from '../game/statuses/statusTriggers';
 import { randomItem } from '../utils/random';
 import type { GameState } from '../game/types/game';
+import { isSimultaneousSpinEnabled } from '../game/types/game';
 import type { SavedGame } from '../storage/gameStorage';
 import { clearSave, loadGame, saveGame } from '../storage/gameStorage';
 
@@ -90,11 +92,34 @@ export function useGame(): UseGameResult {
     saveGame(state);
   }, [state, pendingResume]);
 
+  /**
+   * Start the round.
+   *
+   * Both wheels turn together when nothing about this selection would make the
+   * Fate roll meaningless. Two cases opt out:
+   *
+   *   - a status trigger is armed (Death Mark). The mark REPLACES the round's
+   *     Fate, so a Fate rolled in parallel would be thrown away and its wheel
+   *     would be left spinning over a resolution already in progress.
+   *   - no Fate is available at all, which the sequential path already handles.
+   *
+   * The check happens here rather than in the reducer because it is a question
+   * about which PRESENTATION to use. The reducer stays the authority on what
+   * actually happens, and still lets a trigger win if one somehow fires.
+   */
   const spinPlayer = useCallback(() => {
     if (!canSpinPlayerWheel(state)) return;
 
     const player = selectRandomEligiblePlayer(state);
     if (!player) return;
+
+    if (isSimultaneousSpinEnabled(state.config) && !findSelectionTrigger(player)) {
+      const ability = selectWeightedAbility(state);
+      if (ability) {
+        dispatchHistory({ type: 'START_DUAL_SPIN', playerId: player.id, abilityId: ability.id });
+        return;
+      }
+    }
 
     dispatchHistory({ type: 'START_PLAYER_SPIN', playerId: player.id });
   }, [state]);
@@ -115,9 +140,38 @@ export function useGame(): UseGameResult {
     dispatchHistory({ type: 'START_FATE_SPIN', abilityId: ability.id });
   }, [state]);
 
+  /** Set when the Fate Wheel lands before the Main Wheel during a dual spin. */
+  const fateLandedEarly = useRef(false);
+
+  /**
+   * The Fate Wheel finished animating.
+   *
+   * During a dual spin the two wheels are timed so the Main Wheel lands first
+   * (WHO before WHAT), but that ordering is wall-clock timing, not a guarantee —
+   * a dropped frame or a backgrounded tab could invert it. If the Fate Wheel
+   * reports in while the round is still 'spinning_both', the reducer would
+   * reject the completion and the result would be stranded, so hold it and
+   * replay it the moment the player is revealed.
+   */
   const completeFateSpin = useCallback(() => {
+    if (state.screenState === 'spinning_both') {
+      fateLandedEarly.current = true;
+      return;
+    }
     dispatchHistory({ type: 'FATE_SPIN_COMPLETE' });
-  }, []);
+  }, [state.screenState]);
+
+  useEffect(() => {
+    if (!fateLandedEarly.current) return;
+    if (state.screenState === 'spinning_both') return;
+
+    fateLandedEarly.current = false;
+    // Anything else means the round was intercepted (a trigger fired, the game
+    // was won, the host undid it) and the held result no longer applies.
+    if (state.screenState === 'spinning_fate') {
+      dispatchHistory({ type: 'FATE_SPIN_COMPLETE' });
+    }
+  }, [state.screenState]);
 
   const resolveFate = useCallback(() => {
     dispatchHistory({ type: 'RESOLVE_FATE' });
@@ -137,11 +191,11 @@ export function useGame(): UseGameResult {
   /**
    * Auto-continue from a landed player spin into the Fate spin.
    *
-   * Deliberately narrow. It fires ONLY after the Main Wheel lands, because that
-   * is one host decision ("who now?") that used to cost two clicks. It does not
-   * fire after Again — spec §11.4 makes that pause intentional — and it does not
-   * fire when a Death Mark intercepts the round, because that skips Fate
-   * entirely and leaves `screenState` somewhere other than 'player_selected'.
+   * The fallback path for rounds that could not spin both wheels together: the
+   * Fate Wheel still follows on its own without a second click. It does not fire
+   * when a Death Mark intercepts the round, because that skips Fate entirely and
+   * leaves `screenState` somewhere other than 'player_selected' — which is also
+   * why a dual spin never reaches here: it rests in 'spinning_fate'.
    *
    * The short delay lets the selected name register before the second wheel
    * starts moving; without it the reveal is lost under the next animation.

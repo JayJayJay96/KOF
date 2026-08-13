@@ -260,18 +260,46 @@ body {
 
 /* --- Game screen --- */
 
+/* Two columns: the game being played, and the story rail beside it. The
+   overlays (winner, phase title, effects) are position:fixed, so they are out
+   of flow and unaffected by the row. */
 .game {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  gap: 1rem;
   height: 100%;
   min-height: 0;
+}
+
+/* Everything that was previously .game — the column the wheels live in. */
+.game__stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Capped in both directions: wide enough for a name plus a verb, never wide
+   enough to stop the Main Wheel dominating (PROJECT_SPEC.md §8). */
+.game__rail {
+  display: flex;
+  flex: 0 0 clamp(190px, 19%, 280px);
+  min-height: 0;
+  flex-direction: column;
 }
 
 .game__stats {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 2.5rem;
+}
+
+.game__log-toggle {
+  margin-left: auto;
+  align-self: center;
 }
 
 .game__stat {
@@ -375,6 +403,101 @@ body {
   color: var(--kof-muted);
   overflow-wrap: anywhere;
 }
+
+/* --- Story rail (PROJECT_SPEC.md §25) --- */
+
+.story-log {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding-left: 1rem;
+  border-left: 1px solid var(--kof-border);
+}
+
+.story-log__heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+}
+
+.story-log__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--kof-muted);
+}
+
+/* The rail is the only scrolling region on the screen; everything else is
+   sized to fit. Newest round is first, so the latest beat needs no scrolling. */
+.story-log__rounds {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.story-log__round {
+  padding-bottom: 0.55rem;
+}
+
+.story-log__round-label {
+  margin: 0 0 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--kof-muted);
+  opacity: 0.7;
+}
+
+.story-log__lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story-log__line {
+  padding: 0.12rem 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+/* Tone comes from the event vocabulary, not from the component: a viewer should
+   register that someone died before they finish reading the name. */
+.story-log__line[data-tone='kill'],
+.event-log__line[data-tone='kill'] {
+  color: var(--kof-danger);
+  font-weight: 700;
+}
+
+.story-log__line[data-tone='threat'],
+.event-log__line[data-tone='threat'] {
+  color: #c69cf5;
+}
+
+.story-log__line[data-tone='save'],
+.event-log__line[data-tone='save'] {
+  color: #7fd4ff;
+}
+
+.story-log__line[data-tone='crown'],
+.event-log__line[data-tone='crown'] {
+  color: var(--kof-accent);
+  font-weight: 700;
+}
+
+.story-log__line[data-tone='info'],
+.event-log__line[data-tone='info'] {
+  color: var(--kof-muted);
+}
+
+/* No width breakpoint hides the rail: a display that vanishes on its own is
+   worse than one the host chose to close. The "Hide story" toggle is the
+   control, and on a narrow screen it is the right one to use. */
 
 /* --- Impact effects (PROJECT_SPEC.md §27, §28) --- */
 

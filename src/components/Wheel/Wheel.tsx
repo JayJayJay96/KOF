@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
+  edgeBiasedOffset,
   resolveLabelFontSize,
   resolveTargetRotation,
   segmentArc,
@@ -48,6 +49,15 @@ export type WheelProps = {
   onTick?: () => void;
   spinDurationMs?: number;
   minTurns?: number;
+  /**
+   * Extra turns, rolled per spin.
+   *
+   * Duration is fixed, so more travel means a faster spin. Without this every
+   * spin runs the identical speed curve, which the eye learns quickly — the
+   * wheel starts to look like it is playing back a recording rather than
+   * actually being thrown.
+   */
+  turnVariance?: number;
   maxSize?: number;
 };
 
@@ -71,6 +81,7 @@ export function Wheel({
   // as a stutter, not tension.
   spinDurationMs = 6800,
   minTurns = 4,
+  turnVariance = 1.8,
   maxSize = 680,
 }: WheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -87,6 +98,31 @@ export function Wheel({
   const onTickRef = useRef(onTick);
   onSpinCompleteRef.current = onSpinComplete;
   onTickRef.current = onTick;
+
+  // The spin keys off WHICH entries exist, not the array's identity.
+  //
+  // Both wheels can now turn at once, so a parent re-render happens mid-spin:
+  // the Main Wheel lands and reveals its player while the Fate Wheel is still
+  // going. That hands the Fate Wheel a fresh array with identical contents. An
+  // effect depending on identity would cancel and restart the animation from
+  // wherever it had got to, with a new random landing offset and a full fresh
+  // duration — the spin would appear to stall and re-throw itself.
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
+  const entriesKey = entries.map((entry) => entry.id).join('|');
+
+  // Timing is latched when a spin starts, for the same reason.
+  //
+  // The Fate Wheel's duration depends on whether the round began as a dual
+  // spin — and that stops being true the moment the Main Wheel lands, halfway
+  // through the Fate Wheel's own animation. As a dependency it restarted the
+  // spin from wherever it had reached, with a full fresh duration, so the wheel
+  // re-threw itself and finished seconds late.
+  //
+  // A spin already in flight finishes on the terms it started with; new values
+  // apply to the next one.
+  const timingRef = useRef({ spinDurationMs, minTurns, turnVariance });
+  timingRef.current = { spinDurationMs, minTurns, turnVariance };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -241,9 +277,21 @@ export function Wheel({
 
   // The spin itself.
   useEffect(() => {
-    if (!spinning || selectedId === null || entries.length === 0) return;
+    if (!spinning || selectedId === null) return;
 
-    const targetIndex = entries.findIndex((entry) => entry.id === selectedId);
+    // Snapshot: the effect must not re-read `entries` on later renders, or the
+    // segment count could change under an in-flight animation.
+    const spinEntries = entriesRef.current;
+    if (spinEntries.length === 0) return;
+
+    const {
+      spinDurationMs: duration,
+      minTurns: baseTurns,
+      turnVariance: variance,
+    } = timingRef.current;
+
+    const count = spinEntries.length;
+    const targetIndex = spinEntries.findIndex((entry) => entry.id === selectedId);
     if (targetIndex < 0) {
       // Nothing to animate toward — do not strand the game in 'spinning'.
       onSpinCompleteRef.current();
@@ -252,12 +300,15 @@ export function Wheel({
 
     const from = rotationRef.current;
 
-    // Stop somewhere inside the winning segment rather than dead centre. This
-    // is presentation only — the engine already decided WHICH entry wins; this
-    // decides where within it the pointer rests, which is what makes a spin
-    // feel close. Routed through utils/random per AGENTS.md §7.5.
-    const offset = randomFloat() * 2 - 1;
-    const to = resolveTargetRotation(from, targetIndex, entries.length, minTurns, offset);
+    // Stop somewhere inside the winning segment rather than dead centre, and
+    // travel a different distance each time. Both are presentation only — the
+    // engine already decided WHICH entry wins; this decides where within it the
+    // pointer rests and how hard the wheel was thrown to get there.
+    //
+    // Routed through utils/random per AGENTS.md §7.5.
+    const offset = edgeBiasedOffset(randomFloat());
+    const turns = baseTurns + randomFloat() * variance;
+    const to = resolveTargetRotation(from, targetIndex, count, turns, offset);
 
     // NOTE: the spin deliberately does NOT honour `prefers-reduced-motion` by
     // skipping. An earlier version jumped straight to the result, which on a
@@ -270,13 +321,13 @@ export function Wheel({
     // the game screen derives from `config.animationSpeed`.
 
     const startedAt = performance.now();
-    lastTickSegmentRef.current = segmentAtPointer(from, entries.length);
+    lastTickSegmentRef.current = segmentAtPointer(from, count);
 
     const step = (now: number) => {
-      const t = Math.min(1, (now - startedAt) / spinDurationMs);
+      const t = Math.min(1, (now - startedAt) / duration);
       rotationRef.current = from + (to - from) * spinProgress(t);
 
-      const current = segmentAtPointer(rotationRef.current, entries.length);
+      const current = segmentAtPointer(rotationRef.current, count);
       if (current !== lastTickSegmentRef.current) {
         lastTickSegmentRef.current = current;
         onTickRef.current?.();
@@ -303,7 +354,10 @@ export function Wheel({
         frameRef.current = null;
       }
     };
-  }, [spinning, selectedId, entries, minTurns, spinDurationMs]);
+    // `entriesKey`, not `entries`, and no timing props: see the refs above. The
+    // animation restarts only when the actual segment set changes — never on a
+    // re-render, and never because a prop moved underneath a spin in flight.
+  }, [spinning, selectedId, entriesKey]);
 
   return (
     <div className="wheel" ref={containerRef}>

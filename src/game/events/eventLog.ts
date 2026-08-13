@@ -17,9 +17,23 @@ import type { GameEvent, GameHistoryEntry } from './eventTypes';
 import type { Player } from '../types/player';
 import { PHASE_LABELS } from '../phases/phaseConfig';
 
+/**
+ * How a line should read at a glance.
+ *
+ * Colour carries the story faster than text on a stream — someone scanning the
+ * rail should see that a player died before they read the name. The mapping
+ * from tone to actual colour belongs to the component, not to this file.
+ */
+export type EventTone = 'kill' | 'threat' | 'save' | 'crown' | 'info';
+
+export type EventLine = {
+  text: string;
+  tone: EventTone;
+};
+
 export type EventLogRound = {
   round: number;
-  lines: string[];
+  lines: EventLine[];
 };
 
 function nameOf(players: readonly Player[], playerId: string): string {
@@ -27,43 +41,43 @@ function nameOf(players: readonly Player[], playerId: string): string {
 }
 
 /** One log line, or null when the event is flow control rather than story. */
-export function describeEvent(event: GameEvent, players: readonly Player[]): string | null {
+export function describeEventLine(event: GameEvent, players: readonly Player[]): EventLine | null {
   switch (event.type) {
     case 'GAME_STARTED':
-      return `Game started — ${event.playerCount} players`;
+      return { text: `Game started — ${event.playerCount} players`, tone: 'info' };
 
     case 'PLAYER_SELECTED':
-      return `🎡 ${nameOf(players, event.playerId)} selected`;
+      return { text: `🎡 ${nameOf(players, event.playerId)} selected`, tone: 'info' };
 
     case 'TARGET_SELECTED':
-      return `🎯 Target: ${nameOf(players, event.playerId)}`;
+      return { text: `🎯 Target: ${nameOf(players, event.playerId)}`, tone: 'threat' };
 
     case 'SHOW_MESSAGE':
-      return event.message;
+      return { text: event.message, tone: 'info' };
 
     case 'ADD_SHIELD':
-      return `🛡 ${nameOf(players, event.playerId)} gains a Shield`;
+      return { text: `🛡 ${nameOf(players, event.playerId)} gains a Shield`, tone: 'save' };
 
     case 'SHIELD_BLOCK':
-      return `🛡 ${nameOf(players, event.playerId)} blocked it`;
+      return { text: `🛡 ${nameOf(players, event.playerId)} blocked it`, tone: 'save' };
 
     case 'REMOVE_SHIELD':
-      return `🪝 ${nameOf(players, event.playerId)} loses their Shield`;
+      return { text: `🪝 ${nameOf(players, event.playerId)} loses their Shield`, tone: 'threat' };
 
     case 'ADD_DEATH_MARK':
-      return `💀 ${nameOf(players, event.playerId)} is marked`;
+      return { text: `💀 ${nameOf(players, event.playerId)} is marked`, tone: 'threat' };
 
     case 'ELIMINATE_PLAYER':
-      return `☠ ${nameOf(players, event.playerId)} eliminated`;
+      return { text: `☠ ${nameOf(players, event.playerId)} eliminated`, tone: 'kill' };
 
     case 'REVIVE_PLAYER':
-      return `❤️ ${nameOf(players, event.playerId)} revived`;
+      return { text: `❤️ ${nameOf(players, event.playerId)} revived`, tone: 'save' };
 
     case 'PHASE_CHANGED':
-      return `⚑ ${PHASE_LABELS[event.phase]}`;
+      return { text: `⚑ ${PHASE_LABELS[event.phase]}`, tone: 'crown' };
 
     case 'GAME_WON':
-      return `👑 ${nameOf(players, event.playerId)} wins`;
+      return { text: `👑 ${nameOf(players, event.playerId)} wins`, tone: 'crown' };
 
     // Flow control, and duplicates of the outcome that follows.
     case 'ROUND_STARTED':
@@ -80,6 +94,11 @@ export function describeEvent(event: GameEvent, players: readonly Player[]): str
   }
 }
 
+/** Text-only view, for callers that do not colour their output. */
+export function describeEvent(event: GameEvent, players: readonly Player[]): string | null {
+  return describeEventLine(event, players)?.text ?? null;
+}
+
 /**
  * Group the history into rounds, newest round first.
  *
@@ -93,7 +112,7 @@ export function buildEventLog(
   const rounds: EventLogRound[] = [];
 
   for (const entry of history) {
-    const line = describeEvent(entry.event, players);
+    const line = describeEventLine(entry.event, players);
     if (line === null) continue;
 
     const current = rounds[rounds.length - 1];

@@ -67,7 +67,11 @@ export function canSpinPlayerWheel(state: GameState): boolean {
 
 /** True while a wheel animation owns the screen — all host input must be locked. */
 export function isAnimating(state: GameState): boolean {
-  return state.screenState === 'spinning_player' || state.screenState === 'spinning_fate';
+  return (
+    state.screenState === 'spinning_player' ||
+    state.screenState === 'spinning_fate' ||
+    state.screenState === 'spinning_both'
+  );
 }
 
 /**
@@ -77,7 +81,7 @@ export function isAnimating(state: GameState): boolean {
  * would spoil the spin.
  */
 export function getRevealedPlayer(state: GameState): Player | null {
-  if (state.screenState === 'spinning_player') return null;
+  if (state.screenState === 'spinning_player' || state.screenState === 'spinning_both') return null;
   return getCurrentPlayer(state);
 }
 
@@ -159,7 +163,7 @@ export function canResolveFate(state: GameState): boolean {
  * Hidden while the Fate Wheel is still turning, exactly as the player is.
  */
 export function getRevealedAbilityId(state: GameState): string | null {
-  if (state.screenState === 'spinning_fate') return null;
+  if (state.screenState === 'spinning_fate' || state.screenState === 'spinning_both') return null;
   return state.currentAbilityId;
 }
 

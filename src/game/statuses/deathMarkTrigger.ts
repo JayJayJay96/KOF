@@ -29,8 +29,18 @@ export const deathMarkTrigger: StatusTrigger = {
     const player = context.state.players.find((candidate) => candidate.id === playerId);
     const name = player?.name ?? 'Player';
 
+    // A marked player skips the Fate Wheel, so this message IS the round's
+    // narration and has to carry the Shield check with it. Without that, the
+    // most confusing moment in the game — "the mark fired and he lived?" — has
+    // nothing on screen explaining itself. The pause below is where the room
+    // reacts, so the answer must already be visible when it starts.
+    const headline =
+      player && player.shield > 0
+        ? `💀 DEATH MARK — ${name}, but 🛡 the Shield stands in the way`
+        : `💀 DEATH MARK — ${name}, with nothing to stop it`;
+
     return [
-      { type: 'SHOW_MESSAGE', message: `💀 DEATH MARK — ${name}` },
+      { type: 'SHOW_MESSAGE', message: headline },
       { type: 'WAIT_FOR_HOST' },
       // Removed before the attack so the mark is spent even if Shield absorbs it.
       { type: 'REMOVE_DEATH_MARK', playerId },

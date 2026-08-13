@@ -12,6 +12,7 @@
  * those are Phase 4. No arcade theming yet — that is Phase 7.
  */
 
+import { useState } from 'react';
 import type { GameAction } from '../../game/engine/reducer';
 import type { AbilityDefinition } from '../../game/types/ability';
 import type { GameState } from '../../game/types/game';
@@ -23,20 +24,32 @@ import {
   canSpinFateWheel,
   canSpinPlayerWheel,
   canSpinTarget,
-  getLatestMessage,
   getMainWheelPlayers,
   getMainWheelSelectedId,
+  isAnimating,
 } from '../../game/engine/selectors';
+import { describeSituation } from '../../game/narration/situation';
 import { getAbility } from '../../game/abilities';
 import { PHASE_LABELS } from '../../game/phases/phaseConfig';
 import { MainWheel } from '../MainWheel/MainWheel';
 import { FateWheel } from '../FateWheel/FateWheel';
+import { StoryLog } from '../StoryLog/StoryLog';
 import { StatusPanel } from '../StatusPanel/StatusPanel';
 import { PhaseAnnouncement } from '../PhaseAnnouncement/PhaseAnnouncement';
 import { WinnerScreen } from '../WinnerScreen/WinnerScreen';
 import { EffectLayer } from '../../effects/EffectLayer';
 import { usePhaseAnnouncement } from '../../hooks/usePhaseAnnouncement';
 import { useScreenEffects } from '../../hooks/useScreenEffects';
+
+/**
+ * Fate Wheel length while both wheels run together.
+ *
+ * Longer than the Main Wheel's 6800ms on purpose. Started at the same moment,
+ * the shorter wheel would land first and announce WHAT before anyone knew WHO —
+ * which inverts the sentence the whole game is built on. The 800ms gap is the
+ * beat where the name is already up and the Fate is still crawling.
+ */
+const DUAL_FATE_SPIN_MS = 7600;
 
 type GameScreenProps = {
   state: GameState;
@@ -69,13 +82,21 @@ export function GameScreen({
   resolveFate,
   spinTarget,
 }: GameScreenProps) {
-  const spinningPlayer = state.screenState === 'spinning_player';
-  const spinningFate = state.screenState === 'spinning_fate';
+  const [storyOpen, setStoryOpen] = useState(true);
+
+  // In a dual spin both wheels are live at once. The Main Wheel drops out first:
+  // landing it moves the round to 'spinning_fate', so WHO is revealed while the
+  // Fate Wheel is still turning and the WHO -> WHAT reading order survives.
+  const dualSpin = state.screenState === 'spinning_both';
+  const spinningPlayer = dualSpin || state.screenState === 'spinning_player';
+  const spinningFate = dualSpin || state.screenState === 'spinning_fate';
   const isWinner = state.screenState === 'winner';
 
   const revealedAbility = getAbility(revealedAbilityId);
-  const fateActive = revealedPlayer !== null && !isWinner;
-  const message = getLatestMessage(state);
+  // The Fate Wheel is no longer "waiting" while it is turning alongside the
+  // Main Wheel, even though no player has been revealed yet.
+  const fateActive = dualSpin || (revealedPlayer !== null && !isWinner);
+  const situation = describeSituation(state);
 
   // Suppressed once the game is decided so a final elimination cannot fire a
   // phase title over the winner overlay.
@@ -97,71 +118,91 @@ export function GameScreen({
         />
       )}
 
-      <div className="game__stats">
-        <Stat label="Round" value={String(state.round)} />
-        <Stat label="Alive" value={`${alivePlayers.length} / ${state.players.length}`} />
-        <Stat label="Phase" value={PHASE_LABELS[state.phase]} />
-      </div>
+      <div className="game__stage">
+        <div className="game__stats">
+          <Stat label="Round" value={String(state.round)} />
+          <Stat label="Alive" value={`${alivePlayers.length} / ${state.players.length}`} />
+          <Stat label="Phase" value={PHASE_LABELS[state.phase]} />
 
-      <div className="game__wheels">
-        <div className="game__wheel game__wheel--main">
-          <MainWheel
-            players={getMainWheelPlayers(state)}
-            selectedId={getMainWheelSelectedId(state)}
-            spinning={spinningPlayer}
-            onSpinComplete={completePlayerSpin}
+          {/* The rail costs the wheels about a fifth of the width, so it has to
+              be dismissable — PROJECT_SPEC.md §8 wants the Main Wheel dominant. */}
+          <button
+            type="button"
+            className="button button--small game__log-toggle"
+            aria-expanded={storyOpen}
+            onClick={() => setStoryOpen((wasOpen) => !wasOpen)}
+          >
+            {storyOpen ? 'Hide story' : 'Show story'}
+          </button>
+        </div>
+
+        <div className="game__wheels">
+          <div className="game__wheel game__wheel--main">
+            <MainWheel
+              players={getMainWheelPlayers(state)}
+              selectedId={getMainWheelSelectedId(state)}
+              spinning={spinningPlayer}
+              onSpinComplete={completePlayerSpin}
+            />
+          </div>
+
+          <div className="game__wheel game__wheel--fate">
+            <FateWheel
+              abilities={availableAbilities}
+              selectedId={state.currentAbilityId}
+              spinning={spinningFate}
+              active={fateActive}
+              onSpinComplete={completeFateSpin}
+              spinDurationMs={dualSpin ? DUAL_FATE_SPIN_MS : undefined}
+            />
+          </div>
+        </div>
+
+        <div className="game__readout" aria-live="polite">
+          <p className="game__readout-line">
+            {spinningPlayer && <span className="game__pending">Spinning…</span>}
+            {!spinningPlayer && revealedPlayer && (
+              <span className="game__name">{revealedPlayer.name}</span>
+            )}
+            {!spinningPlayer && !revealedPlayer && !isWinner && (
+              <span className="game__pending">Who is next?</span>
+            )}
+            {revealedAbility && !spinningFate && (
+              <>
+                <span className="game__arrow">→</span>
+                <span className="game__fate">
+                  {revealedAbility.icon} {revealedAbility.name}
+                </span>
+              </>
+            )}
+            {spinningFate && <span className="game__pending"> → deciding fate…</span>}
+          </p>
+          {situation && <p className="game__message">{situation}</p>}
+        </div>
+
+        <div className="game__actions">
+          <PrimaryAction
+            state={state}
+            spinPlayer={spinPlayer}
+            spinFate={spinFate}
+            resolveFate={resolveFate}
+            spinTarget={spinTarget}
+            dispatch={dispatch}
           />
         </div>
 
-        <div className="game__wheel game__wheel--fate">
-          <FateWheel
-            abilities={availableAbilities}
-            selectedId={state.currentAbilityId}
-            spinning={spinningFate}
-            active={fateActive}
-            onSpinComplete={completeFateSpin}
-          />
-        </div>
-      </div>
-
-      <div className="game__readout" aria-live="polite">
-        <p className="game__readout-line">
-          {spinningPlayer && <span className="game__pending">Spinning…</span>}
-          {!spinningPlayer && revealedPlayer && (
-            <span className="game__name">{revealedPlayer.name}</span>
-          )}
-          {!spinningPlayer && !revealedPlayer && !isWinner && (
-            <span className="game__pending">Who is next?</span>
-          )}
-          {revealedAbility && !spinningFate && (
-            <>
-              <span className="game__arrow">→</span>
-              <span className="game__fate">
-                {revealedAbility.icon} {revealedAbility.name}
-              </span>
-            </>
-          )}
-          {spinningFate && <span className="game__pending"> → deciding fate…</span>}
-        </p>
-        {message && <p className="game__message">{message}</p>}
-      </div>
-
-      <div className="game__actions">
-        <PrimaryAction
-          state={state}
-          spinPlayer={spinPlayer}
-          spinFate={spinFate}
-          resolveFate={resolveFate}
-          spinTarget={spinTarget}
-          dispatch={dispatch}
+        <StatusPanel
+          alive={alivePlayers}
+          eliminated={eliminatedPlayers}
+          selectedId={revealedPlayer?.id ?? null}
         />
       </div>
 
-      <StatusPanel
-        alive={alivePlayers}
-        eliminated={eliminatedPlayers}
-        selectedId={revealedPlayer?.id ?? null}
-      />
+      {storyOpen && (
+        <div className="game__rail">
+          <StoryLog history={state.history} players={state.players} />
+        </div>
+      )}
     </section>
   );
 }
@@ -191,6 +232,16 @@ function PrimaryAction({
     return (
       <button type="button" className={className} onClick={() => dispatch({ type: 'RESET_GAME' })}>
         New Game
+      </button>
+    );
+  }
+
+  // Any wheel turning locks the control. Checked before everything else so the
+  // dual-spin state cannot fall through to a live "Spin Player" button.
+  if (isAnimating(state)) {
+    return (
+      <button type="button" className={className} disabled>
+        Spinning…
       </button>
     );
   }
@@ -233,14 +284,6 @@ function PrimaryAction({
     );
   }
 
-  if (state.screenState === 'spinning_fate') {
-    return (
-      <button type="button" className={className} disabled>
-        Spinning…
-      </button>
-    );
-  }
-
   if (canSpinFateWheel(state)) {
     return (
       <button type="button" className={className} onClick={spinFate}>
@@ -256,7 +299,7 @@ function PrimaryAction({
       onClick={spinPlayer}
       disabled={!canSpinPlayerWheel(state)}
     >
-      {state.screenState === 'spinning_player' ? 'Spinning…' : 'Spin Player'}
+      Spin Player
     </button>
   );
 }

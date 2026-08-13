@@ -14,6 +14,16 @@ export type GameScreenState =
   | 'setup'
   | 'idle'
   | 'spinning_player'
+  /**
+   * Both wheels turning at once — WHO and WHAT decided together.
+   *
+   * The engine picks both results before either wheel moves, exactly as the
+   * sequential path does, so this is a presentation state and not a second way
+   * to decide anything. It ends when the MAIN wheel lands, handing over to
+   * 'spinning_fate' while the Fate Wheel is still turning; that keeps the
+   * WHO -> WHAT reading order intact even though the spins overlap.
+   */
+  | 'spinning_both'
   | 'player_selected'
   | 'spinning_fate'
   | 'fate_selected'
@@ -46,6 +56,15 @@ export type GameConfig = {
   abilities: Record<string, AbilityConfig>;
 
   animationSpeed: AnimationSpeed;
+
+  /**
+   * Run the Main and Fate wheels together instead of one after the other.
+   *
+   * Optional so saves written before this existed still load; absent means on.
+   * Read through `isSimultaneousSpinEnabled` rather than directly, so the
+   * default lives in exactly one place.
+   */
+  simultaneousSpin?: boolean;
 
   audio: {
     master: number;
@@ -88,6 +107,11 @@ export type GameState = {
   /** The target chosen by the most recent target spin, for display. */
   targetPlayerId: string | null;
 };
+
+/** Single source of truth for the simultaneous-spin default. */
+export function isSimultaneousSpinEnabled(config: GameConfig): boolean {
+  return config.simultaneousSpin ?? true;
+}
 
 export type PendingTargetSpin = {
   abilityId: string;

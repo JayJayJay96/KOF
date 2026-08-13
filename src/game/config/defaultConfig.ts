@@ -81,6 +81,12 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
 
   animationSpeed: 'normal',
 
+  // Both wheels together by default. Sequential spinning cost ~12.9s of
+  // animation per round, roughly 12 minutes of watching wheels turn across a
+  // 20-player game. Overlapping them removes about 5s a round while keeping the
+  // WHO -> WHAT reveal order. The host can turn it off mid-game.
+  simultaneousSpin: true,
+
   audio: {
     master: 0.8,
     music: 0.5,

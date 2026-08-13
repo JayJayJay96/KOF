@@ -66,6 +66,14 @@ export const doubleFateAbility: AbilityDefinition = {
       ...picks.flatMap((ability) => ability.resolve(context, selectedPlayerId)),
     ];
   },
+
+  // The pair is drawn at resolution, so this can only promise the shape of it.
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    if (!player) return null;
+
+    return `${player.name} draws TWO Fates, resolved in the order they come out.`;
+  },
 };
 
 /**

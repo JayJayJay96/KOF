@@ -22,6 +22,11 @@ type FateWheelProps = {
   spinning: boolean;
   active: boolean;
   onSpinComplete: () => void;
+  /**
+   * Overridden when both wheels run together, where this must outlast the Main
+   * Wheel so WHO still resolves before WHAT.
+   */
+  spinDurationMs?: number;
 };
 
 export function FateWheel({
@@ -30,6 +35,7 @@ export function FateWheel({
   spinning,
   active,
   onSpinComplete,
+  spinDurationMs = 5200,
 }: FateWheelProps) {
   // Name only — no icon. With eight abilities the segments are narrow, and the
   // icon glyph cost pushed "Death Mark" down to the 10px floor, which is
@@ -55,7 +61,7 @@ export function FateWheel({
         spinning={spinning}
         onSpinComplete={handleComplete}
         onTick={() => playSound('wheelTick')}
-        spinDurationMs={5200}
+        spinDurationMs={spinDurationMs}
         minTurns={3}
       />
     </div>

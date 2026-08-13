@@ -13,7 +13,7 @@
  * so a stray double click can never corrupt a live game (AGENTS.md §8).
  */
 
-import type { GameConfig, GameState } from '../types/game';
+import type { GameConfig, GameScreenState, GameState } from '../types/game';
 import type { GameEvent } from '../events/eventTypes';
 import type { Player } from '../types/player';
 import {
@@ -36,6 +36,9 @@ export type GameAction =
   | { type: 'REMOVE_PLAYER'; playerId: string }
   | { type: 'START_GAME' }
   | { type: 'START_PLAYER_SPIN'; playerId: string }
+  // Both wheels at once. Carries both results because the engine still decides
+  // everything up front — the two wheels just animate toward them in parallel.
+  | { type: 'START_DUAL_SPIN'; playerId: string; abilityId: string }
   | { type: 'PLAYER_SPIN_COMPLETE' }
   | { type: 'SELECT_PLAYER'; playerId: string }
   | { type: 'START_TARGET_SPIN'; playerId: string }
@@ -47,7 +50,8 @@ export type GameAction =
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESET_GAME' }
-  | { type: 'SET_AUDIO'; audio: Partial<GameConfig['audio']> };
+  | { type: 'SET_AUDIO'; audio: Partial<GameConfig['audio']> }
+  | { type: 'SET_SIMULTANEOUS_SPIN'; enabled: boolean };
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
@@ -62,6 +66,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'START_PLAYER_SPIN':
       return startPlayerSpin(state, action.playerId);
+
+    case 'START_DUAL_SPIN':
+      return startDualSpin(state, action.playerId, action.abilityId);
 
     case 'PLAYER_SPIN_COMPLETE':
       return completePlayerSpin(state);
@@ -98,6 +105,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'SET_AUDIO':
       return setAudio(state, action.audio);
+
+    case 'SET_SIMULTANEOUS_SPIN':
+      return { ...state, config: { ...state.config, simultaneousSpin: action.enabled } };
 
     default:
       return state;
@@ -199,12 +209,45 @@ function startPlayerSpin(state: GameState, playerId: string): GameState {
 }
 
 /**
+ * Begin both wheels at once, toward two already-decided results.
+ *
+ * The caller must have established that this selection will NOT be intercepted
+ * by a status trigger — a Death Mark replaces the round's Fate, so rolling one
+ * in parallel would throw the result away and leave a wheel spinning over a
+ * resolution. `revealSelectedPlayer` still checks, and still wins if it fires;
+ * this is a wasted animation, not a corrupt state.
+ */
+function startDualSpin(state: GameState, playerId: string, abilityId: string): GameState {
+  if (state.screenState !== 'idle') return state;
+
+  const player = state.players.find((candidate) => candidate.id === playerId);
+  if (!player || player.status !== 'alive') return state;
+  if (!getAbility(abilityId)) return state;
+
+  return {
+    ...state,
+    currentPlayerId: playerId,
+    currentAbilityId: abilityId,
+    screenState: 'spinning_both',
+  };
+}
+
+/**
  * The Main Wheel finished animating.
  *
- * Two different things end here, distinguished by state rather than by ability:
- * a normal round selection, or a target spin an ability is suspended on.
+ * Three different things end here, distinguished by state rather than by
+ * ability: a normal round selection, half of a dual spin, or a target spin an
+ * ability is suspended on.
  */
 function completePlayerSpin(state: GameState): GameState {
+  // Dual spin: the player is revealed while the Fate Wheel is still turning, so
+  // the round rests in 'spinning_fate' rather than 'player_selected'. WHO still
+  // lands before WHAT even though the two spins overlapped.
+  if (state.screenState === 'spinning_both') {
+    if (state.currentPlayerId === null) return state;
+    return revealSelectedPlayer(state, state.currentPlayerId, 'spinning_fate');
+  }
+
   if (state.screenState !== 'spinning_player') return state;
 
   if (state.pendingTargetSpin !== null) return completeTargetSpin(state);
@@ -220,11 +263,17 @@ function completePlayerSpin(state: GameState): GameState {
  * it intercepts. The reducer asks the status registry whether anything triggers
  * and never learns which status it was (AGENTS.md §7.6).
  */
-function revealSelectedPlayer(state: GameState, playerId: string): GameState {
+function revealSelectedPlayer(
+  state: GameState,
+  playerId: string,
+  /** Where the round rests when nothing intercepts. A dual spin is still
+   *  waiting on its Fate Wheel, so it rests in 'spinning_fate' instead. */
+  restingState: GameScreenState = 'player_selected',
+): GameState {
   const revealed: GameState = {
     ...state,
     currentPlayerId: playerId,
-    screenState: 'player_selected',
+    screenState: restingState,
     history: appendEvents(state, [{ type: 'PLAYER_SELECTED', playerId }]),
   };
 
@@ -234,9 +283,14 @@ function revealSelectedPlayer(state: GameState, playerId: string): GameState {
   const trigger = findSelectionTrigger(player);
   if (!trigger) return revealed;
 
-  // A triggered status skips the Fate Wheel entirely.
+  // A triggered status skips the Fate Wheel entirely. `currentAbilityId` is
+  // cleared because a dual spin will have pre-rolled one: no Fate was actually
+  // dealt this round, so nothing should claim otherwise in the readout or log.
   const events = trigger.resolve(buildGameContext(revealed), playerId);
-  const queued = enqueueEvents({ ...revealed, screenState: 'resolving' }, events);
+  const queued = enqueueEvents(
+    { ...revealed, currentAbilityId: null, screenState: 'resolving' },
+    events,
+  );
 
   return applyPhaseAndWinner(drainEventQueue(queued));
 }

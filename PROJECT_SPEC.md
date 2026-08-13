@@ -108,6 +108,44 @@ Host clicks CONTINUE / RESOLVE
 Game proceeds
 ```
 
+### Amendment — both wheels spin together
+
+*Changed after the second round of playtesting. Supersedes the sequence above.*
+
+The two spins now start at the **same moment**. Auto-advance removed the extra click but not the extra wait: two full spins plus the beat between them ran ~12.9s of animation per round, which is about twelve minutes of watching wheels turn across a 20-player game.
+
+Ordering is preserved by **duration**, not by sequence. The Fate Wheel runs 800ms longer than the Main Wheel, so WHO still lands first and WHAT still lands second — the sentence the game is built on is unchanged. The round drops to ~7.8s.
+
+The moment the Main Wheel lands is now the best beat in the round: the name is up, the Fate is still crawling, and the situation line says what that player is carrying into it.
+
+Rounds that do **not** spin together:
+
+- **Death Mark is armed on the selected player.** The mark replaces the round's Fate (§11.6), so a Fate rolled alongside it would be discarded and its wheel left turning over a resolution already under way. These rounds fall back to the sequential flow above.
+- **No Fate is available at all** — which cannot happen in practice, but is handled rather than assumed.
+
+A **target** spin (Hunter, Duel) is unaffected: it reuses the Main Wheel *after* the Fate resolves, so there is nothing to overlap it with.
+
+The host can switch back to one-at-a-time from the Host Panel (§22). It takes effect on the next round.
+
+### The situation line
+
+Under the WHO → WHAT readout sits one line of plain language explaining the state of play. It is entirely derived — no new state — and it changes through the round:
+
+```text
+while both wheels turn   (nothing — a line here would spoil the result)
+Main Wheel lands         "Ali is up — 🛡 holding a Shield, 💀 already Marked."
+Fate Wheel lands         "Ali is hit — 🛡 the Shield takes it."
+awaiting a target spin   "Jason becomes the Hunter — spin for a target."
+resolving                "Jason hunts Chris · ☠ Chris eliminated · 🛡 Jason gains a Shield"
+```
+
+Two rules make it safe to show:
+
+1. **It never states an unrolled outcome.** A forecast may only repeat what is already visible on the wheel rims and in the status panel. Hunter and Duel say a target is coming without naming it, because the target spin has not happened yet.
+2. **The forecast belongs to the Fate, not to the screen.** Each ability supplies its own wording, so a new Fate arrives with its own narration and no component learns its name.
+
+While resolving, the line shows the last few events together rather than only the most recent. Hunter's payoff is three events, and showing only the last of them loses the causality that makes it read as a story.
+
 ---
 
 # 4. Visual Direction
@@ -1203,6 +1241,7 @@ type GameScreenState =
   | "setup"
   | "idle"
   | "spinning_player"
+  | "spinning_both"
   | "player_selected"
   | "spinning_fate"
   | "fate_selected"
@@ -1211,6 +1250,10 @@ type GameScreenState =
   | "phase_transition"
   | "winner";
 ```
+
+`spinning_both` is both wheels turning at once (§3). It is a presentation state: the engine has already chosen WHO and WHAT, exactly as in the sequential path. It ends when the **Main** Wheel lands, handing over to `spinning_fate` while the Fate Wheel is still turning — which is what keeps the WHO → WHAT reading order even though the spins overlapped.
+
+`player_selected` is now reached only on a sequential round.
 
 Buttons must be enabled / disabled according to state.
 
@@ -1421,6 +1464,26 @@ Purpose:
 - host can verify statuses,
 - useful for debugging,
 - adds narrative to the session.
+
+## The story rail
+
+*Added after the second round of playtesting.*
+
+The log now has two homes, because those four purposes are not one audience:
+
+| | Story rail | Host Panel log (§22) |
+|---|---|---|
+| Where | on the streamed screen, beside the wheels | behind Ctrl+Shift+H |
+| For | viewers following the game | the host checking or debugging |
+| Visible | always, unless the host hides it | only when the panel is open |
+
+Both render from the same formatter, so the wording can never drift apart.
+
+Rail rules:
+
+- **Newest round first.** The latest beat must be readable without scrolling.
+- **Colour-toned.** Every line carries a tone — `kill`, `threat`, `save`, `crown`, `info` — so a viewer registers that someone died before they finish reading the name. The tone is a property of the *event*, not of the component.
+- **Dismissable.** The rail costs the wheels about a fifth of the width, and §8 wants the Main Wheel dominant. The host decides; nothing hides itself at a breakpoint.
 
 ---
 

@@ -65,12 +65,10 @@ export const hunterAbility: AbilityDefinition = {
     // hunter already holding a Shield gains nothing and the cap still holds.
     const killed = attack.some((event) => event.type === 'ELIMINATE_PLAYER');
 
-    const bounty: GameEvent[] = killed
-      ? [
-          { type: 'ADD_SHIELD', playerId: selectedPlayerId },
-          { type: 'SHOW_MESSAGE', message: `${hunter?.name ?? 'Hunter'} claims a Shield` },
-        ]
-      : [];
+    // ADD_SHIELD already narrates itself as "gains a Shield", and the situation
+    // line now shows the whole burst — hunt, kill, bounty — so a second message
+    // saying the same thing only crowded it out.
+    const bounty: GameEvent[] = killed ? [{ type: 'ADD_SHIELD', playerId: selectedPlayerId }] : [];
 
     return [
       {
@@ -81,5 +79,14 @@ export const hunterAbility: AbilityDefinition = {
       ...attack,
       ...bounty,
     ];
+  },
+
+  // Names the hunter but never the prey — the target spin has not happened, and
+  // spoiling it would remove the only reason to run that second wheel.
+  describeStakes: (context, selectedPlayerId) => {
+    const hunter = context.state.players.find((player) => player.id === selectedPlayerId);
+    if (!hunter) return null;
+
+    return `${hunter.name} becomes the Hunter — a kill earns them a 🛡 Shield.`;
   },
 };

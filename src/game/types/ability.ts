@@ -40,6 +40,23 @@ export type AbilityDefinition = {
   resolve: (context: GameContext, selectedPlayerId: string) => GameEvent[];
 
   /**
+   * One line describing what this Fate is about to do, given the board.
+   *
+   * Shown after the Fate Wheel lands and before the host resolves it, which is
+   * the moment "Eliminate — but Ali's Shield will take it" is worth saying. It
+   * lives on the ability so narration stays data like everything else: a new
+   * Fate arrives with its own wording and no component learns its name.
+   *
+   * A FORECAST, not a result. It may only state what is already visible on the
+   * wheel rims and in the status panel — never a roll the ability has not made
+   * yet, or the host's reveal is spoiled. Hunter and Duel therefore say a target
+   * is coming without saying who.
+   *
+   * Optional: omit it for Fates whose name already says everything.
+   */
+  describeStakes?: (context: GameContext, selectedPlayerId: string) => string | null;
+
+  /**
    * Second half of a multi-step ability, called once a target spin lands.
    *
    * Only abilities that emit REQUEST_PLAYER_SPIN need this. The engine stores

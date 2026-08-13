@@ -29,6 +29,7 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
+Playtest round 2 changes         COMPLETE
 Fate rework Wave 1               COMPLETE
 Phases 0-7                       COMPLETE
 ```
@@ -36,11 +37,13 @@ Phases 0-7                       COMPLETE
 # Phase Status
 
 ```text
-All MVP features exist and are deployed. The project is now in a
+All MVP features exist and are deployed. The project is in a
 playtest-and-tune loop driven by the host, not a build loop.
 
-Wave 1 of the Fate rework is shipped. Waves 2 and 3 are designed but
-NOT started — see Next Tasks.
+Round 2 of playtest feedback is shipped: wider landing spread, both
+wheels spinning together, a live situation line, and a story rail.
+
+Fate rework Waves 2 and 3 are designed but NOT started — see Next Tasks.
 ```
 
 # Live Deployment
@@ -54,9 +57,10 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 # Current Objective
 
-Play real games. Wave 1 changed the Fate pool substantially in one go; the
-measurements prove it is no longer dead air, but not that it is *fun*. Wave 2
-(Bomb) should wait until Wave 1 has been felt in a real session.
+Play real games. Two rounds of changes have now landed without a full session
+between them. The measurements say the Fate pool is not dead air and that the
+round is 40% shorter; they say nothing about whether it is *fun*. Wave 2 (Bomb)
+should wait until this has been felt live.
 
 ---
 
@@ -77,11 +81,122 @@ queue that suspends on blocking events; all eight original MVP Fates; phase
 transitions and winner screen; undo, versioned save/resume, host panel;
 synthesised audio and the impact-effect layer.
 
+**Playtest round 1** (`d7aaada`, `b374d59`, `da09a44`, `daa5bf9`): landing
+jitter, auto-advance to the Fate spin, Hunter bounty, the reduced-motion skip
+fix, greasy deceleration, and Fate rework Wave 1 with status rims. Details in
+the git log; the summaries below are kept short so this file stays current.
+
 ---
 
-# Completed This Session
+# Completed This Session — playtest round 2
 
-Four commits, all deployed and verified live.
+Four pieces of host feedback, all shipped.
+
+## 1. The spin lands in far more places
+
+> *"the pin normally stops at a few fixed places… or just about to stop at 98%
+> but eventually went to the next pie."*
+
+The offset was already random. Two things hid it:
+
+- **The clamp was fractional.** `MAX_LANDING_OFFSET = 0.78` kept the pointer a
+  full 11% of the arc from any boundary, so the near-miss the host described was
+  not merely rare — it was impossible. The cap is now an **angular** margin
+  (`MIN_EDGE_MARGIN_RAD`, ~1.7°), because what makes a result ambiguous to a
+  viewer is degrees of arc, not share of segment. A 2-player wheel and a
+  20-player wheel now leave the same readable gap.
+- **Uniform landing reads as mechanical.** The outcomes people *notice* are the
+  extremes, and most uniform landings sit in the forgettable middle.
+  `edgeBiasedOffset` pushes the mass outward.
+
+Also: `turnVariance` rolls 0–1.8 extra turns per spin. Duration is fixed, so
+every spin now has a different speed curve. Previously every throw was identical.
+
+| | Before | After |
+|---|---|---|
+| Landings in the outer third of the segment | 14.5% | **49%** |
+| Closest the pointer may come to a boundary | 11% of arc | **~1.7°**, any count |
+
+## 2. Both wheels spin together
+
+> *"i think its better to spin both of the wheel at the same time to save time."*
+
+New screen state `spinning_both`. The engine still picks both results before
+either wheel moves — this is presentation, not a second way to decide anything.
+
+Ordering is preserved by **duration, not sequence**: the Fate Wheel runs 800ms
+longer, so WHO still lands before WHAT. The state machine models this exactly —
+`spinning_both` ends when the *Main* Wheel lands, handing over to
+`spinning_fate` while the Fate Wheel is still turning.
+
+Rounds where a **Death Mark is armed** fall back to sequential: the mark replaces
+the Fate, so a parallel Fate would be discarded and its wheel left spinning over
+a resolution. The check is in `useGame`, because it is a question about which
+presentation to use; the reducer still lets a trigger win if one fires anyway.
+
+Round animation: **12.9s → 7.8s**. Host can switch back from the Host Panel.
+
+## 3. A live situation line
+
+> *"death mark on A but he has a shield. at least describe it there."*
+
+`game/narration/situation.ts` derives one line from state. Nothing is stored.
+
+The forecast for a landed Fate comes from the ability's own optional
+`describeStakes`, so a new Fate brings its own narration and no component learns
+its name. Two rules keep it safe: it never states an unrolled outcome, and it
+goes silent while a wheel that could spoil something is turning.
+
+While resolving it shows the last few events joined, not just the latest —
+Hunter's payoff is three events and the causality is the point:
+
+```text
+Jason hunts Chris · ☠ Chris eliminated · 🛡 Jason gains a Shield
+```
+
+`deathMarkTrigger` now names the Shield in its headline, which is the host's
+literal example and the game's most confusing moment ("the mark fired and he
+lived?"). Hunter dropped its bounty `SHOW_MESSAGE` — `ADD_SHIELD` already
+narrates itself, and the burst was printing the same fact twice.
+
+## 4. Story rail on the main screen
+
+> *"a log for the story line at the side, so that people can read back."*
+
+`buildEventLog` already existed; it was only ever rendered inside the Host
+Panel. `StoryLog` puts it on the streamed screen: newest round first, so the
+latest beat needs no scrolling, and colour-toned so a death registers before the
+name is read. Tone is a property of the **event**, not the component.
+
+Both logs share the one formatter, so the wording cannot drift apart.
+
+The rail is dismissable and nothing hides it automatically at a breakpoint — a
+panel that vanishes on its own is worse than one the host chose to close.
+
+## Two latent bugs found while building this
+
+Both were invisible until two wheels could turn at once, and both would have
+been intermittent and very hard to diagnose from a stream recording:
+
+- **`Wheel` restarted a spin when its `entries` array changed identity.** A
+  parent re-render mid-spin (the Main Wheel landing) hands the Fate Wheel a fresh
+  array with identical contents. It now keys off an id-derived string.
+- **`Wheel` restarted a spin when a timing prop changed.** The Fate duration
+  depends on the round being a dual spin, which stops being true the moment the
+  Main Wheel lands — mid-Fate-animation. Caught in the browser: the Fate Wheel
+  was still turning at 9.1s against a 7.6s target. Timing is now latched at spin
+  start, so a spin in flight finishes on the terms it started with.
+
+## Not changed
+
+`SAVE_VERSION` stays at **2**. `config.simultaneousSpin` is optional and read
+through `isSimultaneousSpinEnabled` (`?? true`), so saves written before this
+change still load. Bumping would have discarded a host's in-progress game for no
+correctness gain.
+
+---
+
+# Reference — playtest round 1
 
 ## `d7aaada` — first playtest pass
 
@@ -145,28 +260,38 @@ reaction came from.
 
 # In Progress
 
-Nothing. Working tree clean, all work committed and deployed.
+Nothing. Working tree clean.
+
+**NOT DEPLOYED.** This session's work is committed to the branch
+`playtest-round-2`, not to `main`. `main` auto-deploys to production on push, so
+merging is the host's call, not an agent's. The live site still runs Wave 1.
 
 ---
 
 # Next Tasks
 
-## Immediate — playtest Wave 1 (host-led, cannot be done by an agent)
+## Immediate — play a real session (host-led, cannot be done by an agent)
 
-The Fate pool changed a lot at once. The numbers prove it is not dead air; they
-say nothing about whether it is fun. Specific things to watch:
+Two rounds of change have landed without a live game between them. Things to
+watch, in rough order of how likely they are to be wrong:
 
-- **Is Hunter dominant?** It is now 16.9% of rolls *and* pays a Shield bounty on
-  a kill. Second-most-common Fate. If it feels oppressive, drop the bounty to
-  later phases only, or make it one-off.
-- **Does Close Call read as relief or as punishment?** It always costs something
-  now.
-- **Is Double Fate legible?** Two Fates resolving in sequence may be hard to
-  follow on a stream.
-- **Round length.** Animation per round is now ~12.9s (6.8 player + 0.9 beat +
-  5.2 Fate), up from ~8.3s. At 20 players that is roughly 12 minutes of spinning
-  per game. If it drags, the cheapest lever is shortening the **Fate** wheel — it
-  has fewer segments so it earns less from a long tail.
+- **Does the overlap kill the "who is it?" tension?** This is the biggest risk in
+  the change. Previously the Main Wheel had the screen to itself; now a second
+  wheel is moving beside it. If attention splits badly, the fix is a short
+  stagger (start the Fate Wheel ~1.5s late and shorten it to match) rather than
+  reverting — the round length was a real problem.
+- **Is 7.8s now too fast?** The complaint before was that it dragged. The greasy
+  crawl still works, but the beat between the two reveals is 800ms rather than a
+  whole spin.
+- **Does the situation line get read, or is it noise?** It sits under a very large
+  name and a very large Fate. If nobody looks at it, it should get bigger or go.
+- **Is the rail worth a fifth of the width?** Judge it on a real stream, not on a
+  desktop. If not, close it and it costs nothing.
+- **Is Hunter dominant?** Carried over and still unanswered: 16.9% of rolls *and*
+  a Shield bounty on a kill. If it feels oppressive, drop the bounty to later
+  phases or make it one-off.
+- **Does Close Call read as relief or punishment?** It always costs something.
+- **Is Double Fate legible?** Two Fates in sequence may be hard to follow live.
 
 ## Wave 2 — Bomb (designed, not started)
 
@@ -220,64 +345,76 @@ No blockers.
 
 # Important Decisions Made This Session
 
-1. **Reduced motion damps decoration, never the mechanic.** The spin is the
-   product; skipping it made the game look broken. Decorative motion still
-   respects the media query.
-2. **The crawl is reserved distance, not just slower easing.** Any ease-out
-   concentrates travel early. Explicitly reserving a share of the *distance* for
-   the final third is what puts a boundary genuinely in play.
-3. **Wheel jitter is presentation, not game logic.** The engine still decides
-   which entry wins; the wheel only decides where inside it to stop.
-4. **`WheelMarker` is generic.** The wheel does not know what a Death Mark is —
-   `MainWheel` maps domain status to colours. This is what let the Fate wheel
-   reuse the component untouched, and it is why Bomb will be nearly free.
-5. **Status on the rim, result in the fill.** Two independent visual channels, so
-   "who is marked" and "who just won" never compete.
-6. **Double Fate excludes target-spin Fates.** The engine tracks one pending
-   target spin; two would overwrite each other and strand the first ability. A
-   real limitation, documented in the spec rather than hidden.
-7. **Eliminated players cannot be armed.** Added to `eventResolver` so Double
-   Fate rolling Eliminate then Shield cannot leave armour on a corpse.
-8. **Save version bumped rather than migrated.** Removing `again` made v1 saves
-   unresumable; the rejection path built in Phase 6 exists for exactly this.
+1. **Landing margin is angular, not fractional.** What makes a result ambiguous
+   to a viewer is degrees of arc, not share of segment. The old fractional clamp
+   was simultaneously too tight at 8 players and would have been too loose at 40.
+2. **Perceived randomness is not statistical randomness.** Uniform landing is
+   "more random" by any measure and felt mechanical, because the landings people
+   notice are the extremes. Biasing toward the edges is the honest fix for the
+   complaint that was actually made.
+3. **Reveal order is enforced by duration, not by sequence.** Overlapping the
+   spins would have inverted WHO → WHAT if both ran the same length. Making the
+   Fate Wheel 800ms longer keeps the game's sentence intact for free.
+4. **A spin in flight finishes on the terms it started with.** Entries and timing
+   are both latched at spin start. Once two wheels can turn at once, a parent
+   re-render mid-spin is normal rather than exceptional, and any prop in the
+   effect's dependency array becomes a way to silently restart an animation.
+5. **The dual/sequential choice lives in the hook, not the reducer.** It is a
+   question about which presentation to use. The reducer stays the authority on
+   what happens, and still lets a status trigger win if one fires anyway.
+6. **Narration is data, like abilities.** `describeStakes` lives on the
+   `AbilityDefinition`, so a new Fate arrives with its own wording. The
+   alternative — a central map keyed by ability id — is exactly the switch
+   statement AGENTS.md §7.6 exists to prevent.
+7. **A forecast may only repeat what is already on the board.** That is what
+   makes it safe to show before the host resolves. Hunter and Duel therefore
+   promise a target without naming one.
+8. **Two logs, one formatter.** The rail serves viewers, the Host Panel log
+   serves the host. Sharing `buildEventLog` means the wording cannot drift.
+9. **Save version deliberately NOT bumped.** The new config field is optional and
+   defaulted in one place. Bumping would have discarded a host's in-progress game
+   to gain nothing.
 
 ---
 
 # Verification Performed
 
-- `npm run build` — passes, 64 modules, no type errors.
+- `npm run build` — passes, 67 modules, no type errors.
 - `npm run lint` (oxlint) — clean.
 - `npx prettier --check` — all files conform.
-- Orphaned `again.ts` deleted after confirming no importers.
 
-Exercised against the real modules:
+Exercised against the real modules, in the browser, through Vite's module graph:
 
 | Check | Result |
 |---|---|
-| Wheel lands in the correct segment for every offset, 2–20 segments | PASS |
-| Landing offset never exceeds 0.78 of the half-arc | PASS |
-| Easing monotonic, exact endpoints, velocity continuous at both joins | PASS |
-| Spin animates under forced `prefers-reduced-motion` (46 rotation samples) | PASS |
-| Close Call branches correctly on Shield | PASS |
-| Steal Shield transfers, and hides when no Shield exists | PASS |
-| Double Fate resolves two Fates, never recurses, never target-spins | PASS |
-| Eliminated player cannot be given a Shield | PASS |
-| Death Mark and Shield rims render, and coexist with the landed fill | PASS |
-| Clean wheel renders no rims | PASS |
-| 180 full games — valid winner, no stuck states, Shield cap held | PASS |
-
-Live deployment verified after each commit by matching the deployed asset hash
-against the local build.
+| Landing resolves to the engine's chosen segment — 2091 cases, 2–20 segments, offsets −1..+1, fractional turns | PASS, 0 wrong |
+| Edge margin holds at ~1.72° for 5–20 segments, 3.6° at 2 | PASS |
+| Landings in the outer third of a segment: 49% (was 14.5%) | PASS |
+| 60 full games via `START_DUAL_SPIN` — valid winner, no stuck states | PASS, 0 stuck |
+| 668 dual rounds / 90 sequential — Death Mark rounds correctly opt out | PASS |
+| Fate landing before the player is a reducer no-op, then replayed by the hook | PASS, 335 races |
+| All 10 abilities implement `describeStakes` | PASS |
+| No situation line during `spinning_player` / `spinning_both` (spoiler check) | PASS, 0 leaks |
+| 466 Fate spins each carried a board-state line, none naming the Fate | PASS |
+| Death Mark on a shielded player narrates the Shield; still consumes it, still spends the mark | PASS |
+| Live UI: Main settles 6.98s, Fate 7.82s, both wheels in motion throughout | PASS |
+| Story rail renders tones, newest round first; toggle collapses and restores | PASS |
+| 1280×720: no horizontal overflow, action button at 669px of 720 | PASS |
+| Console clean after a full reload (the two React warnings were HMR artefacts) | PASS |
 
 ---
 
 # Notes for Next Agent
 
-**The next step is playing, not building.** Wave 1 landed a lot of change at
-once. Do not start Wave 2 until the host has played real games and said what
-felt wrong.
+**The next step is playing, not building.** Two rounds of change have landed
+without a live session between them. Do not start Wave 2 until the host has
+played real games and said what felt wrong.
 
-Architecture boundaries have held for seven phases plus a rework. Keep them:
+**If the host says the overlap hurts:** the lever is a stagger, not a revert.
+Start the Fate Wheel ~1.5s into the Main Wheel and shorten it to match — the
+round length was a genuine problem and going back reintroduces it.
+
+Architecture boundaries have held for seven phases plus two reworks. Keep them:
 
 - `src/game/` decides outcomes. Components render and dispatch.
 - Randomness goes through `src/utils/random.ts` — including inside `resolve`.
@@ -290,16 +427,22 @@ Architecture boundaries have held for seven phases plus a rework. Keep them:
   domain state onto generic entries and markers.
 
 Adding a Fate is still a two-file change: write the `AbilityDefinition`, add it
-to `ABILITIES`. Wave 1 added three Fates without touching the reducer, the
-wheels, or the event queue.
+to `ABILITIES`. It can now optionally carry its own `describeStakes` line, which
+is still inside those two files.
 
 If a new mechanic seems to need an engine change, the missing piece is usually
 an event type or a status trigger, not a branch.
+
+**One new trap, from this session.** `Wheel` deliberately does not depend on
+`entries` identity or on its timing props. If you add a prop that must affect a
+spin, decide whether it should affect the spin *already running* — the answer is
+almost always no, which means latching it in a ref rather than adding it to the
+dependency array.
 
 ---
 
 # Last Updated
 
 ```text
-2026-08-10
+2026-08-13
 ```

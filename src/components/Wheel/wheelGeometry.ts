@@ -37,20 +37,61 @@ export function normalizeAngle(angle: number): number {
  * the final angle up front, and the animation simply interpolates to it.
  */
 /**
- * How far from a segment's centre the pointer may stop, as a fraction of the
- * arc's half-width.
+ * Landing spread.
  *
- * Landing dead centre every time drains the tension out of a spin — a near-miss
- * against the edge is most of the drama. 0.78 keeps the pointer clearly inside
- * the winning segment (never closer than ~11% of the arc to a boundary), so the
- * result stays unambiguous to a viewer.
+ * Landing dead centre every time drains a spin of tension — the near-miss
+ * against the edge is most of the drama. The first version capped the offset at
+ * a flat 0.78 of the half-arc, which kept the pointer a full 11% of the arc away
+ * from any boundary. The result was unambiguous, and also undramatic: the "it
+ * stopped a hair inside A, but LOOK how close B was" moment could not physically
+ * occur.
+ *
+ * The cap is now an ANGULAR margin rather than a fractional one. What makes a
+ * result ambiguous to a viewer is how many degrees separate the pointer from the
+ * line, not what share of the segment that is — a 2-player wheel and a 20-player
+ * wheel need the same absolute gap. So the pointer may stop anywhere in the
+ * segment except the last `MIN_EDGE_MARGIN_RAD` at either end.
  */
-export const MAX_LANDING_OFFSET = 0.78;
+/** ~1.7 degrees. Wide enough to read on a compressed stream, narrow enough to hurt. */
+export const MIN_EDGE_MARGIN_RAD = 0.03;
+
+/** Hard ceiling, so even a very wide segment never lands exactly on the line. */
+export const MAX_LANDING_OFFSET = 0.96;
+
+/** The widest usable offset for this segment count, in half-arc fractions. */
+export function resolveMaxLandingOffset(count: number): number {
+  const halfArc = segmentArc(count) / 2;
+  if (halfArc <= 0) return 0;
+  return Math.max(0, Math.min(MAX_LANDING_OFFSET, 1 - MIN_EDGE_MARGIN_RAD / halfArc));
+}
+
+/**
+ * Push a uniform roll toward the segment edges.
+ *
+ * Uniform landing is "more random" by any statistical measure and still felt
+ * mechanical, because the outcomes people NOTICE are the extremes. Most uniform
+ * landings sit in the unremarkable middle, so across a game the wheel appears to
+ * keep stopping in the same handful of unremarkable places.
+ *
+ * An exponent below 1 spreads the mass outward: about 45% of spins now finish in
+ * the outer third of their segment, against 33% for uniform. The engine's chosen
+ * winner is untouched — this only decides where inside it to rest.
+ *
+ * Input is a uniform [0, 1); output is [-1, 1].
+ */
+export const EDGE_BIAS_EXPONENT = 0.6;
+
+export function edgeBiasedOffset(uniform: number): number {
+  const centred = Math.max(0, Math.min(1, uniform)) * 2 - 1;
+  const magnitude = Math.abs(centred) ** EDGE_BIAS_EXPONENT;
+  return centred < 0 ? -magnitude : magnitude;
+}
 
 export function resolveTargetRotation(
   currentRotation: number,
   index: number,
   count: number,
+  /** May be fractional: the extra travel is what varies a spin's speed. */
   minTurns: number,
   /**
    * Where within the segment to stop: -1 is one edge, 0 the centre, +1 the
@@ -59,7 +100,8 @@ export function resolveTargetRotation(
    */
   offsetWithinSegment = 0,
 ): number {
-  const clamped = Math.max(-1, Math.min(1, offsetWithinSegment)) * MAX_LANDING_OFFSET;
+  const limit = resolveMaxLandingOffset(count);
+  const clamped = Math.max(-1, Math.min(1, offsetWithinSegment)) * limit;
   const jitter = (segmentArc(count) / 2) * clamped;
 
   const base = POINTER_ANGLE - segmentCenterAngle(index, count) - jitter;

@@ -32,8 +32,8 @@ export function EventLog({ history, players }: EventLogProps) {
           <h4 className="event-log__round-label">Round {String(round.round).padStart(2, '0')}</h4>
           <ul className="event-log__lines">
             {round.lines.map((line, index) => (
-              <li key={index} className="event-log__line">
-                {line}
+              <li key={index} className="event-log__line" data-tone={line.tone}>
+                {line.text}
               </li>
             ))}
           </ul>

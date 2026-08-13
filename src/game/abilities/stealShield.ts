@@ -64,4 +64,17 @@ export const stealShieldAbility: AbilityDefinition = {
       { type: 'ADD_SHIELD', playerId: selectedPlayerId },
     ];
   },
+
+  // The victim is rolled at resolution, so count them rather than name one —
+  // except when there is only one, where naming them spoils nothing.
+  describeStakes: (context, selectedPlayerId) => {
+    const thief = context.state.players.find((player) => player.id === selectedPlayerId);
+    if (!thief) return null;
+
+    const victims = shieldedVictims(context.state.players, selectedPlayerId);
+    if (victims.length === 0) return `${thief.name} finds nothing left to steal.`;
+    if (victims.length === 1) return `${thief.name} takes ${victims[0].name}'s 🛡 Shield.`;
+
+    return `${thief.name} takes a 🛡 Shield — ${victims.length} on the board to choose from.`;
+  },
 };

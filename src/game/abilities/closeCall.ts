@@ -55,4 +55,15 @@ export const closeCallAbility: AbilityDefinition = {
       { type: 'ADD_DEATH_MARK', playerId: selectedPlayerId },
     ];
   },
+
+  // The branch is the point of this Fate, so the forecast has to show it —
+  // otherwise "Close Call" reads as pure relief right up until it is not.
+  describeStakes: (context, selectedPlayerId) => {
+    const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
+    if (!player) return null;
+
+    return player.shield > 0
+      ? `${player.name} lives — 🛡 the Shield is destroyed absorbing it.`
+      : `${player.name} lives — and picks up a 💀 Death Mark for it.`;
+  },
 };

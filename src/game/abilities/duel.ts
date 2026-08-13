@@ -72,4 +72,13 @@ export const duelAbility: AbilityDefinition = {
       ...attackPlayer(context.state, loserId, 'duel'),
     ];
   },
+
+  // Says a second player is coming without saying who: the opponent has not
+  // been spun for yet, and the coin flip has not happened either.
+  describeStakes: (context, selectedPlayerId) => {
+    const initiator = context.state.players.find((player) => player.id === selectedPlayerId);
+    if (!initiator) return null;
+
+    return `${initiator.name} calls a DUEL — a spin picks the opponent, then it is 50/50.`;
+  },
 };

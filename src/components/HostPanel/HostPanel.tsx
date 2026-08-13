@@ -15,6 +15,7 @@
 import { useEffect, useState } from 'react';
 import type { GameAction } from '../../game/engine/reducer';
 import type { GameState } from '../../game/types/game';
+import { isSimultaneousSpinEnabled } from '../../game/types/game';
 import { EventLog } from '../EventLog/EventLog';
 
 type HostPanelProps = {
@@ -117,6 +118,25 @@ export function HostPanel({
             onClick={() => document.documentElement.requestFullscreen?.()}
           >
             Fullscreen
+          </button>
+        </div>
+
+        {/* Takes effect on the next round: the flag is read when a spin starts,
+            so flipping it mid-spin cannot strand a wheel. */}
+        <div className="host-panel__actions">
+          <button
+            type="button"
+            className="button button--small"
+            onClick={() =>
+              dispatch({
+                type: 'SET_SIMULTANEOUS_SPIN',
+                enabled: !isSimultaneousSpinEnabled(state.config),
+              })
+            }
+          >
+            {isSimultaneousSpinEnabled(state.config)
+              ? 'Spin wheels one at a time'
+              : 'Spin both wheels together'}
           </button>
         </div>
       </section>
