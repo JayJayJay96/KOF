@@ -5,9 +5,17 @@
  * shared attack abstraction and the event queue arrive in Phase 3; do not add
  * ability logic here.
  *
- * The reducer is PURE. It never calls Math.random(): callers pick the target
- * with selectors.ts and dispatch the chosen id. That keeps the action log
- * replayable and makes undo (Phase 6B) a snapshot problem, not a rewind one.
+ * RANDOMNESS: precomputed by the caller only for outcomes a wheel animates
+ * toward — callers pick WHO and WHAT with selectors.ts and dispatch the
+ * chosen id (PROJECT_SPEC.md §8-9), so a wheel always spins toward a result
+ * the engine already decided. Everything else draws inside the reducer as it
+ * resolves: an ability's `resolve()` may call randomness directly (Duel's
+ * coin flip, Revive's pick, Steal Shield's victim), and so does drawing the
+ * session's Fate pool at START_GAME — nothing animates toward "which Fates
+ * are in this session", so there is no caller to hoist the draw to. That is
+ * exactly why undo (Phase 6B, see undo.ts) snapshots whole states instead of
+ * replaying the action log: replaying would re-roll those and produce a
+ * different game.
  *
  * Invalid transitions return the current state unchanged rather than throwing,
  * so a stray double click can never corrupt a live game (AGENTS.md §8).
