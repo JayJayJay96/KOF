@@ -440,6 +440,8 @@ The two upper bands are a **share of the starting roster**. The two endgame band
 
 Why the split. An 8-player game and a 30-player game should spend roughly the same _proportion_ of their length in Chaos, so the upper bands scale with the roster. But "four left" means the same thing in both — it is a stage of the game, not a proportion of it — so the endgame bands do not scale.
 
+**The endgame bands are tested first, and an absolute floor always wins.** The resolver checks Sudden Death, then Final Four, and only then computes the share. So the per-phase conditions below are each written as if the bands above them have already been ruled out. This matters most at tiny rosters, which the table below does not reach: `MIN_PLAYERS_TO_START` is 2, so a 5-player game with 4 alive is 80% of its roster — well inside the Chaos share — and still resolves to FINAL FOUR, because 4 is at the absolute floor.
+
 Thresholds used to be absolute throughout (`dangerAt: 11`), which was a real bug rather than a rough edge: any game under 12 players started in DANGER and never saw Chaos at all.
 
 The denominator is the roster the game **started** with — held on state as `startingPlayerCount`, not read from `players.length`. Roster edits are legal while idle, so a host tidying eliminated players away would otherwise shrink the denominator and quietly de-escalate the phase.
@@ -576,11 +578,10 @@ Purpose:
 - increase danger,
 - reduce comeback mechanics.
 
-Abilities such as these should normally be removed:
-
-- Revive
-- Fate Swap
-- Double Kill
+Comeback and multi-kill Fates are suppressed here, but there is no removal list
+any more — this is expressed as a weight of 0 in the `final_four` column of
+`abilityWeights.ts`. Revive is the main one; Fate Swap and Double Kill were
+never built (§12).
 
 ---
 
@@ -1245,16 +1246,24 @@ const reviveAbility: AbilityDefinition = {
   icon: "❤️",
   category: "special",
 
-  isAvailable: (context) =>
-    context.eliminatedPlayers.length > 0 &&
-    context.phase !== "final_four" &&
-    context.phase !== "sudden_death",
+  isAvailable: (context) => context.eliminatedPlayers.length > 0,
 
   resolve: (...) => {
     // return game events
   }
 };
 ```
+
+**Phase exclusion is a weight of 0, not an availability check.** Revive used to
+test `phase !== "final_four" && phase !== "sudden_death"` here; that gate is
+gone. It now carries `final_four: 0` and `sudden_death: 0` in
+`abilityWeights.ts`, and `getAvailableAbilities` drops anything whose resolved
+weight is not above 0.
+
+`isAvailable` is therefore reserved for conditions the weight table cannot
+express — board state such as "somebody is eliminated" or "somebody owns a
+Shield". A phase restriction written as an availability check is duplicating
+what the table already says, and the two can then disagree.
 
 ---
 
@@ -2194,13 +2203,20 @@ After revival, phase should be recalculated.
 
 Example:
 
+Note the roster: with share-based bands an alive count alone no longer
+determines a phase, so any example that omits the starting roster is
+unverifiable.
+
 ```text
-4 alive
+Roster 13, 5 alive  →  5/13 = 0.385 ≤ 0.4  →  BLOODBATH
 → Revive
-→ 5 alive
-→ phase may return from Final Four to whichever band 5 alive falls in
-   for this roster (Bloodbath, or Danger in a smaller game)
+6 alive             →  6/13 = 0.462        →  DANGER
 ```
+
+Revive is genuinely on the wheel at that point: its Bloodbath weight is 2, and
+only a non-zero weight puts a Fate on the wheel. It could **not** have been
+drawn one step lower — at 4 alive the phase is always Final Four (an absolute
+floor, tested first) and Revive's `final_four` weight is 0.
 
 MVP recommendation:
 

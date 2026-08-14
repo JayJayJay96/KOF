@@ -82,8 +82,15 @@ whether it is *fun*.
 
 ```text
 GitHub   https://github.com/JayJayJay96/KOF
-Branch   enh3-ability-expansion  (not yet merged to main)
+Branch   enh3-ability-expansion  (LOCAL ONLY — never pushed)
 ```
+
+**Nothing from Enhancement Phase 3 is on the remote.** `origin` has only
+`refs/heads/main`; there is no `origin/enh3-ability-expansion` at all, and local
+`main` is itself ahead of `origin/main` by two commits. So the live site at the
+URL above is running **pre-Phase-3 code**, and every 3a commit exists on this
+machine and nowhere else. Back it up or push it before doing anything drastic to
+the working copy.
 
 ---
 

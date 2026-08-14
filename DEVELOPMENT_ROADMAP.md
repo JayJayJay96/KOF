@@ -768,15 +768,18 @@ Phase can move backward after Revive.
 
 Example:
 
+The starting roster has to be stated — with share-based bands an alive count
+alone no longer determines a phase.
+
 ```text
-4 alive
-Final Four
+Roster 13, 5 alive  →  5/13 = 0.385 ≤ 0.4  →  BLOODBATH
 ↓
 Revive
-5 alive
-↓
-Bloodbath / Danger, depending on the starting roster
+6 alive             →  6/13 = 0.462        →  DANGER
 ```
+
+Revive's Bloodbath weight is 2, so it is genuinely drawable there. At 4 alive it
+is not: that is always Final Four, where its weight is 0.
 
 Keep this until playtesting indicates otherwise.
 
@@ -1084,7 +1087,6 @@ Record:
 - average game duration,
 - how quickly people die,
 - whether Revive is annoying,
-- whether Again happens too often,
 - whether Final Four drags,
 - whether Sudden Death feels fair,
 - whether Duel is fun enough,
@@ -1298,7 +1300,7 @@ Plan: `docs/superpowers/plans/2026-08-14-ability-expansion.md`
 - phase thresholds scale to the starting roster
 - per-session Fate pool: 5 mandatory + 4 of the optional set
 
-## 3B — Pool
+## 3B — Pool (NOT STARTED)
 
 Removed: Close Call, Steal Shield, Bomb.
 Renamed: Shield becomes Wall, through the code as well as the UI.

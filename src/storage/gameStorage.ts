@@ -33,14 +33,27 @@ export const SAVE_KEY = 'kof.save.v1';
  * `startingPlayerCount`, and neither exists in a v2 save. Resuming one is not a
  * degradation, it is a hard crash: `getAvailableAbilities` reads
  * `state.sessionAbilityIds.length`, App.tsx calls it from a `useMemo` on every
- * state, and `.length` of `undefined` throws before anything renders — a white
- * screen mid-party, which is the one failure this game cannot afford.
+ * state, and `.length` of `undefined` throws. Not on first paint — `loadGame`
+ * fills a separate `savedGame` slot, so the resume prompt renders fine against
+ * the still-fresh initial state. It throws on the re-render after RESTORE,
+ * i.e. the moment the host accepts the resume. There is no ErrorBoundary in
+ * the tree, so that is a white screen mid-party, which is the one failure this
+ * game cannot afford.
  *
  * Separately, `PhaseThresholds` changed shape incompatibly: the absolute
  * `dangerAt` became the share-based `dangerAtShare` / `bloodbathAtShare`. A v2
- * save carries the old key, so the resolver reads `undefined`, computes a NaN
- * share, and silently resolves every game to Chaos for the rest of the night —
- * no error, just an escalation that never arrives.
+ * save resolves every game to Chaos for the rest of the night — silently, with
+ * no error — by two independent routes, either of which is enough on its own:
+ *
+ *   - `startingPlayerCount` is absent, so `aliveCount / undefined` is NaN, and
+ *     every `<=` comparison against NaN is false;
+ *   - the share thresholds are absent, so each comparison is against
+ *     `undefined`, which is likewise false.
+ *
+ * Both fall through the cascade to 'chaos'. (The NaN comes from the missing
+ * player count, not from the missing threshold — worth stating precisely,
+ * because this comment is the justification for discarding a host's
+ * in-progress game.)
  *
  * `isPlausibleGameState` checks neither field, so such a save passes validation
  * and fails later, somewhere much further from the cause. The version check is
