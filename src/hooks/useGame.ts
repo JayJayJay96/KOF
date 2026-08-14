@@ -16,8 +16,8 @@ import { createInitialGameState } from '../game/engine/gameEngine';
 import { canUndo as canUndoStack, createHistoryStack, historyReducer } from '../game/engine/undo';
 import { canSpinPlayerWheel, selectRandomEligiblePlayer } from '../game/engine/selectors';
 import { canSpinFateWheel, canSpinTarget, getTargetPool } from '../game/engine/selectors';
-import { selectWeightedAbility } from '../game/abilities';
-import { findSelectionTrigger } from '../game/statuses/statusTriggers';
+import { buildGameContext, selectWeightedAbility } from '../game/abilities';
+import { selectionReplacesFate } from '../game/statuses/statusTriggers';
 import { randomItem } from '../utils/random';
 import type { GameState } from '../game/types/game';
 import { isSimultaneousSpinEnabled } from '../game/types/game';
@@ -98,10 +98,15 @@ export function useGame(): UseGameResult {
    * Both wheels turn together when nothing about this selection would make the
    * Fate roll meaningless. Two cases opt out:
    *
-   *   - a status trigger is armed (Death Mark). The mark REPLACES the round's
-   *     Fate, so a Fate rolled in parallel would be thrown away and its wheel
-   *     would be left spinning over a resolution already in progress.
+   *   - a status is about to CONSUME the round (a Death Mark, or a bomb whose
+   *     fuse runs out on this selection). It replaces the round's Fate, so a
+   *     Fate rolled in parallel would be thrown away and its wheel left
+   *     spinning over a resolution already in progress.
    *   - no Fate is available at all, which the sequential path already handles.
+   *
+   * Note the question is "does it consume the round", not "does anything fire".
+   * A bomb changing hands fires on every selection and must NOT drop the game
+   * back to sequential spinning for the whole length of a fuse.
    *
    * The check happens here rather than in the reducer because it is a question
    * about which PRESENTATION to use. The reducer stays the authority on what
@@ -113,7 +118,10 @@ export function useGame(): UseGameResult {
     const player = selectRandomEligiblePlayer(state);
     if (!player) return;
 
-    if (isSimultaneousSpinEnabled(state.config) && !findSelectionTrigger(player)) {
+    if (
+      isSimultaneousSpinEnabled(state.config) &&
+      !selectionReplacesFate(player, buildGameContext(state))
+    ) {
       const ability = selectWeightedAbility(state);
       if (ability) {
         dispatchHistory({ type: 'START_DUAL_SPIN', playerId: player.id, abilityId: ability.id });

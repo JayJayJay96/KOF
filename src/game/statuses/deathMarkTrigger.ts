@@ -25,6 +25,10 @@ export const deathMarkTrigger: StatusTrigger = {
 
   isTriggered: (player) => player.deathMark,
 
+  // Always. The mark IS the round's outcome, which is why the Fate Wheel is
+  // skipped entirely when it fires.
+  replacesFate: () => true,
+
   resolve: (context, playerId): GameEvent[] => {
     const player = context.state.players.find((candidate) => candidate.id === playerId);
     const name = player?.name ?? 'Player';

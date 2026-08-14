@@ -960,17 +960,62 @@ Fate announces that nothing was stolen rather than silently doing nothing.
 
 ## BOMB
 
-Selected player receives a Bomb status.
+*Promoted to the live pool in Wave 2 of the Fate rework. The open questions
+below are now answered.*
 
-When a future trigger occurs, the bomb may eliminate:
+A **hot potato**. The selected player is handed the bomb with a fuse of 3.
 
-- the holder,
-- another selected player,
-- or both,
+From then on every Main Wheel selection passes it to whoever was just picked and
+drops the fuse by one. When the fuse runs out it goes off in the hands of the
+player selected on that tick.
 
-depending on final design.
+```text
+Round 4   Bomb rolls on Daniel        💣3 Daniel
+Round 5   Jason is selected           💣2 Jason
+Round 6   Priya is selected           💣1 Priya
+Round 7   Wei is selected             BOOM — Wei
+```
 
-Not MVP.
+### Why it passes rather than sitting still
+
+A bomb that stays put and counts down is a slower Death Mark: the holder can do
+nothing about it and nobody else has a stake in it. Passing it to whoever is
+selected inverts that. Every spin becomes "not me", the rim marker visibly
+travels around the wheel, and on the last tick being selected simply kills you.
+The whole table watches one object for three rounds.
+
+A consequence worth saying out loud: because it moves every round, *holding* it
+between ticks is not itself dangerous. The danger is being selected on the final
+tick. The bomb is a countdown everyone can see, wearing someone's name.
+
+### Rules
+
+- **One bomb at a time.** The Fate is unavailable while one is live. Two
+  countdowns at once would break §45's simplicity requirement.
+- **At least four players alive**, or the potato has nowhere to travel.
+- **Shield blocks the blast**, through the shared attack flow, and the bomb is
+  spent either way — the same rule as a Death Mark.
+- **It does not eat the round.** A pass happens alongside the normal Fate. Only
+  the detonating tick replaces the Fate Wheel, exactly as a Death Mark does.
+- **Revival returns a clean player**, bomb included.
+- **Weight 0 in Sudden Death** — a three-round fuse cannot tell its story when
+  the game is one elimination from over.
+
+### It dies with its holder, and says so
+
+If the holder is eliminated by anything else, the bomb goes with them. That is
+intended: dying to something else is a fair way to take it out of play.
+
+Measured over 200 games, this is how **roughly half** of all bombs end, because
+the player who takes the bomb then receives that same round's Fate — and an
+Eliminate roll kills the bomb it was just handed. The countdown is therefore
+announced when it ends this way, rather than silently vanishing.
+
+If playtesting shows that fizzle rate is unsatisfying, the designed fix is to
+move the tick to the **end** of the round, after the Fate has resolved, so the
+bomb only ever passes to a player who survived. That was not done first because
+it makes the detonation land between rounds, which costs the host an extra click
+at the most dramatic moment in the mechanic.
 
 ---
 

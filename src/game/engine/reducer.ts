@@ -26,7 +26,7 @@ import {
 import { getAlivePlayers } from './selectors';
 import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
 import { buildGameContext, getAbility } from '../abilities';
-import { findSelectionTrigger } from '../statuses/statusTriggers';
+import { findSelectionTriggers } from '../statuses/statusTriggers';
 
 /** A game needs at least two players to have a loser and a winner. */
 export const MIN_PLAYERS_TO_START = 2;
@@ -260,8 +260,9 @@ function completePlayerSpin(state: GameState): GameState {
  * Reveal the selected player, then give persistent statuses a chance to fire.
  *
  * Death Mark replaces the round's Fate rather than being one, so this is where
- * it intercepts. The reducer asks the status registry whether anything triggers
- * and never learns which status it was (AGENTS.md §7.6).
+ * it intercepts. A Bomb changes hands here too, without taking the round. The
+ * reducer asks the status registry what fires and whether it consumes the
+ * round, and never learns which status any of them were (AGENTS.md §7.6).
  */
 function revealSelectedPlayer(
   state: GameState,
@@ -280,15 +281,25 @@ function revealSelectedPlayer(
   const player = revealed.players.find((candidate) => candidate.id === playerId);
   if (!player) return revealed;
 
-  const trigger = findSelectionTrigger(player);
-  if (!trigger) return revealed;
+  const context = buildGameContext(revealed);
+  const triggers = findSelectionTriggers(player, context);
+  if (triggers.length === 0) return revealed;
 
-  // A triggered status skips the Fate Wheel entirely. `currentAbilityId` is
-  // cleared because a dual spin will have pre-rolled one: no Fate was actually
-  // dealt this round, so nothing should claim otherwise in the readout or log.
-  const events = trigger.resolve(buildGameContext(revealed), playerId);
+  const events = triggers.flatMap((trigger) => trigger.resolve(context, playerId));
+
+  // Some statuses ARE the round — a Death Mark, or a bomb whose fuse just ran
+  // out. Others merely happen during it, like a bomb changing hands. Only the
+  // first kind takes over, and `currentAbilityId` is cleared along with it
+  // because a dual spin will have pre-rolled a Fate that now never gets dealt;
+  // nothing should claim otherwise in the readout or the log.
+  //
+  // The second kind keeps `restingState`, so the Fate Wheel still runs. That
+  // relies on its events being non-blocking: a blocking one would let the queue
+  // set the screen state itself and strand the Fate mid-spin.
+  const consumesRound = triggers.some((trigger) => trigger.replacesFate(player, context));
+
   const queued = enqueueEvents(
-    { ...revealed, currentAbilityId: null, screenState: 'resolving' },
+    consumesRound ? { ...revealed, currentAbilityId: null, screenState: 'resolving' } : revealed,
     events,
   );
 

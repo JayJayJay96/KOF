@@ -30,6 +30,18 @@ export function StatusPanel({ alive, eliminated, selectedId }: StatusPanelProps)
               className={`status__chip${player.id === selectedId ? ' is-selected' : ''}`}
             >
               <span className="status__name">{player.name}</span>
+              {/* The fuse IS the mechanic, so the number rides on the badge. A
+                  bare 💣 would say someone is holding it but not how long
+                  anyone has left to care. */}
+              {player.bombFuse !== undefined && (
+                <span
+                  className="status__badge status__badge--bomb"
+                  title={`Bomb — ${player.bombFuse} round${player.bombFuse === 1 ? '' : 's'} left`}
+                  aria-label={`Bomb, ${player.bombFuse} rounds left`}
+                >
+                  💣{player.bombFuse}
+                </span>
+              )}
               {player.shield > 0 && (
                 <span className="status__badge" title="Shield" aria-label="Shield">
                   🛡

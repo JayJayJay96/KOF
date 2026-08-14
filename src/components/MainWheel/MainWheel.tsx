@@ -22,6 +22,8 @@ import { playSound } from '../../audio/audioManager';
  */
 const DEATH_MARK_COLOR = '#b45cff';
 const SHIELD_COLOR = '#5cc8ff';
+/** Bomb: hot orange, the one colour on the wheel that reads as a burning fuse. */
+const BOMB_COLOR = '#ff8a3d';
 
 type MainWheelProps = {
   players: Player[];
@@ -42,7 +44,10 @@ export function MainWheel({ players, selectedId, spinning, onSpinComplete }: Mai
     () =>
       players.map((player) => {
         const markers: WheelMarker[] = [];
-        // Death Mark outermost: it is the one that kills, so it reads first.
+        // Ordered by how urgently each one needs to be seen, outermost first.
+        // The bomb leads: it is the only status the whole table is tracking at
+        // once, and on the last tick it is the reason to care about this spin.
+        if (player.bombFuse !== undefined) markers.push({ color: BOMB_COLOR, icon: '💣' });
         if (player.deathMark) markers.push({ color: DEATH_MARK_COLOR, icon: '💀' });
         if (player.shield > 0) markers.push({ color: SHIELD_COLOR, icon: '🛡' });
 

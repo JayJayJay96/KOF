@@ -29,6 +29,7 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
+Fate rework Wave 2 (Bomb)        COMPLETE
 Playtest round 2 changes         COMPLETE
 Fate rework Wave 1               COMPLETE
 Phases 0-7                       COMPLETE
@@ -88,7 +89,74 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — playtest round 2
+# Completed This Session — Wave 2: Bomb
+
+A hot potato. Planted with a fuse of 3, it passes to whoever the Main Wheel
+selects and drops a tick each time. When the fuse runs out it goes off in the
+hands of the player selected on that tick.
+
+A bomb that sits still and counts down is a slower Death Mark — the holder can
+do nothing and nobody else has a stake. Passing it makes every spin "not me",
+sends the rim marker travelling around the wheel, and turns the final tick into
+a spin where being chosen simply kills you.
+
+## The one structural addition
+
+Status triggers can now fire **without consuming the round**. Death Mark IS its
+round's outcome, so it replaces the Fate. A bomb changing hands is not — if it
+took the round the same way, every round of a live fuse would lose its Fate and
+the game would stall into a three-round cutscene.
+
+So `StatusTrigger` gained `replacesFate`, declared separately from `resolve` so
+callers can ask without running the resolution, and `isTriggered` gained the
+context — the bomb sits on a player *other* than the selected one, which a
+predicate seeing only the selected player cannot express. `findSelectionTriggers`
+returns every match, stopping after the first that consumes the round.
+
+That last rule matters: a Death Mark that kills its holder has already decided
+the round, and letting the bomb then pass into their hands would hand it to a
+corpse.
+
+## The measurement that changed the design
+
+First run: **49% of bombs died with their holder**, and only 0% survived to game
+end. The cause is structural — the selected player takes the bomb and then that
+same round's Fate resolves on them, so an Eliminate roll kills the bomb it was
+just handed.
+
+The rule itself is fine; dying to something else is a fair way to take a bomb
+out of play. What was not fine is that the countdown the table had been
+following vanished with nothing said. The fuse is now left on the body and
+cleared on the next selection with a line explaining it, so every bomb ends
+out loud.
+
+| | Result |
+|---|---|
+| Bombs planted (200 games, 12 players) | 274 |
+| Detonated | 122 |
+| Announced as lost with their holder | 148 |
+| Unexplained disappearances | 3 (revived holders — revival returns a clean player) |
+
+## Narration de-duplication
+
+`SET_BOMB` narrates every hand-off, so the Bomb Fate and the pass both emitting
+a `SHOW_MESSAGE` printed the same fact twice in the readout. Both messages are
+gone; the event carries the wording, including the explanatory line for a fresh
+plant (a full fuse can only mean a plant, since a pass always arrives already
+decremented). Only the detonation keeps a message of its own, because "TIME UP"
+earns its line. This is the second time this exact duplication has appeared —
+Hunter's bounty was the first.
+
+## Presentation
+
+Orange rim on the wheel, drawn outermost because the bomb is the one status the
+whole table tracks at once. `WheelMarker` was built generic in Wave 1 for
+exactly this, so `Wheel.tsx` was not touched. The status chip carries the fuse
+number, not a bare icon — the count is the mechanic.
+
+---
+
+# Completed Earlier — playtest round 2
 
 Four pieces of host feedback, all shipped.
 
@@ -275,9 +343,10 @@ reaction came from.
 
 Nothing. Working tree clean.
 
-**NOT DEPLOYED.** This session's work is committed to the branch
-`playtest-round-2`, not to `main`. `main` auto-deploys to production on push, so
-merging is the host's call, not an agent's. The live site still runs Wave 1.
+Playtest round 2 is **merged and deployed** (`ac01826` on `main`).
+
+Wave 2 (Bomb) is committed on `main` but **not pushed** — pushing auto-deploys
+to production, which is the host's call rather than an agent's.
 
 ---
 
@@ -305,26 +374,33 @@ watch, in rough order of how likely they are to be wrong:
 - **Does Close Call read as relief or punishment?** It always costs something.
 - **Is Double Fate legible?** Two Fates in sequence may be hard to follow live.
 
-## Wave 2 — Bomb (designed, not started)
+## Watch items specific to Bomb
 
-A status that passes to a newly selected player each round and detonates after N
-rounds. Highest anticipation-per-line-of-code available; the whole table tracks
-it every round.
-
-- Belongs in `game/statuses/` alongside `deathMarkTrigger.ts`.
-- **Needs a round counter on the status**, which `statusTriggers.ts` does not
-  support yet — that is the one real addition.
-- **Rim colour is already free**: `WheelMarker` was built generic in Wave 1
-  exactly so Bomb could plug in without touching `Wheel`.
+- **Does the fizzle annoy?** Roughly half of bombs end with their holder dying
+  to something else. It is announced now rather than silent, but the countdown
+  still stops early. The designed fix is to move the tick to the **end** of the
+  round, after the Fate resolves, so the bomb only ever passes to a survivor.
+  Not done first because it puts the detonation between rounds, costing the host
+  an extra click at the most dramatic moment. Play it before deciding.
+- **Is a 3-round fuse right?** `BOMB_FUSE` in `statuses/bombTrigger.ts`. Two is
+  over before it registers; four risks becoming background noise.
+- **Is 10 weight too often?** A live bomb colours three whole rounds, so it is
+  running far more of the time than its roll rate suggests.
+- **Do two timers collide?** Bomb and Death Mark can now be live at once. The
+  rules are defined (a mark consumes the round, the bomb does not pass that
+  round), but whether a viewer can follow both is a question only a real session
+  answers.
 
 ## Wave 3 — Linked Fate + rebalance
 
 Two players bound; one dies, the other takes a hit. Reuses the Hunter target-spin
 machinery.
 
-**Caution:** Bomb + Death Mark + Linked Fate simultaneously means players
-tracking three overlapping timers. PROJECT_SPEC.md §45 requires the viewer
-experience stay simple. Ship Bomb and *watch* before adding Linked Fate.
+**Caution, now sharper than before:** Bomb has shipped, so Linked Fate would make
+three overlapping timers — Death Mark, Bomb, Linked Fate. PROJECT_SPEC.md §45
+requires the viewer experience stay simple. Do not start it until Bomb has been
+watched in a real session; if two timers already feel like too much, Wave 3
+needs redesigning rather than adding.
 
 ## Still outstanding from earlier phases
 
@@ -356,6 +432,29 @@ No blockers.
 ---
 
 # Important Decisions Made This Session
+
+## Wave 2
+
+1. **A status trigger may fire without consuming the round.** This is the whole
+   structural cost of Bomb. Without it, Bomb had to either replace the Fate
+   every round of its fuse (a three-round cutscene) or live outside the trigger
+   registry entirely (a second mechanism doing the same job).
+2. **`replacesFate` is declared, not inferred from the events.** Callers need to
+   ask the question before resolving — `useGame` decides whether to launch both
+   wheels, and resolving twice to find out would be both wasteful and a trap the
+   moment a trigger stops being pure.
+3. **The bomb passes rather than sitting still.** A stationary countdown is a
+   slower Death Mark. Passing it gives everyone a stake and makes the rim marker
+   travel, which is most of what makes it watchable.
+4. **It dies with its holder — but says so.** Half of all bombs end this way.
+   The rule stays; the silence did not. A countdown that stops with no line is
+   indistinguishable from a bug.
+5. **The event carries the narration, not the ability.** `SET_BOMB` says what
+   happened, so neither the Fate nor the pass adds a message. Second occurrence
+   of this duplication after Hunter's bounty — worth treating as the default:
+   if an event already narrates itself, do not also emit a message.
+
+## Playtest round 2
 
 1. **Landing margin is angular, not fractional.** What makes a result ambiguous
    to a viewer is degrees of arc, not share of segment. The old fractional clamp
@@ -420,6 +519,22 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | 1280×720: no horizontal overflow, action button at 669px of 720 | PASS |
 | Console clean after a full reload (the two React warnings were HMR artefacts) | PASS |
 
+**Wave 2 — Bomb:**
+
+| Check | Result |
+|---|---|
+| Full cycle: planted 3 → passes 2 → 1 → detonates on the player selected at 0 | PASS |
+| The Fate still runs on passing rounds; only the detonating tick replaces it | PASS |
+| Shield blocks the blast, is consumed, and the bomb is spent either way | PASS |
+| Death Mark consumes the round — bomb does not pass, fuse unchanged | PASS |
+| Re-selecting the holder: keeps it, fuse still ticks | PASS |
+| Unavailable while a bomb is live, and below 4 alive; absent from the wheel | PASS |
+| 200 games: valid winners, 0 stuck, never two live bombs, never a negative fuse | PASS |
+| Every bomb accounted for — 122 detonated, 148 announced as lost, 3 revived | PASS |
+| Bomb rim renders on the wheel (53 orange pixels across the rim depth) | PASS |
+| Status chip shows the fuse: `A💣3`, aria-label "Bomb, 3 rounds left" | PASS |
+| One log line per beat — no duplicate narration on plant or pass | PASS |
+
 ---
 
 # Notes for Next Agent
@@ -453,7 +568,14 @@ is still inside those two files.
 If a new mechanic seems to need an engine change, the missing piece is usually
 an event type or a status trigger, not a branch.
 
-**One new trap, from this session.** `Wheel` deliberately does not depend on
+**Adding a status is now a three-file change**, and none of them is the reducer:
+write the trigger in `game/statuses/`, register it in `SELECTION_TRIGGERS`, and
+map it to a rim colour in `MainWheel`. Decide `replacesFate` deliberately — it
+is the difference between a status that IS the round and one that merely happens
+during it, and getting it wrong either stalls the game or lets a status be
+quietly ignored.
+
+**One trap from the previous session.** `Wheel` deliberately does not depend on
 `entries` identity or on its timing props. If you add a prop that must affect a
 spin, decide whether it should affect the spin *already running* — the answer is
 almost always no, which means latching it in a ref rather than adding it to the
@@ -464,5 +586,5 @@ dependency array.
 # Last Updated
 
 ```text
-2026-08-13
+2026-08-14
 ```

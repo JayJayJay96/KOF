@@ -16,6 +16,7 @@
 import type { GameEvent, GameHistoryEntry } from './eventTypes';
 import type { Player } from '../types/player';
 import { PHASE_LABELS } from '../phases/phaseConfig';
+import { BOMB_FUSE } from '../statuses/bombTrigger';
 
 /**
  * How a line should read at a glance.
@@ -67,6 +68,28 @@ export function describeEventLine(event: GameEvent, players: readonly Player[]):
     case 'ADD_DEATH_MARK':
       return { text: `💀 ${nameOf(players, event.playerId)} is marked`, tone: 'threat' };
 
+    // The fuse IS the story, so every hand-off earns a line — and this event is
+    // the ONLY thing that narrates one. Neither the Bomb Fate nor the pass adds
+    // a message of its own, because two lines saying "X has the bomb" is noise,
+    // not emphasis.
+    //
+    // A full fuse can only mean a fresh plant: a pass always arrives already
+    // decremented. That is what makes the explanatory wording safe to put here.
+    case 'SET_BOMB': {
+      const name = nameOf(players, event.playerId);
+      if (event.fuse === BOMB_FUSE) {
+        return {
+          text: `💣 ${name} is handed the bomb — it moves on every spin, and blows in ${BOMB_FUSE}`,
+          tone: 'threat',
+        };
+      }
+      // Fuse 0 is the hand-off that kills; the detonation message and the
+      // elimination that follows both say so already.
+      if (event.fuse === 0) return null;
+
+      return { text: `💣 ${name} has the bomb — ${event.fuse} left`, tone: 'threat' };
+    }
+
     case 'ELIMINATE_PLAYER':
       return { text: `☠ ${nameOf(players, event.playerId)} eliminated`, tone: 'kill' };
 
@@ -84,6 +107,9 @@ export function describeEventLine(event: GameEvent, players: readonly Player[]):
     case 'ABILITY_SELECTED':
     case 'ATTACK_PLAYER':
     case 'REMOVE_DEATH_MARK':
+    // Silent: the blast narrates itself through its message and the
+    // elimination that follows.
+    case 'CLEAR_BOMB':
     case 'WAIT_FOR_HOST':
     case 'REQUEST_PLAYER_SPIN':
     case 'REQUEST_FATE_SPIN':

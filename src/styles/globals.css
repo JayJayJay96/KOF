@@ -904,6 +904,26 @@ body {
   font-size: 0.9rem;
 }
 
+.status__badge {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+/* The fuse count rides inside the badge, so it has to read as one unit and pull
+   the eye — it is the only number on screen that is counting down. */
+.status__badge--bomb {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  background: rgb(255 138 61 / 18%);
+  color: #ff8a3d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
 .status__chip.is-selected {
   border-color: var(--kof-accent);
   color: var(--kof-accent);

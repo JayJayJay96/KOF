@@ -67,6 +67,14 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
       enabled: true,
       weights: { chaos: 8, danger: 8, final_five: 6, sudden_death: 0 },
     },
+    // Wave 2. Kept modest on purpose: a live bomb colours three whole rounds,
+    // so rolling it often would mean it is almost always running and the
+    // countdown stops being an event. It gates itself too — one bomb at a
+    // time, and never below four players.
+    bomb: {
+      enabled: true,
+      weights: { chaos: 10, danger: 10, final_five: 6, sudden_death: 0 },
+    },
 
     // Post-MVP (PROJECT_SPEC.md §12) — weights recorded, ability disabled.
     fate_swap: {
