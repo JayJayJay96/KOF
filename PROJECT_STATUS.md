@@ -295,8 +295,9 @@ Two things this immediately paid for:
 
 1. **A test caught my own wrong assumption.** The "phase moves backward after a
    Revive" case went 4 → 3 → 4 alive, which never leaves Final Five (`finalAt`
-   is 5), so it could not have shown a backward move at all. The engine was
-   right; the test was wrong. It now drops to 2 (Sudden Death) and revives to 3.
+   was 5 at the time — it is 4 now, see Enh. Phase 3a), so it could not have
+   shown a backward move at all. The engine was right; the test was wrong. It
+   now drops to 2 (Sudden Death) and revives to 3.
 2. **It closes the module-instance trap for good.** A test file imports normally,
    so `setRandomSource` can never again seed a copy the abilities do not use.
 
