@@ -159,6 +159,7 @@ export function GameScreen({
               players={getMainWheelPlayers(state)}
               selectedId={getMainWheelSelectedId(state)}
               spinning={spinningPlayer}
+              phase={state.phase}
               onSpinComplete={completePlayerSpin}
             />
           </div>
@@ -170,6 +171,7 @@ export function GameScreen({
               spinning={spinningFate}
               active={fateActive}
               onSpinComplete={completeFateSpin}
+              phase={state.phase}
               startDelayMs={dualSpin ? DUAL_FATE_START_DELAY_MS : 0}
             />
           </div>

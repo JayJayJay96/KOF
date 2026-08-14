@@ -166,10 +166,10 @@ function noise(
  * One recipe per cue. Kept declarative so Enhancement Phase 7D can re-voice a
  * sound without touching anything that triggers it.
  */
-function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number): void {
+function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number, pitch = 1): void {
   switch (name) {
     case 'wheelTick':
-      tone(ctx, out, { type: 'square', from: 1500, at: now, duration: 0.018, peak: 0.06 });
+      tone(ctx, out, { type: 'square', from: 1500 * pitch, at: now, duration: 0.018, peak: 0.06 });
       break;
 
     // The pull, not the spin. A pawl dragging over a tooth is a heavier, duller
@@ -181,9 +181,14 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number)
       noise(ctx, out, { at: now, duration: 0.035, peak: 0.1, cutoff: 900 });
       break;
 
+    // The audio half of the impact flash. Deeper and longer than a tick, with a
+    // short noise transient on top so it reads as something landing rather than
+    // as one more click. The two land on the same frame, which is what makes the
+    // stop feel like a single event instead of a visual and a sound.
     case 'wheelStop':
-      tone(ctx, out, { type: 'sine', from: 220, to: 70, at: now, duration: 0.22, peak: 0.5 });
-      noise(ctx, out, { at: now, duration: 0.09, peak: 0.28, cutoff: 1800 });
+      tone(ctx, out, { type: 'sine', from: 190, to: 48, at: now, duration: 0.34, peak: 0.62 });
+      tone(ctx, out, { type: 'triangle', from: 95, to: 40, at: now, duration: 0.26, peak: 0.3 });
+      noise(ctx, out, { at: now, duration: 0.07, peak: 0.34, cutoff: 2400 });
       break;
 
     case 'fateReveal':
@@ -291,8 +296,16 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number)
   }
 }
 
-/** Fire and forget. Silently does nothing when audio is unavailable or muted. */
-export function playSound(name: SoundName): void {
+/**
+ * Fire and forget. Silently does nothing when audio is unavailable or muted.
+ *
+ * `pitch` multiplies every frequency in the cue. It exists for the wheel tick:
+ * a real wheel's clicks do not change pitch as it slows, only their spacing
+ * does — but every game-show wheel bends them upward anyway, because rising
+ * pitch is what the ear reads as tension building toward a result. Slowing
+ * ticks alone read as "running out of energy", which is the opposite feeling.
+ */
+export function playSound(name: SoundName, pitch = 1): void {
   if (levels.muted || effectiveVolume() === 0) return;
 
   const ctx = ensureContext();
@@ -300,7 +313,7 @@ export function playSound(name: SoundName): void {
   if (ctx.state === 'suspended') return;
 
   try {
-    render(name, ctx, masterGain, ctx.currentTime);
+    render(name, ctx, masterGain, ctx.currentTime, pitch);
   } catch {
     // A failed cue must never interrupt the game.
   }

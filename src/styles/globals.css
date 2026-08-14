@@ -1234,17 +1234,26 @@ body {
 }
 
 /* Pointer sits at 12 o'clock aiming inward (downward) into the wheel. */
+/*
+ * The pointer is the one element the eye tracks for nine seconds of every
+ * round, so it carries more weight per pixel than anything else on screen.
+ *
+ * A plain CSS-border triangle read as a marker rather than a mechanism. This is
+ * a pawl: a broad shoulder that looks capable of catching a tooth, tapering to
+ * the point that actually reads the result. clip-path rather than borders,
+ * because a border triangle cannot have a shoulder.
+ */
 .wheel__pointer {
   position: absolute;
-  top: -4px;
+  top: -7px;
   left: 50%;
-  width: 0;
-  height: 0;
+  width: 30px;
+  height: 34px;
   transform: translateX(-50%);
-  border-left: 13px solid transparent;
-  border-right: 13px solid transparent;
-  border-top: 24px solid var(--kof-accent);
-  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 60%));
+  transform-origin: 50% 18%;
+  background: linear-gradient(180deg, #ffe7ad 0%, var(--kof-accent) 46%, #c8892a 100%);
+  clip-path: polygon(50% 100%, 0% 46%, 12% 34%, 12% 0%, 88% 0%, 88% 34%, 100% 46%);
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 70%));
 }
 
 /* Each tick remounts the pointer via key, replaying this nudge. */

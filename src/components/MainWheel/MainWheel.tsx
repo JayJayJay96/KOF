@@ -11,8 +11,10 @@
 
 import { useCallback, useMemo } from 'react';
 import type { Player } from '../../game/types/player';
+import type { GamePhase } from '../../game/types/game';
 import { Wheel } from '../Wheel/Wheel';
 import type { WheelEntry, WheelMarker } from '../Wheel/Wheel';
+import { themeForPhase } from './wheelTheme';
 import { playSound } from '../../audio/audioManager';
 
 /**
@@ -29,10 +31,17 @@ type MainWheelProps = {
   players: Player[];
   selectedId: string | null;
   spinning: boolean;
+  phase: GamePhase;
   onSpinComplete: () => void;
 };
 
-export function MainWheel({ players, selectedId, spinning, onSpinComplete }: MainWheelProps) {
+export function MainWheel({
+  players,
+  selectedId,
+  spinning,
+  phase,
+  onSpinComplete,
+}: MainWheelProps) {
   // Stable identity while the roster is unchanged — a new array every render
   // would restart the spin animation mid-flight.
   //
@@ -73,10 +82,16 @@ export function MainWheel({ players, selectedId, spinning, onSpinComplete }: Mai
       selectedId={selectedId}
       spinning={spinning}
       onSpinComplete={handleComplete}
+      theme={themeForPhase(phase)}
       // Two different physical events share one detector: during the pull the
       // pointer is being dragged over a tooth, during the spin one is flying
       // past it. They should not sound the same.
-      onTick={({ windingUp }) => playSound(windingUp ? 'wheelRatchet' : 'wheelTick')}
+      onTick={({ windingUp, progress }) =>
+        // Ticks bend upward as the wheel slows. The spacing already conveys the
+        // slowdown; rising pitch is what turns "running out of energy" into
+        // "closing in on a result".
+        playSound(windingUp ? 'wheelRatchet' : 'wheelTick', windingUp ? 1 : 1 + 0.5 * progress)
+      }
     />
   );
 }

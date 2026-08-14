@@ -12,8 +12,10 @@
 
 import { useCallback, useMemo } from 'react';
 import type { AbilityDefinition } from '../../game/types/ability';
+import type { GamePhase } from '../../game/types/game';
 import { Wheel } from '../Wheel/Wheel';
 import type { WheelEntry } from '../Wheel/Wheel';
+import { themeForPhase } from '../MainWheel/wheelTheme';
 import { playSound } from '../../audio/audioManager';
 
 type FateWheelProps = {
@@ -22,6 +24,7 @@ type FateWheelProps = {
   spinning: boolean;
   active: boolean;
   onSpinComplete: () => void;
+  phase: GamePhase;
   /**
    * Set when both wheels run together, so this one holds still while the Main
    * Wheel has the screen to itself, then launches into it.
@@ -35,6 +38,7 @@ export function FateWheel({
   spinning,
   active,
   onSpinComplete,
+  phase,
   startDelayMs = 0,
 }: FateWheelProps) {
   // Name only — no icon. With eight abilities the segments are narrow, and the
@@ -60,7 +64,10 @@ export function FateWheel({
         selectedId={selectedId}
         spinning={spinning}
         onSpinComplete={handleComplete}
-        onTick={({ windingUp }) => playSound(windingUp ? 'wheelRatchet' : 'wheelTick')}
+        onTick={({ windingUp, progress }) =>
+          playSound(windingUp ? 'wheelRatchet' : 'wheelTick', windingUp ? 1 : 1 + 0.5 * progress)
+        }
+        theme={themeForPhase(phase)}
         // 6200 against the Main Wheel's 7800. The crawl is an absolute 3.3s on
         // both, so the whole difference sits in the fast phase — and this wheel
         // has fewer segments, so it earns less from a long blur.

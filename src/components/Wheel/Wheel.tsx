@@ -76,6 +76,8 @@ export type WheelProps = {
    * one holds still, visibly armed, until the first has had the room to itself.
    */
   startDelayMs?: number;
+  /** Colours only. The wheel never learns what a phase or a status is. */
+  theme?: WheelTheme;
   maxSize?: number;
 };
 
@@ -87,6 +89,37 @@ const MARKER_BAND_WIDTH = 6;
 
 const SEGMENT_FILLS = ['#1f2733', '#2a3442'];
 const SEGMENT_FILLS_ACTIVE = ['#3a2a12', '#4a3616'];
+
+/**
+ * Colours the wheel is told to use. It is not told what they mean.
+ *
+ * `tint` is the only value that moves with the phase, and it only reaches the
+ * gutters and the rim — never a slice fill. That keeps the four status colours
+ * (gold landed, purple Death Mark, blue Shield, orange Bomb) legible in every
+ * phase, which a full reskin would not.
+ */
+export type WheelTheme = {
+  tint: string;
+  accent: string;
+};
+
+/** Module-local, not exported: a value export here would break Fast Refresh. */
+const DEFAULT_WHEEL_THEME: WheelTheme = { tint: '#2b313d', accent: '#ffd479' };
+
+/**
+ * Gap between slices, as an angle.
+ *
+ * Drawn INSIDE each slice, so the logical arc is untouched: `segmentAtPointer`
+ * never sees a gutter and the pointer can never sit in a gap. Proportional at
+ * high counts so twenty narrow slices are not eaten by their own gaps, capped at
+ * low counts so two slices are not separated by a canyon.
+ */
+function gutterFor(arc: number): number {
+  return Math.min(0.018, arc * 0.12);
+}
+
+/** How long the landed slice stays punched-up after it lands. */
+const IMPACT_MS = 260;
 
 export function Wheel({
   entries,
@@ -101,13 +134,18 @@ export function Wheel({
   minTurns = 4,
   turnVariance = 1.8,
   startDelayMs = 0,
+  theme = DEFAULT_WHEEL_THEME,
   maxSize = 680,
 }: WheelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const rotationRef = useRef(0);
+  /** 1 at the moment of landing, decaying to 0 over IMPACT_MS. */
+  const impactRef = useRef(0);
   const frameRef = useRef<number | null>(null);
+  /** Separate from `frameRef`: the flash outlives the spin that triggered it. */
+  const impactFrameRef = useRef<number | null>(null);
   const lastTickSegmentRef = useRef(-1);
   const [size, setSize] = useState(360);
   const [pointerKick, setPointerKick] = useState(0);
@@ -174,8 +212,16 @@ export function Wheel({
     const arc = segmentArc(count);
     const fontSize = resolveLabelFontSize(count, radius);
 
+    const gutter = gutterFor(arc);
+    const impact = impactRef.current;
+
     for (let i = 0; i < count; i += 1) {
-      const start = rotation + i * arc;
+      // Inset by half a gutter each side. The LOGICAL arc is untouched — this
+      // only shrinks what gets painted — so `segmentAtPointer` is unaffected and
+      // the pointer can never land in a gap.
+      const start = rotation + i * arc + gutter / 2;
+      const end = rotation + (i + 1) * arc - gutter / 2;
+
       // Keyed off the engine's result, not the pointer position. If the two
       // ever disagree the highlight will visibly sit off-pointer, which makes
       // a landing bug obvious instead of silent.
@@ -184,14 +230,27 @@ export function Wheel({
 
       ctx.beginPath();
       ctx.moveTo(center, center);
-      ctx.arc(center, center, radius, start, start + arc);
+      ctx.arc(center, center, radius, start, end);
       ctx.closePath();
       ctx.fillStyle = palette[i % 2];
       ctx.fill();
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      if (isLanded) {
+        // The bright edge is the whole reason the gutters exist: a hard dark gap
+        // on either side gives it something to pop against. Only the winner gets
+        // it, so the permanent neon that would swamp the status rims is avoided.
+        ctx.strokeStyle = theme.accent;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Punch on landing, decaying to nothing. Drawn as a translucent white
+        // overlay rather than a colour change so it reads as light, not as a
+        // different state.
+        if (impact > 0) {
+          ctx.fillStyle = `rgba(255,255,255,${0.5 * impact})`;
+          ctx.fill();
+        }
+      }
 
       // Status bands on the rim. Deliberately a different channel from the
       // landed highlight, which uses the FILL — so "who is marked" and "who
@@ -203,13 +262,21 @@ export function Wheel({
           if (bandRadius <= 0) return;
 
           ctx.beginPath();
-          ctx.arc(center, center, bandRadius, start, start + arc);
+          ctx.arc(center, center, bandRadius, start, end);
           ctx.strokeStyle = marker.color;
           ctx.lineWidth = MARKER_BAND_WIDTH;
           ctx.stroke();
         });
       }
     }
+
+    // Outer rim. The one element that carries the phase, so escalation is felt
+    // without four separate skins to build and without touching a slice fill.
+    ctx.beginPath();
+    ctx.arc(center, center, radius + 2, 0, Math.PI * 2);
+    ctx.strokeStyle = theme.tint;
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
     // Labels drawn in a second pass so no segment fill covers a neighbour's text.
     ctx.textBaseline = 'middle';
@@ -227,9 +294,13 @@ export function Wheel({
       ctx.save();
       ctx.translate(center, center);
       ctx.rotate(angle);
-      ctx.fillStyle = isLanded ? '#ffd479' : '#e8ecf3';
+      ctx.fillStyle = isLanded ? theme.accent : '#e8ecf3';
 
-      const label = fitLabel(ctx, entries[i].label, maxLabelWidth, fontSize);
+      // Uppercase, tracked and heavy — arcade character out of a system font
+      // stack, so the project keeps shipping zero binary assets. Uppercase is
+      // also narrower per glyph in most system faces, which buys back label
+      // room at twenty players rather than costing it.
+      const label = fitLabel(ctx, entries[i].label.toUpperCase(), maxLabelWidth, fontSize);
 
       // Segments on the left half would otherwise render upside down. Flip
       // them so every name reads left-to-right (PROJECT_SPEC.md §21: names
@@ -251,10 +322,10 @@ export function Wheel({
     ctx.arc(center, center, radius * 0.13, 0, Math.PI * 2);
     ctx.fillStyle = '#0d0f14';
     ctx.fill();
-    ctx.strokeStyle = '#2b313d';
+    ctx.strokeStyle = theme.tint;
     ctx.lineWidth = 2;
     ctx.stroke();
-  }, [entries, size, spinning, selectedId]);
+  }, [entries, size, spinning, selectedId, theme]);
 
   // Responsive: track the container, never exceed maxSize.
   useLayoutEffect(() => {
@@ -398,8 +469,20 @@ export function Wheel({
           frameRef.current = requestAnimationFrame(step);
         } else {
           rotationRef.current = to;
-          drawRef.current();
           frameRef.current = null;
+
+          // Punch the winning slice, then decay. This runs on its own frame ref
+          // rather than `frameRef`, because the spin's cleanup cancels that one
+          // the moment `spinning` flips false — which is exactly when the flash
+          // needs to still be running.
+          const flashStart = performance.now();
+          const flash = () => {
+            impactRef.current = Math.max(0, 1 - (performance.now() - flashStart) / IMPACT_MS);
+            drawRef.current();
+            impactFrameRef.current = impactRef.current > 0 ? requestAnimationFrame(flash) : null;
+          };
+          flash();
+
           onSpinCompleteRef.current();
         }
       };
@@ -424,6 +507,12 @@ export function Wheel({
       if (frameRef.current !== null) {
         cancelAnimationFrame(frameRef.current);
         frameRef.current = null;
+      }
+      // A new spin starting mid-flash must not leave the old one repainting.
+      if (impactFrameRef.current !== null) {
+        cancelAnimationFrame(impactFrameRef.current);
+        impactFrameRef.current = null;
+        impactRef.current = 0;
       }
     };
     // `entriesKey`, not `entries`, and no timing props: see the refs above. The
@@ -451,7 +540,17 @@ export function Wheel({
   );
 }
 
-const LABEL_FONT_FAMILY = 'system-ui, "Segoe UI", Roboto, sans-serif';
+/**
+ * Condensed faces first, then the ordinary stack.
+ *
+ * A condensed system face is the single biggest arcade cue available without
+ * shipping a webfont — which the project deliberately avoids, since every sound
+ * is synthesised at runtime to keep it asset-free. On a canvas an unloaded
+ * webfont is worse than usual: labels would draw in the fallback and then
+ * visibly jump mid-spin.
+ */
+const LABEL_FONT_FAMILY =
+  '"Bahnschrift", "Roboto Condensed", "Segoe UI Semibold", system-ui, "Segoe UI", Roboto, sans-serif';
 const MIN_LABEL_FONT = 10;
 
 /**
@@ -469,11 +568,11 @@ function fitLabel(
   baseFontSize: number,
 ): string {
   for (let size = Math.round(baseFontSize); size > MIN_LABEL_FONT; size -= 1) {
-    ctx.font = `600 ${size}px ${LABEL_FONT_FAMILY}`;
+    ctx.font = `700 ${size}px ${LABEL_FONT_FAMILY}`;
     if (ctx.measureText(text).width <= maxWidth) return text;
   }
 
-  ctx.font = `600 ${MIN_LABEL_FONT}px ${LABEL_FONT_FAMILY}`;
+  ctx.font = `700 ${MIN_LABEL_FONT}px ${LABEL_FONT_FAMILY}`;
   return truncateToWidth(ctx, text, maxWidth);
 }
 
