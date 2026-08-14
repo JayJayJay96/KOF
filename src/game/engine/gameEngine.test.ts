@@ -717,7 +717,11 @@ describe('session pool', () => {
     const availableIds = getAvailableAbilities(state).map((ability) => ability.id);
 
     expect(availableIds).not.toContain('safe');
-    expect(availableIds).not.toContain('revive');
+    // Unlike Revive (unavailable anyway with nobody eliminated yet), Bomb IS
+    // otherwise available here — six alive players clears its four-player
+    // minimum and its chaos weight is non-zero — so excluding it can only be
+    // the pool filter's doing, not a coincidence of Bomb's own eligibility.
+    expect(availableIds).not.toContain('bomb');
     expect(availableIds).toContain('eliminate');
   });
 
