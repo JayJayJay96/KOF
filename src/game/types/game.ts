@@ -11,10 +11,12 @@ import type { Player } from './player';
 /**
  * Escalation tiers, least to most severe.
  *
- * `bloodbath` sits between Danger and the endgame and only exists in larger
- * games — below about 13 players its band falls under the absolute Final Four
- * floor and it is never entered. That is intended: a game that ends in six
- * eliminations does not need five tiers.
+ * `bloodbath` sits between Danger and the endgame — a tier meant for larger
+ * games, where there is room for a step between "half the room is gone" and
+ * "four left". It is not yet reachable: the thresholds that select a phase
+ * from the alive count (`PhaseThresholds`, resolved by `resolvePhase`) do not
+ * have a band for it yet. That arrives with the roster-share threshold rework
+ * later in this phase.
  */
 export type GamePhase = 'chaos' | 'danger' | 'bloodbath' | 'final_four' | 'sudden_death';
 

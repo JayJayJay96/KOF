@@ -5,8 +5,9 @@
  * no Death Mark, and `revivedCount` increments — all handled by REVIVE_PLAYER
  * in the event resolver, so repeat revivals of the same player just work.
  *
- * Unavailable when nobody is eliminated (spec §37 item 11). Weight is 0 in
- * Final Five and Sudden Death, where comeback mechanics would stall the ending.
+ * Unavailable when nobody is eliminated (spec §37 item 11). Weight tapers
+ * toward the endgame and hits 0 by Sudden Death, where comeback mechanics
+ * would stall the ending.
  *
  * Phase recalculation after a revival is automatic: the alive count rises and
  * `applyPhaseAndWinner` re-derives the phase, which may move BACKWARD. That is

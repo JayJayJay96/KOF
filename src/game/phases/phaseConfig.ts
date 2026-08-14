@@ -28,6 +28,9 @@ export const PHASE_LABELS: Record<GamePhase, string> = {
 /**
  * Full-screen transition titles.
  *
+ * These strings are the source of truth; PROJECT_SPEC.md §10 is updated to
+ * match them in a later task of this phase.
+ *
  * Chaos has no announcement: it is where games begin, so declaring it would
  * fire an overlay before anything has happened. A game that drops back to
  * Chaos after a Revive therefore transitions quietly, which is the right

@@ -432,7 +432,7 @@ const TINTS: Record<GamePhase, string> = {
 
 - [ ] **Step 7: Fix every remaining `final_five`**
 
-Run: `npx rg -n "final_five|FINAL FIVE" src/`
+Run: `git grep -n "final_five|FINAL FIVE" src/`
 
 Fix each match. Known sites are `gameEngine.test.ts` and possibly a phase class name in `src/styles/globals.css`.
 Expected after fixing: no matches.
@@ -717,7 +717,7 @@ Expected: FAIL — `sessionAbilityIds` does not exist on `GameState`.
 
 First read the existing contract:
 
-Run: `npx rg -n "export function randomInt" -A 8 src/utils/random.ts`
+Run: `git grep -n "export function randomInt" -A 8 src/utils/random.ts`
 
 Then add to `src/utils/random.ts`, matching whatever inclusivity `randomInt` already documents:
 
@@ -1020,7 +1020,7 @@ Rename the file with `git mv src/game/abilities/shield.ts src/game/abilities/wal
 Run: `npm run build && npm run lint && npm run test:run`
 Expected: all pass, with the same test count as before this task. A changed count means the rename dropped or duplicated a test.
 
-Run: `npx rg -n "shield|Shield|SHIELD" src/`
+Run: `git grep -n "shield|Shield|SHIELD" src/`
 Expected: no matches.
 
 - [ ] **Step 6: Commit**
@@ -1065,7 +1065,7 @@ In `src/game/engine/gameEngine.test.ts`, delete any `describe` block for Close C
 Run: `npm run build && npm run test:run`
 Expected: pass.
 
-Run: `npx rg -n "close_call|closeCall|steal_shield|stealShield" src/`
+Run: `git grep -n "close_call|closeCall|steal_shield|stealShield" src/`
 Expected: no matches.
 
 - [ ] **Step 5: Commit**
@@ -2035,7 +2035,7 @@ git rm src/game/abilities/bomb.ts src/game/statuses/bombTrigger.ts
 Run: `npm run build && npm run lint && npm run test:run`
 Expected: all pass.
 
-Run: `npx rg -in "bomb" src/`
+Run: `git grep -in "bomb" src/`
 Expected: no matches.
 
 - [ ] **Step 12: Commit**
@@ -2823,6 +2823,12 @@ git push origin main
 ## Notes for whoever executes this
 
 **Do not give the two wheels different durations.** Both are 7800ms and it is load-bearing — with an absolute `CRAWL_MS`, a shorter wheel gives its tail a larger share of the throw and far less time to shed speed into it. Unrelated to this phase, easy to break by accident.
+
+**Never verify with `npx rg` on this machine.** It does not resolve to ripgrep — it resolves to an unrelated npm package that prints `README.md already exists. run with -f to overwrite` and **exits 0**. A "no matches, clean" result from it is meaningless, and it attempts to write a README into the repo root. This was caught during Task 2, where a check that no `final_five` survived had silently proved nothing.
+
+Use `git grep -n "pattern" src/` instead — it is on PATH, its exit code is meaningful (1 = no matches), and it respects the repo. Bare `rg` also works if it is preferred; only the `npx` form is poisoned. This belongs in the same family as the browser-harness traps recorded in `PROJECT_STATUS.md`: a verification tool that reports success while doing nothing is worse than no verification at all.
+
+**Grep for prose as well as identifiers.** `final_five` and "Final Five" are the same stale vocabulary, and only one of them is a code symbol. The same applies to `shield` / "Shield" in Task 6 and `bomb` / "Bomb" in Task 12 — doc comments in this codebase carry design reasoning and go stale silently.
 
 **Run the tests after every task, not at the end.** The wall rename alone touches 30 files; a break found three tasks later is a bisect.
 
