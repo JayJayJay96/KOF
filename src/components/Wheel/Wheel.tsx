@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
+  createSpinProfile,
   edgeBiasedOffset,
   resolveLabelFontSize,
   resolveTargetRotation,
@@ -83,10 +84,10 @@ export function Wheel({
   spinning,
   onSpinComplete,
   onTick,
-  // Long enough that the final crawl (the last third of the spin) has real
-  // wall-clock time to breathe. A greasy tail compressed into a second reads
-  // as a stutter, not tension.
-  spinDurationMs = 6800,
+  // Sized so the tail has real wall-clock time to breathe. The crawl itself is
+  // an absolute 3.3s (CRAWL_MS), so this is the fast phase plus that tail — a
+  // greasy tail compressed into a second reads as a stutter, not tension.
+  spinDurationMs = 7800,
   minTurns = 4,
   turnVariance = 1.8,
   startDelayMs = 0,
@@ -337,12 +338,17 @@ export function Wheel({
       const turns = baseTurns + randomFloat() * variance;
       const to = resolveTargetRotation(from, targetIndex, count, turns, offset);
 
+      // Solved once per spin rather than once per frame. It also inherits the
+      // timing latch above, so a duration change mid-spin cannot re-time an
+      // animation that is already in flight.
+      const profile = createSpinProfile(duration);
+
       const startedAt = performance.now();
       lastTickSegmentRef.current = segmentAtPointer(from, count);
 
       const step = (now: number) => {
         const t = Math.min(1, (now - startedAt) / duration);
-        rotationRef.current = from + (to - from) * spinProgress(t);
+        rotationRef.current = from + (to - from) * spinProgress(t, profile);
 
         const current = segmentAtPointer(rotationRef.current, count);
         if (current !== lastTickSegmentRef.current) {

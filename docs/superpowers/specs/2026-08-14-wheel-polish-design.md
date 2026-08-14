@@ -106,6 +106,13 @@ The extra second goes entirely into the tail. `CRAWL_DISTANCE` stays at 8.5% of
 travel, so the same boundaries are crossed, each about 20% slower — the feeling
 stretched rather than multiplied.
 
+**The Fate Wheel changes more than the Main Wheel, on purpose.** Its tail grows
+1.8s → 3.3s (+83%) against the Main Wheel's 2.3s → 3.3s (+43%), because an
+absolute crawl levels them. This was not explicitly requested and will be
+noticeable, so it is a deliberate call rather than a side effect: the Fate reveal
+is the punchline of the round, and it currently has the *weaker* tail of the two.
+Levelling them puts the longest hold on the most important reveal.
+
 The wind-up costs 350ms and is carved **out of the acceleration phase**, not added
 on top. Acceleration is currently 12% of the spin — 816ms on the Main Wheel — so
 a 350ms wind-up leaves ~466ms of forward acceleration. Total fast-phase wall clock

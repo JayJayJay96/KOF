@@ -54,12 +54,17 @@ import { useScreenEffects } from '../../hooks/useScreenEffects';
  * launches into the Main Wheel's final crawl.
  *
  * ```text
- * Main   0.0s ──────────────────────────► 6.8s
- * Fate            3.0s ──────────────────────────► 8.2s
+ * Main   0.0s ──────────────────────────► 7.8s
+ * Fate            3.0s ──────────────────────────► 9.2s
  * ```
  *
- * WHO still lands before WHAT, now with a 1.4s gap rather than 0.8s, and the
- * round costs 8.2s against 12.9s when the spins ran fully sequentially.
+ * WHO still lands before WHAT, with a 1.4s gap, and the round costs 9.2s against
+ * 12.9s when the spins ran fully sequentially.
+ *
+ * Both wheels grew by a second in Enhancement Phase 1, spent entirely on the
+ * crawl — the tail is an absolute 3.3s on each now, rather than a share of the
+ * spin. The stagger itself is unchanged, which is why the gap between the two
+ * reveals is exactly what it was.
  */
 const DUAL_FATE_START_DELAY_MS = 3000;
 
