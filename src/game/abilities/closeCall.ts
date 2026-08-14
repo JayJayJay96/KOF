@@ -16,18 +16,12 @@
  * an exposed player it is survival bought on credit.
  *
  * Either way the player lives, so it still reads as relief in the moment.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
 import type { GameEvent } from '../events/eventTypes';
-import type { GamePhase } from '../types/game';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 10,
-  danger: 8,
-  final_five: 6,
-  sudden_death: 8,
-};
 
 export const closeCallAbility: AbilityDefinition = {
   id: 'close_call',
@@ -36,8 +30,6 @@ export const closeCallAbility: AbilityDefinition = {
   category: 'neutral',
 
   isAvailable: () => true,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context, selectedPlayerId): GameEvent[] => {
     const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);

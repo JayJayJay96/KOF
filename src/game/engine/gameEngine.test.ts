@@ -24,18 +24,21 @@
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import type { GameState } from '../types/game';
+import type { GamePhase, GameState } from '../types/game';
 import type { Player } from '../types/player';
 import { createInitialGameState } from './gameEngine';
 import { gameReducer } from './reducer';
 import { attackPlayer } from './attack';
 import { canSpinTarget, getAlivePlayers, getTargetPool } from './selectors';
 import {
+  ABILITIES,
   buildGameContext,
   getAbility,
+  getAbilityWeight,
   getAvailableAbilities,
   selectWeightedAbility,
 } from '../abilities';
+import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
 import { DEFAULT_PHASE_THRESHOLDS } from '../phases/phaseConfig';
@@ -523,5 +526,44 @@ describe('Round flow', () => {
     state = gameReducer(state, { type: 'ADD_PLAYERS', names: ['  Padded  ', '', '   ', 'Real'] });
 
     expect(state.players.map((player) => player.name)).toEqual(['Padded', 'Real']);
+  });
+});
+
+// --- ability weights ----------------------------------------------------------
+
+describe('ability weights', () => {
+  it('every registered ability has a weight for every phase', () => {
+    const phases: GamePhase[] = ['chaos', 'danger', 'final_five', 'sudden_death'];
+
+    for (const ability of ABILITIES) {
+      for (const phase of phases) {
+        const weight = ABILITY_WEIGHTS[ability.id]?.[phase];
+        expect(weight, `${ability.id} / ${phase}`).toBeTypeOf('number');
+        expect(weight, `${ability.id} / ${phase}`).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it('config overrides the default table', () => {
+    // 12 players: dangerAt is 11, so this is the smallest roster that starts
+    // in Chaos rather than Danger/Final Five (PROJECT_SPEC.md §10).
+    const state = startGame(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
+    const eliminate = getAbility('eliminate');
+    if (!eliminate) throw new Error('eliminate missing');
+
+    expect(getAbilityWeight(state, eliminate)).toBe(ABILITY_WEIGHTS.eliminate.chaos);
+
+    const tuned: GameState = {
+      ...state,
+      config: {
+        ...state.config,
+        abilities: {
+          ...state.config.abilities,
+          eliminate: { enabled: true, weights: { chaos: 999 } },
+        },
+      },
+    };
+
+    expect(getAbilityWeight(tuned, eliminate)).toBe(999);
   });
 });

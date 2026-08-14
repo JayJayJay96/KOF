@@ -17,29 +17,22 @@
  * MVP scope: no dedicated duel wheel or VS scene. DEVELOPMENT_ROADMAP.md Phase
  * 4D says a two-entry wheel *can* be used, and Enhancement Phase 4 owns the
  * real Duel scene. The outcome is announced in the readout instead.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
-import type { GamePhase } from '../types/game';
 import { attackPlayer } from '../engine/attack';
 import { randomFloat } from '../../utils/random';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 5,
-  danger: 10,
-  final_five: 15,
-  sudden_death: 0,
-};
 
 export const duelAbility: AbilityDefinition = {
   id: 'duel',
   name: 'Duel',
   icon: '⚔',
   category: 'chaos',
+  mandatory: true,
 
   isAvailable: (context) => context.alivePlayers.length >= 2,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context, selectedPlayerId) => {
     const initiator = context.state.players.find((player) => player.id === selectedPlayerId);

@@ -25,18 +25,12 @@
  * seeding the shared source makes resolution reproducible without constraining
  * where randomness may be called. Wheel results are still decided before the
  * animation starts, because that is a rendering requirement, not a purity one.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
-import type { GamePhase } from '../types/game';
 import { selectRandomEliminatedPlayer } from '../engine/selectors';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 7,
-  danger: 5,
-  final_five: 0,
-  sudden_death: 0,
-};
 
 export const reviveAbility: AbilityDefinition = {
   id: 'revive',
@@ -45,8 +39,6 @@ export const reviveAbility: AbilityDefinition = {
   category: 'special',
 
   isAvailable: (context) => context.eliminatedPlayers.length > 0,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context) => {
     const revived = selectRandomEliminatedPlayer(context.state);

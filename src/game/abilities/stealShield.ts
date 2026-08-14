@@ -11,20 +11,14 @@
  * Unavailable unless someone is holding one, so it is almost never a no-op.
  * The thief's own Shield is irrelevant: a second one is still capped at the MVP
  * maximum of 1, but the victim loses theirs regardless, which is the point.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
 import type { GameEvent } from '../events/eventTypes';
-import type { GamePhase } from '../types/game';
 import type { Player } from '../types/player';
 import { randomItem } from '../../utils/random';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 9,
-  danger: 8,
-  final_five: 6,
-  sudden_death: 6,
-};
 
 /** Living players other than the thief who currently hold a Shield. */
 function shieldedVictims(players: readonly Player[], thiefId: string): Player[] {
@@ -42,8 +36,6 @@ export const stealShieldAbility: AbilityDefinition = {
   // Somebody has to be carrying one. The thief may turn out to be that
   // somebody, which `resolve` handles.
   isAvailable: (context) => context.alivePlayers.some((player) => player.shield > 0),
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context, selectedPlayerId): GameEvent[] => {
     const thief = context.state.players.find((player) => player.id === selectedPlayerId);

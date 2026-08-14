@@ -30,11 +30,17 @@ export type AbilityDefinition = {
   icon: string;
   category: AbilityCategory;
 
+  /**
+   * Always in the pool, exempt from the per-session draw.
+   *
+   * The five Fates that keep the game moving — Eliminate, Shield, Death Mark,
+   * Hunter, Duel. Everything else is optional and drawn per session, which is
+   * what makes two games feel different.
+   */
+  mandatory?: boolean;
+
   /** Whether this ability may appear on the Fate Wheel right now. */
   isAvailable: (context: GameContext) => boolean;
-
-  /** Relative selection weight for the given phase. Return 0 to exclude. */
-  getWeight: (phase: GamePhase) => number;
 
   /** Resolution: returns events, never mutates state directly. */
   resolve: (context: GameContext, selectedPlayerId: string) => GameEvent[];

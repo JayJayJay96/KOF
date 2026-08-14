@@ -14,29 +14,22 @@
  *     which falls out of the exclusion rather than needing a special case
  *
  * Needs at least one other living player, hence the availability check.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
-import type { GamePhase } from '../types/game';
 import type { GameEvent } from '../events/eventTypes';
 import { attackPlayer } from '../engine/attack';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 10,
-  danger: 12,
-  final_five: 15,
-  sudden_death: 20,
-};
 
 export const hunterAbility: AbilityDefinition = {
   id: 'hunter',
   name: 'Hunter',
   icon: '🎯',
   category: 'attack',
+  mandatory: true,
 
   isAvailable: (context) => context.alivePlayers.length >= 2,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context, selectedPlayerId) => {
     const hunter = context.state.players.find((player) => player.id === selectedPlayerId);

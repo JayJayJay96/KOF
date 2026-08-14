@@ -11,6 +11,7 @@
 import type { AbilityDefinition, GameContext } from '../types/ability';
 import type { GameState } from '../types/game';
 import { selectWeightedItem } from '../../utils/random';
+import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { filterAlive, getEliminatedPlayers } from '../engine/selectors';
 import { eliminateAbility } from './eliminate';
 import { shieldAbility } from './shield';
@@ -62,12 +63,12 @@ export function buildGameContext(state: GameState): GameContext {
  * Weight for an ability in the current phase.
  *
  * Config wins when it defines a value, so host tuning (Enhancement Phase 5)
- * works without touching ability code. `getWeight` is the built-in default and
- * covers abilities the config has never heard of.
+ * works without touching ability code. `ABILITY_WEIGHTS` is the built-in
+ * default table and covers abilities the config has never heard of.
  */
 export function getAbilityWeight(state: GameState, ability: AbilityDefinition): number {
   const configured = state.config.abilities[ability.id]?.weights?.[state.phase];
-  return configured ?? ability.getWeight(state.phase);
+  return configured ?? ABILITY_WEIGHTS[ability.id]?.[state.phase] ?? 0;
 }
 
 /**

@@ -24,21 +24,14 @@
  *     pending target spin at a time, so two would overwrite each other and
  *     strand the first ability mid-resolution. This is a real limitation, not
  *     an oversight — revisit if the queue ever supports stacked target requests.
+ *
+ * Weights live in `config/abilityWeights.ts`. Sudden Death is 0 there: with two
+ * players left, two stacked Fates can produce an ending nobody can follow.
  */
 
 import type { AbilityDefinition } from '../types/ability';
 import type { GameEvent } from '../events/eventTypes';
-import type { GamePhase } from '../types/game';
 import { shuffle } from '../../utils/random';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 8,
-  danger: 8,
-  final_five: 6,
-  // Excluded from Sudden Death: with two players left, two stacked Fates can
-  // produce an ending nobody can follow.
-  sudden_death: 0,
-};
 
 export const DOUBLE_FATE_ID = 'double_fate';
 
@@ -49,8 +42,6 @@ export const doubleFateAbility: AbilityDefinition = {
   category: 'chaos',
 
   isAvailable: (context) => context.alivePlayers.length >= 2,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (context, selectedPlayerId): GameEvent[] => {
     const pool = getCompatiblePool(context);

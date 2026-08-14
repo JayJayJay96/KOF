@@ -8,27 +8,20 @@
  * Re-marking an already-marked player is allowed and is a no-op: ADD_DEATH_MARK
  * sets a boolean. Unavailable in Sudden Death, where its delayed payoff cannot
  * land before the game ends (weight 0 there).
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
-import type { GamePhase } from '../types/game';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 8,
-  danger: 10,
-  final_five: 10,
-  sudden_death: 0,
-};
 
 export const deathMarkAbility: AbilityDefinition = {
   id: 'death_mark',
   name: 'Death Mark',
   icon: '💀',
   category: 'attack',
+  mandatory: true,
 
   isAvailable: () => true,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   resolve: (_context, selectedPlayerId) => [
     { type: 'ADD_DEATH_MARK', playerId: selectedPlayerId },

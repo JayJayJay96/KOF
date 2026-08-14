@@ -1,11 +1,9 @@
 /**
  * Default game configuration.
  *
- * Source of truth: PROJECT_SPEC.md §32 (shape) and §10.1-10.4 (weight tables).
- *
- * These weights are DATA ONLY. No ability implementation exists yet — the
- * ability registry arrives in Phase 3. Recording the spec's tables here now
- * keeps the numbers in one place and out of future component code.
+ * Source of truth: PROJECT_SPEC.md §32 (shape). Default ability weights live in
+ * `config/abilityWeights.ts` (PROJECT_SPEC.md §10.1-10.4) — this file only
+ * carries the enabled flags and any host-tuned overrides.
  *
  * `double_kill` and `fate_swap` are listed but DISABLED: they appear in the
  * spec's Chaos/Danger tables yet are Post-MVP abilities (PROJECT_SPEC.md §12).
@@ -19,72 +17,23 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
 
   phaseThresholds: DEFAULT_PHASE_THRESHOLDS,
 
+  // Weights live in `config/abilityWeights.ts`. This map carries host overrides
+  // only; an empty `weights` means "use the default table". Enhancement Phase 5
+  // writes into it when the host tunes a Fate.
   abilities: {
-    // Rebalanced after Phase 7 playtesting. Measured over 5,220 rolls, the old
-    // spread left 19.4% of rolls changing nothing (Safe + Again) while only
-    // 20.7% involved a second player — and the two-player Fates were where all
-    // the reactions came from. These weights cut dead air to roughly 4% and
-    // push two-player Fates toward 35%.
-    eliminate: {
-      enabled: true,
-      weights: { chaos: 22, danger: 28, final_five: 34, sudden_death: 50 },
-    },
-    shield: {
-      enabled: true,
-      weights: { chaos: 10, danger: 8, final_five: 8, sudden_death: 12 },
-    },
-    // Pure relief, now rare. Kept because if EVERY roll matters the tension
-    // flatlines — an occasional clean escape is what makes the rest land.
-    safe: {
-      enabled: true,
-      weights: { chaos: 4, danger: 3, final_five: 2, sudden_death: 0 },
-    },
-    close_call: {
-      enabled: true,
-      weights: { chaos: 10, danger: 8, final_five: 6, sudden_death: 8 },
-    },
-    hunter: {
-      enabled: true,
-      weights: { chaos: 15, danger: 16, final_five: 18, sudden_death: 20 },
-    },
-    death_mark: {
-      enabled: true,
-      weights: { chaos: 10, danger: 10, final_five: 8, sudden_death: 0 },
-    },
-    revive: {
-      enabled: true,
-      weights: { chaos: 6, danger: 4, final_five: 0, sudden_death: 0 },
-    },
-    duel: {
-      enabled: true,
-      weights: { chaos: 13, danger: 14, final_five: 16, sudden_death: 0 },
-    },
-    steal_shield: {
-      enabled: true,
-      weights: { chaos: 9, danger: 8, final_five: 6, sudden_death: 6 },
-    },
-    double_fate: {
-      enabled: true,
-      weights: { chaos: 8, danger: 8, final_five: 6, sudden_death: 0 },
-    },
-    // Wave 2. Kept modest on purpose: a live bomb colours three whole rounds,
-    // so rolling it often would mean it is almost always running and the
-    // countdown stops being an event. It gates itself too — one bomb at a
-    // time, and never below four players.
-    bomb: {
-      enabled: true,
-      weights: { chaos: 10, danger: 10, final_five: 6, sudden_death: 0 },
-    },
-
-    // Post-MVP (PROJECT_SPEC.md §12) — weights recorded, ability disabled.
-    fate_swap: {
-      enabled: false,
-      weights: { chaos: 5, danger: 0, final_five: 0, sudden_death: 0 },
-    },
-    double_kill: {
-      enabled: false,
-      weights: { chaos: 0, danger: 6, final_five: 0, sudden_death: 0 },
-    },
+    eliminate: { enabled: true, weights: {} },
+    shield: { enabled: true, weights: {} },
+    safe: { enabled: true, weights: {} },
+    close_call: { enabled: true, weights: {} },
+    hunter: { enabled: true, weights: {} },
+    death_mark: { enabled: true, weights: {} },
+    revive: { enabled: true, weights: {} },
+    duel: { enabled: true, weights: {} },
+    steal_shield: { enabled: true, weights: {} },
+    double_fate: { enabled: true, weights: {} },
+    bomb: { enabled: true, weights: {} },
+    fate_swap: { enabled: false, weights: {} },
+    double_kill: { enabled: false, weights: {} },
   },
 
   animationSpeed: 'normal',

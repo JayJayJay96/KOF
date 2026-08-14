@@ -15,18 +15,12 @@
  *
  * Weight 0 in Sudden Death for the same reason — a three-round fuse cannot tell
  * its story when the game is one elimination from over.
+ *
+ * Weights live in `config/abilityWeights.ts`.
  */
 
 import type { AbilityDefinition } from '../types/ability';
-import type { GamePhase } from '../types/game';
 import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
-
-const WEIGHTS: Record<GamePhase, number> = {
-  chaos: 10,
-  danger: 10,
-  final_five: 6,
-  sudden_death: 0,
-};
 
 /** Below this the potato has nowhere to travel. */
 const MIN_PLAYERS_FOR_BOMB = 4;
@@ -40,8 +34,6 @@ export const bombAbility: AbilityDefinition = {
   isAvailable: (context) =>
     context.alivePlayers.length >= MIN_PLAYERS_FOR_BOMB &&
     getBombHolder(context.state.players) === null,
-
-  getWeight: (phase) => WEIGHTS[phase],
 
   // SET_BOMB narrates itself, including the explanatory wording for a fresh
   // plant, so there is no message here. Emitting one produced two lines saying
