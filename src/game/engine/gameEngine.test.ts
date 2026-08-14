@@ -373,8 +373,8 @@ describe('Bomb', () => {
 
 describe('Phase transitions', () => {
   it('resolves each band from the alive count', () => {
-    const phaseAt = (alive: number, startingCount: number) =>
-      resolvePhase(alive, startingCount, DEFAULT_PHASE_THRESHOLDS);
+    const phaseAt = (aliveCount: number, startingCount: number) =>
+      resolvePhase({ aliveCount, startingCount, thresholds: DEFAULT_PHASE_THRESHOLDS });
 
     // A 20-player roster exercises every band, matching the verified table
     // for the roster-share rework (Enhancement Phase 3, Task 3).
@@ -407,7 +407,9 @@ describe('Phase transitions', () => {
 
 describe('phase thresholds scale to roster size', () => {
   const bands = (starting: number): GamePhase[] =>
-    Array.from({ length: starting }, (_, index) => resolvePhase(starting - index, starting));
+    Array.from({ length: starting }, (_, index) =>
+      resolvePhase({ aliveCount: starting - index, startingCount: starting }),
+    );
 
   it('an 8-player game still passes through Danger', () => {
     expect(bands(8)).toEqual([
@@ -423,20 +425,20 @@ describe('phase thresholds scale to roster size', () => {
   });
 
   it('a 12-player game starts in Chaos', () => {
-    expect(resolvePhase(12, 12)).toBe('chaos');
-    expect(resolvePhase(9, 12)).toBe('chaos');
-    expect(resolvePhase(8, 12)).toBe('danger');
-    expect(resolvePhase(5, 12)).toBe('danger');
-    expect(resolvePhase(4, 12)).toBe('final_four');
+    expect(resolvePhase({ aliveCount: 12, startingCount: 12 })).toBe('chaos');
+    expect(resolvePhase({ aliveCount: 9, startingCount: 12 })).toBe('chaos');
+    expect(resolvePhase({ aliveCount: 8, startingCount: 12 })).toBe('danger');
+    expect(resolvePhase({ aliveCount: 5, startingCount: 12 })).toBe('danger');
+    expect(resolvePhase({ aliveCount: 4, startingCount: 12 })).toBe('final_four');
   });
 
   it('Bloodbath appears only in larger games', () => {
     expect(bands(12)).not.toContain('bloodbath');
     expect(bands(20)).toContain('bloodbath');
-    expect(resolvePhase(9, 20)).toBe('danger');
-    expect(resolvePhase(8, 20)).toBe('bloodbath');
-    expect(resolvePhase(5, 20)).toBe('bloodbath');
-    expect(resolvePhase(4, 20)).toBe('final_four');
+    expect(resolvePhase({ aliveCount: 9, startingCount: 20 })).toBe('danger');
+    expect(resolvePhase({ aliveCount: 8, startingCount: 20 })).toBe('bloodbath');
+    expect(resolvePhase({ aliveCount: 5, startingCount: 20 })).toBe('bloodbath');
+    expect(resolvePhase({ aliveCount: 4, startingCount: 20 })).toBe('final_four');
   });
 
   it('a 30-player game uses every phase', () => {
@@ -448,8 +450,11 @@ describe('phase thresholds scale to roster size', () => {
     expect(seen.has('sudden_death')).toBe(true);
   });
 
-  it('treats a zero starting count as the alive count', () => {
-    expect(resolvePhase(10, 0)).toBe('chaos');
+  it('resolves to chaos when startingCount is 0, since aliveCount / 0 fails every share band', () => {
+    // Not a real production case (see phaseResolver.ts), but the arithmetic
+    // that makes it safe — Infinity/NaN failing every `<=` comparison and
+    // falling through to the last band — is worth pinning down explicitly.
+    expect(resolvePhase({ aliveCount: 10, startingCount: 0 })).toBe('chaos');
   });
 });
 
@@ -613,7 +618,9 @@ describe('phase vocabulary', () => {
     [14, 'chaos'],
     [15, 'chaos'],
   ] as const)('resolves %i alive (of 15) to %s', (alive, expected) => {
-    expect(resolvePhase(alive, 15, DEFAULT_PHASE_THRESHOLDS)).toBe(expected);
+    expect(
+      resolvePhase({ aliveCount: alive, startingCount: 15, thresholds: DEFAULT_PHASE_THRESHOLDS }),
+    ).toBe(expected);
   });
 
   it('gives every phase a non-empty label', () => {

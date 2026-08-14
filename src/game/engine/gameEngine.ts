@@ -78,10 +78,18 @@ export function appendEvents(state: GameState, events: readonly GameEvent[]): Ga
  */
 export function applyPhaseAndWinner(state: GameState): GameState {
   const aliveCount = getAliveCount(state.players);
-  // `players` keeps eliminated players, so its length IS the starting roster.
-  // Roster edits are only legal at 'setup' and 'idle', so it cannot shift
-  // mid-round.
-  const nextPhase = resolvePhase(aliveCount, state.players.length, state.config.phaseThresholds);
+  // `players.length` is the CURRENT roster, not necessarily the STARTING one
+  // — it is only a stand-in. It cannot shift mid-round (roster edits are only
+  // legal at 'setup' and 'idle'), but a host who removes eliminated players
+  // at 'idle' (canEditRoster permits this) DOES shrink it, which raises the
+  // alive share and can quietly de-escalate the phase (e.g. Bloodbath back to
+  // Danger) even though nobody was revived. Task 4 closes this gap by storing
+  // an explicit starting count on GameState, set once at START_GAME.
+  const nextPhase = resolvePhase({
+    aliveCount,
+    startingCount: state.players.length,
+    thresholds: state.config.phaseThresholds,
+  });
 
   const events: GameEvent[] = [];
   if (nextPhase !== state.phase) {

@@ -56,7 +56,7 @@ export type GameScreenState =
 export type PhaseThresholds = {
   /** Alive share at or below this enters DANGER. 0.7 = 70%. */
   dangerAtShare: number;
-  /** Alive share at or below this enters BLOODBATH. */
+  /** Alive share at or below this enters BLOODBATH. 0.4 = 40%. */
   bloodbathAtShare: number;
   /** Alive count at or below this enters FINAL FOUR. */
   finalAt: number;
