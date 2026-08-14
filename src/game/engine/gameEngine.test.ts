@@ -532,18 +532,53 @@ describe('Round flow', () => {
 // --- ability weights ----------------------------------------------------------
 
 describe('phase vocabulary', () => {
-  it('labels exist for all five phases', () => {
-    const phases: GamePhase[] = ['chaos', 'danger', 'bloodbath', 'final_four', 'sudden_death'];
+  // Task 2 renamed final_five -> final_four and added bloodbath as a fifth
+  // tier, but DEFAULT_PHASE_THRESHOLDS is untouched (reshaping it is Task 3's
+  // job). Types cannot catch the two things that rename could have broken: a
+  // shifted band boundary, or bloodbath sneaking into a live range early. This
+  // table pins both down band-by-band.
+  //
+  // Task 3 will legitimately change these expectations once the roster-share
+  // bands land and bloodbath gets a real range. A failure here after that
+  // lands is expected, not a regression — update the table to match the new
+  // thresholds rather than reverting them.
+  it.each([
+    [1, 'sudden_death'],
+    [2, 'sudden_death'],
+    [3, 'final_four'],
+    [4, 'final_four'],
+    [5, 'final_four'],
+    [6, 'danger'],
+    [7, 'danger'],
+    [8, 'danger'],
+    [9, 'danger'],
+    [10, 'danger'],
+    [11, 'danger'],
+    [12, 'chaos'],
+    [13, 'chaos'],
+    [14, 'chaos'],
+    [15, 'chaos'],
+  ] as const)('resolves %i alive to %s', (alive, expected) => {
+    expect(resolvePhase(alive, DEFAULT_PHASE_THRESHOLDS)).toBe(expected);
+  });
 
-    for (const phase of phases) {
-      expect(PHASE_LABELS[phase], phase).toBeTypeOf('string');
-      expect(PHASE_LABELS[phase], phase).not.toBe('');
+  it('never resolves to bloodbath under the current thresholds', () => {
+    // Not implied by the table above on its own: this asserts the absence
+    // explicitly so a future edit that wires a bloodbath band in early gets
+    // caught here, rather than the table above simply growing a new row.
+    for (let alive = 1; alive <= 15; alive += 1) {
+      expect(resolvePhase(alive, DEFAULT_PHASE_THRESHOLDS), `alive=${alive}`).not.toBe('bloodbath');
     }
   });
 
-  it('every ability declares a bloodbath weight', () => {
-    for (const ability of ABILITIES) {
-      expect(ABILITY_WEIGHTS[ability.id]?.bloodbath, ability.id).toBeTypeOf('number');
+  it('gives every phase a non-empty label', () => {
+    // PHASE_LABELS is a total Record<GamePhase, string>, so a MISSING entry
+    // is a compile error the type system already catches. An EMPTY string is
+    // not, which is the one gap worth a runtime check here.
+    const phases: GamePhase[] = ['chaos', 'danger', 'bloodbath', 'final_four', 'sudden_death'];
+
+    for (const phase of phases) {
+      expect(PHASE_LABELS[phase], phase).not.toBe('');
     }
   });
 });

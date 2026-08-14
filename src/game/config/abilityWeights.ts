@@ -18,6 +18,12 @@
  * 20.7% involved a second player — and the two-player Fates were where all
  * the reactions came from. These weights cut dead air to roughly 4% and
  * push two-player Fates toward 35%.
+ *
+ * Those figures predate the Enhancement Phase 3 retune below (eliminate
+ * chaos 22→18, shield chaos 10→12, safe chaos 4→5, bomb chaos 10→8, among
+ * others) and have not been re-measured against it. The shift is probably too
+ * small to invalidate them, but "probably" isn't measured — Task 15 of this
+ * phase re-measures over 200 games and updates this comment properly.
  */
 
 import type { GamePhase } from '../types/game';
@@ -26,6 +32,10 @@ export type PhaseWeights = Record<GamePhase, number>;
 
 export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
   eliminate: { chaos: 18, danger: 24, bloodbath: 30, final_four: 34, sudden_death: 50 },
+  // Falls chaos -> bloodbath/final_four then spikes back up at Sudden Death
+  // (8 -> 12), the opposite of "utility falls, lethality rises". Carried
+  // forward on purpose from the pre-retune Wave 1 table, which already had
+  // this shape — not a transcription slip introduced by this retune.
   shield: { chaos: 12, danger: 10, bloodbath: 8, final_four: 8, sudden_death: 12 },
   // Pure relief, now rare. Kept because if EVERY roll matters the tension
   // flatlines — an occasional clean escape is what makes the rest land.

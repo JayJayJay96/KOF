@@ -38,6 +38,8 @@ const TINTS: Record<GamePhase, string> = {
   chaos: '#2b313d',
   // Warming. The first phase where the roster is visibly thinning.
   danger: '#5a3f22',
+  // Past warming, not yet hot: the step between Danger's amber and Final
+  // Four's full orange.
   bloodbath: '#6d2f1e',
   // Hot.
   final_four: '#7a3a1c',

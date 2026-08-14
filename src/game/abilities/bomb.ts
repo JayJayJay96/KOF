@@ -13,8 +13,10 @@
  *   - at least four players alive. The bomb is a hot potato: with three it
  *     barely moves before it goes off, and with two it is a coin flip.
  *
- * Weight 0 in Sudden Death for the same reason — a three-round fuse cannot tell
- * its story when the game is one elimination from over.
+ * Weight 0 in both Final Four and Sudden Death, for the same reason the
+ * minimum-players gate exists: a three-round fuse needs room to pass hands and
+ * tick down, and with four or fewer alive it is most of the remaining game
+ * rather than an event inside it.
  *
  * Weights live in `config/abilityWeights.ts`.
  */
