@@ -41,7 +41,7 @@ import {
 import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
-import { DEFAULT_PHASE_THRESHOLDS } from '../phases/phaseConfig';
+import { DEFAULT_PHASE_THRESHOLDS, PHASE_LABELS } from '../phases/phaseConfig';
 import { resolvePhase } from '../phases/phaseResolver';
 
 // --- helpers -----------------------------------------------------------------
@@ -377,13 +377,13 @@ describe('Phase transitions', () => {
 
     expect(phaseAt(50)).toBe('chaos');
     expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.dangerAt)).toBe('danger');
-    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.finalAt)).toBe('final_five');
+    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.finalAt)).toBe('final_four');
     expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.suddenDeathAt)).toBe('sudden_death');
   });
 
   it('may move BACKWARD after a Revive (PROJECT_SPEC.md §38)', () => {
     // The move has to CROSS a threshold to be visible. Sudden Death is at 2
-    // alive and Final Five covers 3-5, so dropping to two and reviving one is
+    // alive and Final Four covers 3-5, so dropping to two and reviving one is
     // the smallest change that actually steps back a band.
     let state = startGame(['A', 'B', 'C', 'D', 'E', 'F']);
     for (const name of ['C', 'D', 'E', 'F']) {
@@ -396,7 +396,7 @@ describe('Phase transitions', () => {
     state = playRound(state, 'A', 'revive');
 
     expect(getAlivePlayers(state)).toHaveLength(3);
-    expect(state.phase).toBe('final_five');
+    expect(state.phase).toBe('final_four');
   });
 });
 
@@ -443,7 +443,7 @@ describe('Weighted Fate selection', () => {
           ...base.config.abilities,
           eliminate: {
             enabled: true,
-            weights: { chaos: 0, danger: 0, final_five: 0, sudden_death: 0 },
+            weights: { chaos: 0, danger: 0, bloodbath: 0, final_four: 0, sudden_death: 0 },
           },
         },
       },
@@ -462,7 +462,7 @@ describe('Weighted Fate selection', () => {
           ...base.config.abilities,
           hunter: {
             enabled: false,
-            weights: { chaos: 50, danger: 50, final_five: 50, sudden_death: 50 },
+            weights: { chaos: 50, danger: 50, bloodbath: 50, final_four: 50, sudden_death: 50 },
           },
         },
       },
@@ -531,9 +531,26 @@ describe('Round flow', () => {
 
 // --- ability weights ----------------------------------------------------------
 
+describe('phase vocabulary', () => {
+  it('labels exist for all five phases', () => {
+    const phases: GamePhase[] = ['chaos', 'danger', 'bloodbath', 'final_four', 'sudden_death'];
+
+    for (const phase of phases) {
+      expect(PHASE_LABELS[phase], phase).toBeTypeOf('string');
+      expect(PHASE_LABELS[phase], phase).not.toBe('');
+    }
+  });
+
+  it('every ability declares a bloodbath weight', () => {
+    for (const ability of ABILITIES) {
+      expect(ABILITY_WEIGHTS[ability.id]?.bloodbath, ability.id).toBeTypeOf('number');
+    }
+  });
+});
+
 describe('ability weights', () => {
   it('every registered ability has a weight for every phase', () => {
-    const phases: GamePhase[] = ['chaos', 'danger', 'final_five', 'sudden_death'];
+    const phases: GamePhase[] = ['chaos', 'danger', 'bloodbath', 'final_four', 'sudden_death'];
 
     for (const ability of ABILITIES) {
       for (const phase of phases) {
@@ -557,7 +574,7 @@ describe('ability weights', () => {
 
   it('config overrides the default table', () => {
     // 12 players: dangerAt is 11, so this is the smallest roster that starts
-    // in Chaos rather than Danger/Final Five (PROJECT_SPEC.md §10).
+    // in Chaos rather than Danger/Final Four (PROJECT_SPEC.md §10).
     const state = startGame(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
     const eliminate = getAbility('eliminate');
     if (!eliminate) throw new Error('eliminate missing');

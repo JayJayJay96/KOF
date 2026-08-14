@@ -38,8 +38,9 @@ const TINTS: Record<GamePhase, string> = {
   chaos: '#2b313d',
   // Warming. The first phase where the roster is visibly thinning.
   danger: '#5a3f22',
+  bloodbath: '#6d2f1e',
   // Hot.
-  final_five: '#7a3a1c',
+  final_four: '#7a3a1c',
   // Red. Two players left, and every spin is lethal.
   sudden_death: '#8c2020',
 };

@@ -25,21 +25,21 @@ import type { GamePhase } from '../types/game';
 export type PhaseWeights = Record<GamePhase, number>;
 
 export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
-  eliminate: { chaos: 22, danger: 28, final_five: 34, sudden_death: 50 },
-  shield: { chaos: 10, danger: 8, final_five: 8, sudden_death: 12 },
+  eliminate: { chaos: 18, danger: 24, bloodbath: 30, final_four: 34, sudden_death: 50 },
+  shield: { chaos: 12, danger: 10, bloodbath: 8, final_four: 8, sudden_death: 12 },
   // Pure relief, now rare. Kept because if EVERY roll matters the tension
   // flatlines — an occasional clean escape is what makes the rest land.
-  safe: { chaos: 4, danger: 3, final_five: 2, sudden_death: 0 },
-  close_call: { chaos: 10, danger: 8, final_five: 6, sudden_death: 8 },
-  hunter: { chaos: 15, danger: 16, final_five: 18, sudden_death: 20 },
-  death_mark: { chaos: 10, danger: 10, final_five: 8, sudden_death: 0 },
-  revive: { chaos: 6, danger: 4, final_five: 0, sudden_death: 0 },
-  duel: { chaos: 13, danger: 14, final_five: 16, sudden_death: 0 },
-  steal_shield: { chaos: 9, danger: 8, final_five: 6, sudden_death: 6 },
-  double_fate: { chaos: 8, danger: 8, final_five: 6, sudden_death: 0 },
+  safe: { chaos: 5, danger: 3, bloodbath: 2, final_four: 2, sudden_death: 0 },
+  close_call: { chaos: 10, danger: 8, bloodbath: 6, final_four: 6, sudden_death: 8 },
+  hunter: { chaos: 14, danger: 15, bloodbath: 16, final_four: 18, sudden_death: 20 },
+  death_mark: { chaos: 10, danger: 12, bloodbath: 12, final_four: 8, sudden_death: 0 },
+  revive: { chaos: 6, danger: 4, bloodbath: 2, final_four: 0, sudden_death: 0 },
+  duel: { chaos: 12, danger: 14, bloodbath: 15, final_four: 16, sudden_death: 0 },
+  steal_shield: { chaos: 9, danger: 8, bloodbath: 6, final_four: 6, sudden_death: 6 },
+  double_fate: { chaos: 8, danger: 8, bloodbath: 7, final_four: 6, sudden_death: 0 },
   // Wave 2. Kept modest on purpose: a live bomb colours three whole rounds,
   // so rolling it often would mean it is almost always running and the
   // countdown stops being an event. It gates itself too — one bomb at a
   // time, and never below four players.
-  bomb: { chaos: 10, danger: 10, final_five: 6, sudden_death: 0 },
+  bomb: { chaos: 8, danger: 10, bloodbath: 10, final_four: 0, sudden_death: 0 },
 };

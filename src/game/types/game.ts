@@ -8,7 +8,15 @@
 import type { GameEvent, GameHistoryEntry } from '../events/eventTypes';
 import type { Player } from './player';
 
-export type GamePhase = 'chaos' | 'danger' | 'final_five' | 'sudden_death';
+/**
+ * Escalation tiers, least to most severe.
+ *
+ * `bloodbath` sits between Danger and the endgame and only exists in larger
+ * games — below about 13 players its band falls under the absolute Final Four
+ * floor and it is never entered. That is intended: a game that ends in six
+ * eliminations does not need five tiers.
+ */
+export type GamePhase = 'chaos' | 'danger' | 'bloodbath' | 'final_four' | 'sudden_death';
 
 export type GameScreenState =
   | 'setup'
@@ -35,7 +43,7 @@ export type GameScreenState =
 export type PhaseThresholds = {
   /** Alive count at or below this value enters DANGER. */
   dangerAt: number;
-  /** Alive count at or below this value enters FINAL FIVE. */
+  /** Alive count at or below this value enters FINAL FOUR. */
   finalAt: number;
   /** Alive count at or below this value enters SUDDEN DEATH. */
   suddenDeathAt: number;

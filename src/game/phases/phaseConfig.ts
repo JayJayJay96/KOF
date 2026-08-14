@@ -8,7 +8,7 @@
 import type { GamePhase, PhaseThresholds } from '../types/game';
 
 /**
- * Spec §10: Chaos 12+, Danger 6-11, Final Five 3-5, Sudden Death 2.
+ * Spec §10: Chaos 12+, Danger 6-11, Final Four 3-5, Sudden Death 2.
  * Encoded as inclusive upper bounds so the resolver is a simple cascade.
  */
 export const DEFAULT_PHASE_THRESHOLDS: PhaseThresholds = {
@@ -20,12 +20,13 @@ export const DEFAULT_PHASE_THRESHOLDS: PhaseThresholds = {
 export const PHASE_LABELS: Record<GamePhase, string> = {
   chaos: 'CHAOS',
   danger: 'DANGER',
-  final_five: 'FINAL FIVE',
+  bloodbath: 'BLOODBATH',
+  final_four: 'FINAL FOUR',
   sudden_death: 'SUDDEN DEATH',
 };
 
 /**
- * Full-screen transition titles, verbatim from PROJECT_SPEC.md §10.
+ * Full-screen transition titles.
  *
  * Chaos has no announcement: it is where games begin, so declaring it would
  * fire an overlay before anything has happened. A game that drops back to
@@ -34,6 +35,7 @@ export const PHASE_LABELS: Record<GamePhase, string> = {
  */
 export const PHASE_ANNOUNCEMENTS: Partial<Record<GamePhase, string>> = {
   danger: '⚠ DANGER MODE ⚠',
-  final_five: '🔥 FINAL FIVE 🔥',
+  bloodbath: '🩸 BLOODBATH 🩸',
+  final_four: '🔥 FINAL FOUR 🔥',
   sudden_death: '☠ SUDDEN DEATH ☠',
 };

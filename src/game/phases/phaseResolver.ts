@@ -20,7 +20,7 @@ export function resolvePhase(
   thresholds: PhaseThresholds = DEFAULT_PHASE_THRESHOLDS,
 ): GamePhase {
   if (aliveCount <= thresholds.suddenDeathAt) return 'sudden_death';
-  if (aliveCount <= thresholds.finalAt) return 'final_five';
+  if (aliveCount <= thresholds.finalAt) return 'final_four';
   if (aliveCount <= thresholds.dangerAt) return 'danger';
   return 'chaos';
 }

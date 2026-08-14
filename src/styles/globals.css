@@ -703,7 +703,7 @@ body {
   --kof-accent: #ff9d3d;
 }
 
-.app[data-phase='final_five'] {
+.app[data-phase='final_four'] {
   --kof-accent: #ff6b3d;
 }
 
