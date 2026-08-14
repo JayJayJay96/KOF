@@ -81,9 +81,21 @@ export function getAbilityWeight(state: GameState, ability: AbilityDefinition): 
  */
 export function getAvailableAbilities(state: GameState): AbilityDefinition[] {
   const context = buildGameContext(state);
-  // An empty pool means the draw has not happened yet (setup, or a save from
-  // before session pools existed). Treat it as no restriction rather than as
-  // "nothing is available", which would leave the Fate Wheel empty.
+  // Empty means the draw has not happened yet — this is the PRE-GAME state
+  // only (the setup screen, or the instant before START_GAME runs). Treat it
+  // as no restriction rather than as "nothing is available", which would
+  // leave the Fate Wheel empty.
+  //
+  // A save written before this field existed does NOT land here: it fails
+  // the SAVE_VERSION check in gameStorage.ts and is rejected outright (Task
+  // 5), the same gate that already rejects a save whose PhaseThresholds
+  // predate Task 3's share-based rework. These fields are deliberately NOT
+  // made optional-with-defaults the way `simultaneousSpin?` and
+  // `audio.muted?` are — a stale `dangerAt` or `sessionAbilityIds` can't be
+  // defaulted sensibly (an old `dangerAt` would silently resolve every game
+  // to Chaos), so the version gate is the one designed defence. A per-field
+  // fallback here would be unreachable once that gate is in place — the same
+  // dead-guard pattern removed from phaseResolver in Task 3.
   const pool = state.sessionAbilityIds.length > 0 ? new Set(state.sessionAbilityIds) : null;
 
   return ABILITIES.filter((ability) => {
