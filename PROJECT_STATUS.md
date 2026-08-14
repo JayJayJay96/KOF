@@ -29,7 +29,7 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
-Enh. Phase 0 — engine tests      COMPLETE (36 tests; review outstanding)
+Enh. Phase 0 — Technical Cleanup NEARLY DONE (1 refactor left, see below)
 Phase 8 edge-case sweep          COMPLETE (agent-testable half)
 Fate rework Wave 3               DROPPED  (host decision)
 Fate rework Wave 2 (Bomb)        COMPLETE
@@ -92,7 +92,26 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — Enhancement Phase 0: the test suite
+# Completed This Session — Enhancement Phase 0: dead code
+
+Six exports referenced nowhere but their own definition, deleted:
+`getLatestMessage` and `isGameOver` (selectors), `hasSpinnablePlayers`
+(reducer), `isQueuePaused` (eventQueue), `PHASE_ORDER` (phaseConfig),
+`getAudioLevels` (audioManager). 40 lines removed, nothing added.
+
+Two were duplicates of a living function under a second name —
+`isQueuePaused` of `canContinueEvents`, `hasSpinnablePlayers` of
+`canSpinPlayerWheel`. One, `getLatestMessage`, only became dead earlier in this
+same session when `describeSituation` replaced it.
+
+A crude unused-export scan flagged 55 symbols; hand-checking left these six. The
+rest were types used in their own file's public signatures, constants used
+internally, or symbols the new test file imports. `AudioLevels` stayed because
+it types `setAudioLevels`, which is used.
+
+---
+
+# Completed Earlier — Enhancement Phase 0: the test suite
 
 **Vitest 4.1.10 installed; 36 tests, one file, 342ms.** `npm test` watches,
 `npm run test:run` is the single pass.
@@ -411,14 +430,42 @@ pushed and deployed**. The live site is current.
 
 ## Enhancement Phase 0 — remaining work
 
-Tests are **done** (see below). What is left from the roadmap's list:
+Tests **done**. Architecture review **mostly done** — dead code removed, one
+finding deliberately left open:
 
-- **Architecture review** — duplicated logic, oversized components, registry and
-  engine boundaries, event queue, random utility, snapshots, types. Not started.
-  `GameScreen.tsx` is the most obvious candidate: it now carries the dual-spin
-  flags, the stagger constant, the rail toggle and `PrimaryAction`.
-- **Save schema versioning** — closed. Done in Phase 6 (`SAVE_VERSION`), and the
-  rejection path has since been exercised twice.
+### Open: 20 hand-rolled player lookups
+
+`getPlayerById(state, id)` already exists in `selectors.ts` and **nothing outside
+that file uses it**. Meanwhile this exact line appears 20 times across the
+ability and status modules:
+
+```ts
+const player = context.state.players.find((c) => c.id === selectedPlayerId);
+```
+
+Spread across `closeCall` (2), `deathMark`, `stealShield` (2), `eliminate`,
+`hunter` (4), `safe`, `shield`, `bomb`, `doubleFate`, `duel` (4), `bombTrigger`,
+`deathMarkTrigger`. The remedy is one import and a mechanical substitution per
+file — abilities already import from `engine/selectors` (`revive.ts`,
+`abilities/index.ts`), so no boundary changes.
+
+**Deliberately not done in this session.** It touches twelve files for exactly
+zero behaviour change, and the host is about to run a real playtest — landing a
+no-op refactor across the whole ability layer immediately beforehand trades real
+risk for tidiness. It wants its own commit, on its own, with the tests green
+either side.
+
+### Closed
+
+- **Save schema versioning** — done in Phase 6 (`SAVE_VERSION`); the rejection
+  path has since been exercised twice.
+- **Oversized components** — measured, and nothing is alarming once the comment
+  density is accounted for. Largest are `reducer.ts` 441, `Wheel.tsx` 390,
+  `GameScreen.tsx` 302. `GameScreen` is the one to watch if it grows again.
+- **Engine boundaries, event queue, random utility, snapshots** — reviewed, no
+  violations found. Components dispatch and render; only `eventResolver` mutates
+  state; only `eventQueue` orders it; randomness all routes through
+  `utils/random`.
 
 Worth adding while the runner is new:
 
@@ -706,5 +753,5 @@ dependency array.
 # Last Updated
 
 ```text
-2026-08-14
+2026-08-14 (Enhancement Phase 0)
 ```
