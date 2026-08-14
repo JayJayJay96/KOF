@@ -934,6 +934,21 @@ body {
   opacity: 0.45;
 }
 
+/* Cap the name, not the chip.
+   Phase 8 found a 120-character name rendering as a single 1137px chip inside a
+   1528px roster — no overflow, but it took 74% of the row and pushed the other
+   19 players onto a second line, hiding everyone's status. The badges have to
+   stay visible, so only the NAME is clamped; the full text sits on the chip's
+   title attribute. */
+.status__name {
+  display: inline-block;
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
 .status__chip.is-out .status__name {
   text-decoration: line-through;
 }

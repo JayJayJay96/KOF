@@ -28,6 +28,8 @@ export function StatusPanel({ alive, eliminated, selectedId }: StatusPanelProps)
             <li
               key={player.id}
               className={`status__chip${player.id === selectedId ? ' is-selected' : ''}`}
+              // The name is clamped in CSS, so the full one lives here.
+              title={player.name}
             >
               <span className="status__name">{player.name}</span>
               {/* The fuse IS the mechanic, so the number rides on the badge. A
@@ -65,7 +67,7 @@ export function StatusPanel({ alive, eliminated, selectedId }: StatusPanelProps)
           </h2>
           <ul className="status__list">
             {eliminated.map((player) => (
-              <li key={player.id} className="status__chip is-out">
+              <li key={player.id} className="status__chip is-out" title={player.name}>
                 <span className="status__name">{player.name}</span>
                 <span className="status__round">R{player.eliminatedAtRound}</span>
               </li>

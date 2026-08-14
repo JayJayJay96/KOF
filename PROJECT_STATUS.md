@@ -29,6 +29,8 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
+Phase 8 edge-case sweep          COMPLETE (agent-testable half)
+Fate rework Wave 3               DROPPED  (host decision)
 Fate rework Wave 2 (Bomb)        COMPLETE
 Playtest round 2 changes         COMPLETE
 Fate rework Wave 1               COMPLETE
@@ -89,7 +91,36 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — Wave 2: Bomb
+# Completed This Session — Phase 8 edge-case sweep
+
+Wave 2 was pushed (`b28211e`), then the agent-testable half of Phase 8's
+checklist was finally run — the half that had been listed as untested since
+Phase 7.
+
+**One real bug found and fixed.** A 120-character name rendered as a single
+1137px chip inside a 1528px roster. It did not overflow, which is why an earlier
+numeric check passed it, but it consumed 74% of the row and pushed the other 19
+players onto a second line, hiding everyone's status. Only the **name** is now
+clamped, not the chip, so the 💣/🛡/💀 badges stay visible; the full name moves
+to the chip's `title`. Measured after: 198px, 13% of the row, all chips back on
+one line, `🔥🔥🔥💣3` still intact.
+
+The wheel was already correct — a 120-char name measures 806px against a 207px
+label budget, and `fitLabel` shrinks then truncates exactly as designed.
+
+**A methodology bug worth remembering.** The browser harness had been importing
+modules with cache-busting query strings (`reducer.ts?v=3`). Vite treats
+`utils/random.ts` and `utils/random.ts?v=3` as **separate module instances**, so
+`setRandomSource` was seeding a copy the abilities never used. A Duel "coin flip
+is broken" result turned out to be four genuinely random flips. Re-run with
+plain imports, Duel is exact at the 0.5 threshold and 50.1% over 4,000 samples.
+
+This is the strongest argument yet for Enhancement Phase 0: a real test file
+imports modules normally and cannot hit this class of error.
+
+---
+
+# Completed Earlier — Wave 2: Bomb
 
 A hot potato. Planted with a fuse of 3, it passes to whoever the Main Wheel
 selects and drops a tick each time. When the fuse runs out it goes off in the
@@ -343,16 +374,33 @@ reaction came from.
 
 Nothing. Working tree clean.
 
-Playtest round 2 is **merged and deployed** (`ac01826` on `main`).
-
-Wave 2 (Bomb) is committed on `main` but **not pushed** — pushing auto-deploys
-to production, which is the host's call rather than an agent's.
+Playtest round 2 (`ac01826`) and Wave 2 / Bomb (`b28211e`) are both **merged,
+pushed and deployed**. The live site is current.
 
 ---
 
 # Next Tasks
 
-## Immediate — play a real session (host-led, cannot be done by an agent)
+## Next build work — Enhancement Phase 0 (Technical Cleanup)
+
+The host has closed the Fate pool, so the next phase is consolidation, not
+mechanics. `DEVELOPMENT_ROADMAP.md` Enhancement Phase 0 asks for:
+
+- **Unit tests for engine behaviour** — the named list is Shield blocks attack,
+  Death Mark triggers once, Hunter excludes self, Duel excludes self, Revive
+  only draws from the eliminated pool, winner detection, phase transitions,
+  weighted Fate selection. Bomb's pass/tick/detonate cycle now belongs on that
+  list too.
+- **Architecture review** — duplicated logic, oversized components, registry and
+  engine boundaries, event queue, random utility, snapshots, types.
+- **Save schema versioning** — already done in Phase 6 (`SAVE_VERSION`), so this
+  item is closed.
+
+No test runner is installed. Every verification to date has been a hand-rolled
+browser harness, rebuilt each session, and one of them silently produced a false
+result this session (see the module-instance bug above).
+
+## Also outstanding — play a real session (host-led, cannot be done by an agent)
 
 Two rounds of change have landed without a live game between them. Things to
 watch, in rough order of how likely they are to be wrong:
@@ -391,16 +439,37 @@ watch, in rough order of how likely they are to be wrong:
   round), but whether a viewer can follow both is a question only a real session
   answers.
 
-## Wave 3 — Linked Fate + rebalance
+## Wave 3 — Linked Fate: DROPPED (host decision, 2026-08-14)
 
-Two players bound; one dies, the other takes a hit. Reuses the Hunter target-spin
-machinery.
+> *"i think can skip wave 3 and continue with the phases instead, i think its
+> getting more and more complicated"*
 
-**Caution, now sharper than before:** Bomb has shipped, so Linked Fate would make
-three overlapping timers — Death Mark, Bomb, Linked Fate. PROJECT_SPEC.md §45
-requires the viewer experience stay simple. Do not start it until Bomb has been
-watched in a real session; if two timers already feel like too much, Wave 3
-needs redesigning rather than adding.
+Not deferred — dropped. The Fate pool is feature-complete at eleven Fates. This
+matches PROJECT_SPEC.md §45: Linked Fate would have been a third overlapping
+timer alongside Death Mark and Bomb.
+
+**Do not restart it without the host asking.** If a later session wants more
+depth, the cheaper move is interaction between the Fates that already exist
+rather than a twelfth one.
+
+### Related: Steal Shield taking the Bomb
+
+Asked and answered in the same session. Rejected, and the reasoning is worth
+keeping because the idea will occur again:
+
+Under the current design the bomb's **location is cosmetic**. It always passes
+to the next selected player, so moving it by any other means does not change who
+dies — only which rim carries the marker in the meantime. A "steal the bomb"
+Fate would be pure spectacle.
+
+It would also invert Steal Shield's valence: one Fate name that is sometimes a
+gain and sometimes a self-inflicted loss, against the one-Fate-one-legible-
+outcome rule Waves 1 and 2 were built on.
+
+If it is ever wanted it belongs in **Fate Swap** (§12, still post-MVP) — the
+name is valence-neutral and it already covers every status. And it only becomes
+a real mechanic if the bomb stops auto-passing, so that holding it is dangerous
+and a transfer is the only way out.
 
 ## Still outstanding from earlier phases
 
@@ -518,6 +587,28 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | Story rail renders tones, newest round first; toggle collapses and restores | PASS |
 | 1280×720: no horizontal overflow, action button at 669px of 720 | PASS |
 | Console clean after a full reload (the two React warnings were HMR artefacts) | PASS |
+
+**Phase 8 — edge-case sweep:**
+
+| Check | Result |
+|---|---|
+| 2 / 5 / 8 / 12 / 15 / 20 players — 40 games each, valid winner every time | PASS, 240/240 |
+| Chinese, Vietnamese, emoji-only, 120-char, duplicate and padded names | PASS |
+| Blank and whitespace-only names rejected; whitespace trimmed | PASS |
+| Duplicate names keep unique ids | PASS |
+| Cannot start below `MIN_PLAYERS_TO_START` | PASS |
+| Rapid double clicks: second spin ignored, second complete a no-op | PASS |
+| Undo after elimination restores the roster; undo past the start is safe | PASS |
+| Refresh mid-game: unicode names, bomb fuse, shield and mark all survive | PASS |
+| Wrong `saveVersion` and corrupt JSON both rejected, not guessed at | PASS |
+| Hunter / Duel with two alive: target forced, self excluded | PASS |
+| Hunter vs Shield: blocked, shield spent, no bounty paid | PASS |
+| Revive with one candidate; repeat revival increments `revivedCount` | PASS |
+| Revived player returns clean (no shield, mark or bomb) | PASS |
+| Duel coin flip exact at the 0.5 threshold; 50.1% over 4,000 samples | PASS |
+| 20 players + worst-case names at 1280×720 and 1920×1080: no overflow | PASS |
+| Resize mid-spin, twice, including during the 3s stagger — still resolves | PASS |
+| Roster clamp: 120-char name 1137px → 198px, badges intact | FIXED |
 
 **Wave 2 — Bomb:**
 
