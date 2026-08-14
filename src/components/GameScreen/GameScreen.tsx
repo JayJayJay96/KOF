@@ -55,16 +55,23 @@ import { useScreenEffects } from '../../hooks/useScreenEffects';
  *
  * ```text
  * Main   0.0s ──────────────────────────► 7.8s
- * Fate            3.0s ──────────────────────────► 9.2s
+ * Fate            3.0s ──────────────────────────► 10.8s
  * ```
  *
- * WHO still lands before WHAT, with a 1.4s gap, and the round costs 9.2s against
- * 12.9s when the spins ran fully sequentially.
+ * WHO still lands before WHAT, now with a 3.0s gap, and the round costs 10.8s
+ * against 12.9s when the spins ran fully sequentially.
  *
- * Both wheels grew by a second in Enhancement Phase 1, spent entirely on the
- * crawl — the tail is an absolute 3.3s on each now, rather than a share of the
- * spin. The stagger itself is unchanged, which is why the gap between the two
- * reveals is exactly what it was.
+ * The two wheels run for exactly the same length, which is load-bearing rather
+ * than tidy. The crawl is an absolute 3.3s, so a shorter wheel gives that tail a
+ * larger share of its throw and far less time to shed speed into it — the Fate
+ * Wheel at 6200ms braked about three and a half times harder than the Main Wheel
+ * and read as stopping on purpose rather than running down. Equal durations make
+ * every phase ratio equal, so both wheels run down the same way.
+ *
+ * That is what widened the gap from 1.4s to 3.0s: the Fate Wheel grew while the
+ * stagger stayed put. The stagger was kept because the Main Wheel having the
+ * screen to itself for three seconds is what stopped the two wheels competing
+ * for attention in the first place.
  */
 const DUAL_FATE_START_DELAY_MS = 3000;
 

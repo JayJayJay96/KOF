@@ -23,6 +23,16 @@ import type { WheelTheme } from '../Wheel/Wheel';
 /** Gold. The landed slice, in every phase. */
 const ACCENT = '#ffd479';
 
+/**
+ * The line between slices. Constant, and bright.
+ *
+ * Not tinted by phase, for the same reason the separator exists at all: gutters
+ * alone were invisible, because a gap between two dark fills is just more dark.
+ * Tinting this would send it dark again in Chaos — the phase where the problem
+ * was noticed.
+ */
+const SEPARATOR = '#8b98ab';
+
 const TINTS: Record<GamePhase, string> = {
   // Cool and neutral: nothing has gone wrong yet.
   chaos: '#2b313d',
@@ -35,5 +45,5 @@ const TINTS: Record<GamePhase, string> = {
 };
 
 export function themeForPhase(phase: GamePhase): WheelTheme {
-  return { tint: TINTS[phase], accent: ACCENT };
+  return { tint: TINTS[phase], accent: ACCENT, separator: SEPARATOR };
 }

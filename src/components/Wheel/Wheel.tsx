@@ -101,10 +101,23 @@ const SEGMENT_FILLS_ACTIVE = ['#3a2a12', '#4a3616'];
 export type WheelTheme = {
   tint: string;
   accent: string;
+  /**
+   * The line between slices.
+   *
+   * Bright, and deliberately NOT phase-tinted. Gutters alone were invisible: a
+   * gap between two dark fills is just more dark, so the wheel read as one disc
+   * rather than a set of cells. A tinted separator would go dark again in
+   * Chaos — which is exactly where the problem showed up.
+   */
+  separator: string;
 };
 
 /** Module-local, not exported: a value export here would break Fast Refresh. */
-const DEFAULT_WHEEL_THEME: WheelTheme = { tint: '#2b313d', accent: '#ffd479' };
+const DEFAULT_WHEEL_THEME: WheelTheme = {
+  tint: '#2b313d',
+  accent: '#ffd479',
+  separator: '#8b98ab',
+};
 
 /**
  * Gap between slices, as an angle.
@@ -268,6 +281,22 @@ export function Wheel({
           ctx.stroke();
         });
       }
+    }
+
+    // Separators, drawn after every fill so no slice can paint over its
+    // neighbour's line. Down the CENTRE of each gutter, so the dark gap frames
+    // the bright line rather than replacing it — the gap alone was invisible
+    // between two dark fills.
+    const hubRadius = radius * 0.13;
+    ctx.strokeStyle = theme.separator;
+    ctx.lineWidth = 1.5;
+
+    for (let i = 0; i < count; i += 1) {
+      const boundary = rotation + i * arc;
+      ctx.beginPath();
+      ctx.moveTo(center + Math.cos(boundary) * hubRadius, center + Math.sin(boundary) * hubRadius);
+      ctx.lineTo(center + Math.cos(boundary) * radius, center + Math.sin(boundary) * radius);
+      ctx.stroke();
     }
 
     // Outer rim. The one element that carries the phase, so escalation is felt

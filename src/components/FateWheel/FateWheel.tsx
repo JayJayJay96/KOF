@@ -68,10 +68,18 @@ export function FateWheel({
           playSound(windingUp ? 'wheelRatchet' : 'wheelTick', windingUp ? 1 : 1 + 0.5 * progress)
         }
         theme={themeForPhase(phase)}
-        // 6200 against the Main Wheel's 7800. The crawl is an absolute 3.3s on
-        // both, so the whole difference sits in the fast phase — and this wheel
-        // has fewer segments, so it earns less from a long blur.
-        spinDurationMs={6200}
+        // IDENTICAL to the Main Wheel, and that is the point.
+        //
+        // This ran at 6200 while the Main Wheel ran at 7800. Because the crawl is
+        // an absolute 3.3s, the shorter wheel gave that tail a far larger share
+        // of its throw — 70% against 52% — leaving only 836ms to shed speed
+        // against the Main Wheel's 2243ms, and from a higher peak. It braked
+        // about three and a half times harder, which read as stopping on purpose
+        // rather than running down.
+        //
+        // Equal durations make every phase ratio equal, so both wheels decelerate
+        // the same way. Any difference here brings the problem back.
+        spinDurationMs={7800}
         minTurns={3}
         startDelayMs={startDelayMs}
       />
