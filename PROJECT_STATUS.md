@@ -486,6 +486,20 @@ pushed and deployed**. The live site is current.
 
 # Next Tasks
 
+## Unverified by eye — Enhancement Phase 1
+
+Both shipped, both work in code, neither has been seen by a human. They need a
+real game rather than a harness:
+
+- **The impact flash.** The landed slice punches white and decays over 260ms.
+  Every browser check this session fast-forwards `requestAnimationFrame`, which
+  jumps straight past a 260ms decay — so the code path is confirmed to run and
+  the *look* is not. `IMPACT_MS` in `Wheel.tsx` if it is too subtle or too much.
+- **Phase tints beyond Chaos.** The rim and gutters shift cool → warm → hot → red
+  across the four phases, but only Chaos has ever been on screen. Get a game down
+  to two players to see Sudden Death's red. Values live in
+  `components/MainWheel/wheelTheme.ts`.
+
 ## Enhancement Phase 0 — remaining work
 
 Tests **done**. Architecture review **mostly done** — dead code removed, one
@@ -772,6 +786,37 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | Bomb rim renders on the wheel (53 orange pixels across the rim depth) | PASS |
 | Status chip shows the fuse: `A💣3`, aria-label "Bomb, 3 rounds left" | PASS |
 | One log line per beat — no duplicate narration on plant or pass | PASS |
+
+---
+
+# Browser-harness pitfalls
+
+Verification here means driving the real modules in the dev page. It works and
+has caught real bugs, but it has produced a **confidently wrong** reading three
+times in one session. All four traps below cost real time; check them before
+believing any harness result.
+
+1. **Query-string imports duplicate the module.** Vite treats
+   `utils/random.ts` and `utils/random.ts?v=3` as separate instances, so
+   `setRandomSource` seeded a copy the abilities never used. That produced a
+   clean-looking "the Duel coin flip is broken" result from four ordinary random
+   flips. **Import without query strings.** This is the strongest argument for
+   the test files: a real test cannot reach that state.
+2. **`requestAnimationFrame` is throttled when the pane is not compositing.**
+   Both wheels read as motionless and every timing measurement was garbage. Shim
+   it onto `setTimeout` — `cb(performance.now())` for real-time measurement, or
+   `cb(performance.now() + 1e7)` to fast-forward whole spins.
+3. **Canvas baselines taken at the wrong moment.** A "did the wheel move" probe
+   took its baseline while the previous round's gold highlight was still up, so
+   the highlight *clearing* registered as motion. Baseline after the state you
+   are not measuring has settled.
+4. **Budgets that are too short read as stalls.** A loop allowing 6s per round
+   bailed mid-round on a Hunter round, which needs ~7.4s of holds alone even with
+   spins fast-forwarded — and the next iteration then reported a stall that did
+   not exist. Budget from the real timings, not from a guess.
+
+Sampling radius matters too: rim markers are concentric bands, so a single
+radius can fall between them and report zero. Sweep the depth.
 
 ---
 
