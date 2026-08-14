@@ -29,6 +29,7 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
+Enh. Phase 0 — engine tests      COMPLETE (36 tests; review outstanding)
 Phase 8 edge-case sweep          COMPLETE (agent-testable half)
 Fate rework Wave 3               DROPPED  (host decision)
 Fate rework Wave 2 (Bomb)        COMPLETE
@@ -91,7 +92,34 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — Phase 8 edge-case sweep
+# Completed This Session — Enhancement Phase 0: the test suite
+
+**Vitest 4.1.10 installed; 36 tests, one file, 342ms.** `npm test` watches,
+`npm run test:run` is the single pass.
+
+`src/game/engine/gameEngine.test.ts` covers every case the roadmap names —
+Shield blocks attack, Death Mark triggers once, Hunter excludes self, Duel
+excludes self, Revive only draws from the eliminated pool, winner detection,
+phase transitions, weighted Fate selection — plus Bomb's whole pass / tick /
+detonate cycle, which shipped after that list was written.
+
+Two things this immediately paid for:
+
+1. **A test caught my own wrong assumption.** The "phase moves backward after a
+   Revive" case went 4 → 3 → 4 alive, which never leaves Final Five (`finalAt`
+   is 5), so it could not have shown a backward move at all. The engine was
+   right; the test was wrong. It now drops to 2 (Sudden Death) and revives to 3.
+2. **It closes the module-instance trap for good.** A test file imports normally,
+   so `setRandomSource` can never again seed a copy the abilities do not use.
+
+Note on the dependency audit: `npm audit` reports one high-severity issue in
+`nanoid`, reached through `vite → postcss`. It is **absent from the production
+tree** (`npm ls nanoid --omit=dev` is empty), predates this install, and never
+reaches the bundle.
+
+---
+
+# Completed Earlier — Phase 8 edge-case sweep
 
 Wave 2 was pushed (`b28211e`), then the agent-testable half of Phase 8's
 checklist was finally run — the half that had been listed as untested since
@@ -381,24 +409,24 @@ pushed and deployed**. The live site is current.
 
 # Next Tasks
 
-## Next build work — Enhancement Phase 0 (Technical Cleanup)
+## Enhancement Phase 0 — remaining work
 
-The host has closed the Fate pool, so the next phase is consolidation, not
-mechanics. `DEVELOPMENT_ROADMAP.md` Enhancement Phase 0 asks for:
+Tests are **done** (see below). What is left from the roadmap's list:
 
-- **Unit tests for engine behaviour** — the named list is Shield blocks attack,
-  Death Mark triggers once, Hunter excludes self, Duel excludes self, Revive
-  only draws from the eliminated pool, winner detection, phase transitions,
-  weighted Fate selection. Bomb's pass/tick/detonate cycle now belongs on that
-  list too.
 - **Architecture review** — duplicated logic, oversized components, registry and
-  engine boundaries, event queue, random utility, snapshots, types.
-- **Save schema versioning** — already done in Phase 6 (`SAVE_VERSION`), so this
-  item is closed.
+  engine boundaries, event queue, random utility, snapshots, types. Not started.
+  `GameScreen.tsx` is the most obvious candidate: it now carries the dual-spin
+  flags, the stagger constant, the rail toggle and `PrimaryAction`.
+- **Save schema versioning** — closed. Done in Phase 6 (`SAVE_VERSION`), and the
+  rejection path has since been exercised twice.
 
-No test runner is installed. Every verification to date has been a hand-rolled
-browser harness, rebuilt each session, and one of them silently produced a false
-result this session (see the module-instance bug above).
+Worth adding while the runner is new:
+
+- **Component tests.** `jsdom` and Testing Library are not installed, so the
+  wheels, rail and status panel are still only covered by hand-driven browser
+  checks. The roster-clamp bug found this session was a rendering bug, which is
+  exactly the class a component test would catch.
+- **A `test` step in whatever CI exists.** There is currently none.
 
 ## Also outstanding — play a real session (host-led, cannot be done by an agent)
 
@@ -565,6 +593,7 @@ No blockers.
 - `npm run build` — passes, 67 modules, no type errors.
 - `npm run lint` (oxlint) — clean.
 - `npx prettier --check` — all files conform.
+- `npm run test:run` — **36 passed**, 342ms.
 
 Exercised against the real modules, in the browser, through Vite's module graph:
 
