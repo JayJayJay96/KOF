@@ -24,7 +24,8 @@ import {
   resetPlayerForNewGame,
 } from './gameEngine';
 import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
-import { buildGameContext, getAbility } from '../abilities';
+import { ABILITIES, buildGameContext, getAbility } from '../abilities';
+import { drawSessionPool } from '../abilities/sessionPool';
 import { findSelectionTriggers } from '../statuses/statusTriggers';
 
 /** A game needs at least two players to have a loser and a winner. */
@@ -169,6 +170,13 @@ function startGame(state: GameState): GameState {
     currentAbilityId: null,
     winnerId: null,
     history: [],
+    // Drawn once, here, and held for the rest of the game (see
+    // GameState.sessionAbilityIds).
+    sessionAbilityIds: drawSessionPool(ABILITIES),
+    // Captured before `applyPhaseAndWinner` below runs, since phase
+    // resolution reads it immediately — setting it after would resolve the
+    // very first phase against a starting count of 0.
+    startingPlayerCount: players.length,
     eventQueue: [],
     pendingTargetSpin: null,
     targetPlayerId: null,

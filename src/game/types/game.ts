@@ -110,6 +110,26 @@ export type GameState = {
   config: GameConfig;
 
   /**
+   * Ability ids in play for this game — every mandatory Fate plus the draw.
+   *
+   * Fixed at START_GAME and never re-rolled, including after a Revive: a pool
+   * that changed mid-game would make the wheel a moving target for anyone
+   * trying to follow it.
+   */
+  sessionAbilityIds: string[];
+
+  /**
+   * How many players the game began with.
+   *
+   * Phase bands are a share of this, so it must not move once play starts.
+   * Deriving it from `players.length` looked equivalent — eliminated players
+   * stay in the array — but roster edits are legal at `idle`, so a host
+   * removing eliminated players would shrink the denominator and de-escalate
+   * the phase. Housekeeping must not unwind the game's tension.
+   */
+  startingPlayerCount: number;
+
+  /**
    * Events produced but not yet applied.
    *
    * Non-empty means resolution is paused waiting on the host. Draining stops at

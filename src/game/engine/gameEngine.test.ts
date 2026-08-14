@@ -32,12 +32,14 @@ import { attackPlayer } from './attack';
 import { canSpinTarget, getAlivePlayers, getTargetPool } from './selectors';
 import {
   ABILITIES,
+  ABILITY_BY_ID,
   buildGameContext,
   getAbility,
   getAbilityWeight,
   getAvailableAbilities,
   selectWeightedAbility,
 } from '../abilities';
+import { SESSION_OPTIONAL_COUNT } from '../abilities/sessionPool';
 import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
@@ -681,5 +683,97 @@ describe('ability weights', () => {
     };
 
     expect(getAbilityWeight(tuned, eliminate)).toBe(999);
+  });
+});
+
+// --- Session pool -------------------------------------------------------------
+
+describe('session pool', () => {
+  const roster = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+  it('always includes every mandatory Fate', () => {
+    const state = startGame(roster);
+    const mandatory = ABILITIES.filter((ability) => ability.mandatory).map((a) => a.id);
+
+    for (const id of mandatory) {
+      expect(state.sessionAbilityIds, id).toContain(id);
+    }
+  });
+
+  it('draws exactly SESSION_OPTIONAL_COUNT optional Fates', () => {
+    const state = startGame(roster);
+    const optional = state.sessionAbilityIds.filter((id) => !ABILITY_BY_ID[id]?.mandatory);
+
+    expect(optional).toHaveLength(SESSION_OPTIONAL_COUNT);
+  });
+
+  it('excludes Fates left out of the draw from the wheel', () => {
+    let state = startGame(roster);
+    state = {
+      ...state,
+      sessionAbilityIds: ['eliminate', 'shield', 'death_mark', 'hunter', 'duel'],
+    };
+
+    const availableIds = getAvailableAbilities(state).map((ability) => ability.id);
+
+    expect(availableIds).not.toContain('safe');
+    expect(availableIds).not.toContain('revive');
+    expect(availableIds).toContain('eliminate');
+  });
+
+  it('holds the same pool for the whole game', () => {
+    const state = startGame(roster);
+    const after = playRound(state, 'A', 'shield');
+
+    expect(after.sessionAbilityIds).toEqual(state.sessionAbilityIds);
+  });
+
+  it('draws a different pool on a new game', () => {
+    // Six optional Fates choosing four is only 15 combinations, so two draws
+    // can legitimately match. Sample enough to prove the draw is not frozen.
+    const draws = new Set<string>();
+    for (let run = 0; run < 40; run += 1) {
+      draws.add([...startGame(roster).sessionAbilityIds].sort().join(','));
+    }
+
+    expect(draws.size).toBeGreaterThan(1);
+  });
+});
+
+// --- Starting roster count -----------------------------------------------------
+
+describe('startingPlayerCount', () => {
+  it('is fixed at START_GAME and untouched by later roster housekeeping', () => {
+    // Reproduces the wrinkle Task 3 left behind: `applyPhaseAndWinner` used to
+    // pass `players.length` (the CURRENT roster) as the starting count. Roster
+    // edits are legal at 'idle' (canEditRoster), so a host removing eliminated
+    // players there would shrink that denominator, raise the alive share, and
+    // de-escalate the phase even though nobody was revived.
+    const names = Array.from({ length: 20 }, (_, index) => `P${index}`);
+    let state = startGame(names);
+    expect(state.startingPlayerCount).toBe(20);
+
+    // Eliminate down to 8 alive (of 20 starting = 40% => bloodbath, per the
+    // DEFAULT_PHASE_THRESHOLDS table exercised elsewhere in this file).
+    const toEliminate = names.slice(0, 12);
+    for (const name of toEliminate) {
+      state = gameReducer(state, { type: 'ELIMINATE_PLAYER', playerId: idOf(state, name) });
+    }
+    expect(getAlivePlayers(state)).toHaveLength(8);
+    expect(state.phase).toBe('bloodbath');
+
+    // Back to 'idle' housekeeping: remove some already-eliminated players from
+    // the roster. This shrinks `players.length` from 20 to 15 without changing
+    // who is alive, which is exactly the scenario that used to unwind the phase.
+    for (const name of toEliminate.slice(0, 5)) {
+      state = gameReducer(state, { type: 'REMOVE_PLAYER', playerId: idOf(state, name) });
+    }
+    expect(state.players).toHaveLength(15);
+    expect(getAlivePlayers(state)).toHaveLength(8);
+
+    // The starting count must not have moved, and the phase must not have
+    // de-escalated back to Danger.
+    expect(state.startingPlayerCount).toBe(20);
+    expect(state.phase).toBe('bloodbath');
   });
 });

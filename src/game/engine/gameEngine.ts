@@ -40,6 +40,13 @@ export function createInitialGameState(config: GameConfig = createDefaultGameCon
     history: [],
     winnerId: null,
     config,
+    // Empty until START_GAME draws it. `getAvailableAbilities` treats an empty
+    // pool as "no restriction", so the setup screen and any pre-game
+    // inspection still see the full registry.
+    sessionAbilityIds: [],
+    // 0 until START_GAME sets it. Never read before then — phase resolution
+    // only runs once a game is in progress.
+    startingPlayerCount: 0,
     eventQueue: [],
     pendingTargetSpin: null,
     targetPlayerId: null,
@@ -78,16 +85,17 @@ export function appendEvents(state: GameState, events: readonly GameEvent[]): Ga
  */
 export function applyPhaseAndWinner(state: GameState): GameState {
   const aliveCount = getAliveCount(state.players);
-  // `players.length` is the CURRENT roster, not necessarily the STARTING one
-  // — it is only a stand-in. It cannot shift mid-round (roster edits are only
-  // legal at 'setup' and 'idle'), but a host who removes eliminated players
-  // at 'idle' (canEditRoster permits this) DOES shrink it, which raises the
-  // alive share and can quietly de-escalate the phase (e.g. Bloodbath back to
-  // Danger) even though nobody was revived. Task 4 closes this gap by storing
-  // an explicit starting count on GameState, set once at START_GAME.
+  // `startingPlayerCount` is captured once at START_GAME and never moves
+  // again. It used to be inferred from `players.length`, which looked
+  // equivalent (eliminated players stay in the array) but wasn't: roster
+  // edits are legal at 'idle' (canEditRoster), so a host removing eliminated
+  // players there would shrink `players.length`, raise the alive share, and
+  // quietly de-escalate the phase (e.g. Bloodbath back to Danger) even though
+  // nobody was revived. Reading the stored starting count instead means
+  // roster housekeeping can never unwind the game's tension.
   const nextPhase = resolvePhase({
     aliveCount,
-    startingCount: state.players.length,
+    startingCount: state.startingPlayerCount,
     thresholds: state.config.phaseThresholds,
   });
 

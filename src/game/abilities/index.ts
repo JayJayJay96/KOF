@@ -81,8 +81,13 @@ export function getAbilityWeight(state: GameState, ability: AbilityDefinition): 
  */
 export function getAvailableAbilities(state: GameState): AbilityDefinition[] {
   const context = buildGameContext(state);
+  // An empty pool means the draw has not happened yet (setup, or a save from
+  // before session pools existed). Treat it as no restriction rather than as
+  // "nothing is available", which would leave the Fate Wheel empty.
+  const pool = state.sessionAbilityIds.length > 0 ? new Set(state.sessionAbilityIds) : null;
 
   return ABILITIES.filter((ability) => {
+    if (pool !== null && !pool.has(ability.id)) return false;
     if (state.config.abilities[ability.id]?.enabled === false) return false;
     if (!ability.isAvailable(context)) return false;
     return getAbilityWeight(state, ability) > 0;
