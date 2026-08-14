@@ -64,6 +64,18 @@ Weights are consolidated **before** the phase change. Adding a fifth phase to el
 
 The wall rename comes **before** the new Fates, so Gale and Demolition are written once against final vocabulary rather than written as `shield` and renamed an hour later.
 
+**Task 7 runs LAST of Part 3b — after Task 14, immediately before Task 15.** This was discovered during Task 4 and is not optional. `SESSION_OPTIONAL_COUNT` is 4, and deleting Close Call and Steal Shield while the additions are still outstanding drops the optional pool to exactly 4:
+
+| After | Optional Fates | Draw of 4 gives |
+|---|---|---|
+| Task 4 | 6 | 15 pools |
+| Task 7 *in its original position* | **4** | **1 pool — degenerate** |
+| Task 9 | 5 | 5 pools |
+
+At four optional Fates every session draws the identical pool, the whole feature silently stops working, and the "draws a different pool on a new game" test fails deterministically for a reason nobody would connect to a deletion two tasks earlier. Running the removals after the additions keeps the count rising monotonically — 6 → 7 → 8 → 8 → 9 → 10, then 8 once Close Call and Steal Shield go.
+
+So the execution order for Part 3b is: **6, 8, 9, 10, 11, 12, 13, 14, 7, 15.**
+
 ---
 
 # PART 3a — FRAMEWORK

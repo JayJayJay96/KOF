@@ -26,8 +26,27 @@ export const SAVE_KEY = 'kof.save.v1';
  * `currentAbilityId: 'again'` would resume into a Fate that no longer resolves
  * and strand the round. Bumping discards those saves instead, which is exactly
  * what the version check exists for.
+ *
+ * 3 — Enhancement Phase 3a.
+ *
+ * `GameState` gained two REQUIRED fields, `sessionAbilityIds` and
+ * `startingPlayerCount`, and neither exists in a v2 save. Resuming one is not a
+ * degradation, it is a hard crash: `getAvailableAbilities` reads
+ * `state.sessionAbilityIds.length`, App.tsx calls it from a `useMemo` on every
+ * state, and `.length` of `undefined` throws before anything renders — a white
+ * screen mid-party, which is the one failure this game cannot afford.
+ *
+ * Separately, `PhaseThresholds` changed shape incompatibly: the absolute
+ * `dangerAt` became the share-based `dangerAtShare` / `bloodbathAtShare`. A v2
+ * save carries the old key, so the resolver reads `undefined`, computes a NaN
+ * share, and silently resolves every game to Chaos for the rest of the night —
+ * no error, just an escalation that never arrives.
+ *
+ * `isPlausibleGameState` checks neither field, so such a save passes validation
+ * and fails later, somewhere much further from the cause. The version check is
+ * the right place to stop it.
  */
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 
 export type SaveEnvelope = {
   saveVersion: number;

@@ -421,20 +421,63 @@ Example:
 
 # 10. Game Phases
 
-The game escalates automatically according to the number of remaining players.
+The game escalates automatically as players are eliminated.
 
-Phase thresholds should be configurable later.
+There are five phases: **Chaos → Danger → Bloodbath → Final Four → Sudden Death**.
 
-MVP may use fixed defaults.
+## How the bands are computed
+
+The two upper bands are a **share of the starting roster**. The two endgame bands are **absolute counts** of players still alive.
+
+```ts
+{
+  dangerAtShare: 0.7,     // alive share at or below this enters DANGER
+  bloodbathAtShare: 0.4,  // ...                              BLOODBATH
+  finalAt: 4,             // alive count at or below this enters FINAL FOUR
+  suddenDeathAt: 2,       // ...                                SUDDEN DEATH
+}
+```
+
+Why the split. An 8-player game and a 30-player game should spend roughly the same _proportion_ of their length in Chaos, so the upper bands scale with the roster. But "four left" means the same thing in both — it is a stage of the game, not a proportion of it — so the endgame bands do not scale.
+
+Thresholds used to be absolute throughout (`dangerAt: 11`), which was a real bug rather than a rough edge: any game under 12 players started in DANGER and never saw Chaos at all.
+
+The denominator is the roster the game **started** with — held on state as `startingPlayerCount`, not read from `players.length`. Roster edits are legal while idle, so a host tidying eliminated players away would otherwise shrink the denominator and quietly de-escalate the phase.
+
+## Resulting bands
+
+Alive counts per phase, by starting roster:
+
+| Roster | Chaos | Danger | Bloodbath | Final Four | Sudden Death |
+| --- | --- | --- | --- | --- | --- |
+| 8 | 8–6 | 5 | never | 4–3 | 2 |
+| 12 | 12–9 | 8–5 | never | 4–3 | 2 |
+| 16 | 16–12 | 11–7 | 6–5 | 4–3 | 2 |
+| 20 | 20–15 | 14–9 | 8–5 | 4–3 | 2 |
+| 30 | 30–22 | 21–13 | 12–5 | 4–3 | 2 |
+
+## Bloodbath is not reachable in small games
+
+Bloodbath first appears at a roster of **13**. Below that, 40% of the start is already at or under the Final Four floor of 4, so the game steps straight from DANGER to FINAL FOUR.
+
+That is intended, not a defect. Bloodbath exists to give a large game a step between "half the room is gone" and "four left". A short game has no room for that step, and a phase lasting a single round would be a transition animation rather than a phase.
+
+## Why FINAL FIVE became FINAL FOUR
+
+The endgame floor was 5. At a roster of 8 the 70% Danger band lands at 5 alive — so a floor of 5 would swallow that step and delete DANGER entirely from every game under roughly 12 players. Dropping the floor to 4 keeps Danger reachable at every supported roster size.
+
+## Where the weights live
+
+Per-phase Fate weights are deliberately **not** listed in the subsections below. They live in one table, `src/game/config/abilityWeights.ts`, keyed by ability and phase, with `config.abilities[id].weights` as an override on top (§32). Weights repeated in prose are how the numbers went stale before.
 
 ---
 
 ## 10.1 CHAOS PHASE
 
-Suggested condition:
+Condition:
 
 ```text
-12+ players alive
+alive > 70% of the starting roster
 ```
 
 Purpose:
@@ -442,20 +485,6 @@ Purpose:
 - establish the game,
 - generate early stories and statuses,
 - avoid eliminating too many players too quickly.
-
-Suggested Fate balance:
-
-| Fate | Approx. Weight |
-|---|---:|
-| Eliminate | 25 |
-| Shield | 15 |
-| Safe | 15 |
-| Hunter | 10 |
-| Again | 10 |
-| Death Mark | 8 |
-| Revive | 7 |
-| Duel | 5 |
-| Fate Swap | 5 |
 
 Visual mood:
 
@@ -468,10 +497,10 @@ Visual mood:
 
 ## 10.2 DANGER PHASE
 
-Suggested condition:
+Condition:
 
 ```text
-6–11 players alive
+alive ≤ 70% of the starting roster, and above the Bloodbath band
 ```
 
 Transition:
@@ -488,20 +517,6 @@ Purpose:
 - reduce harmless outcomes,
 - introduce more aggressive abilities.
 
-Suggested balance:
-
-| Fate | Approx. Weight |
-|---|---:|
-| Eliminate | 30 |
-| Hunter | 12 |
-| Shield | 10 |
-| Safe | 10 |
-| Death Mark | 10 |
-| Duel | 10 |
-| Again | 7 |
-| Double Kill | 6 |
-| Revive | 5 |
-
 Visual mood:
 
 - darker,
@@ -510,18 +525,49 @@ Visual mood:
 
 ---
 
-## 10.3 FINAL FIVE
+## 10.3 BLOODBATH
 
-Suggested condition:
+Condition:
 
 ```text
-3–5 players alive
+alive ≤ 40% of the starting roster, and above the Final Four floor
 ```
+
+Only reachable from a starting roster of 13 or more — see §10 above.
 
 Transition:
 
 ```text
-🔥 FINAL FIVE 🔥
+🩸 BLOODBATH 🩸
+```
+
+Purpose:
+
+- give a large game a distinct step between Danger and the endgame,
+- push lethality up before the roster is small enough to feel personal,
+- start closing off comeback mechanics rather than cutting them dead.
+
+Visual mood:
+
+- red-shifted, heavier than Danger,
+- the point where the game stops looking playful.
+
+---
+
+## 10.4 FINAL FOUR
+
+Condition:
+
+```text
+alive ≤ 4
+```
+
+An absolute count, not a share — see §10 for why, and for why the floor is 4 rather than the 5 this section originally specified.
+
+Transition:
+
+```text
+🔥 FINAL FOUR 🔥
 ```
 
 Purpose:
@@ -536,21 +582,9 @@ Abilities such as these should normally be removed:
 - Fate Swap
 - Double Kill
 
-Suggested balance:
-
-| Fate | Approx. Weight |
-|---|---:|
-| Eliminate | 40 |
-| Hunter | 15 |
-| Duel | 15 |
-| Shield | 10 |
-| Death Mark | 10 |
-| Safe | 5 |
-| Again | 5 |
-
 ---
 
-## 10.4 FINAL TWO / SUDDEN DEATH
+## 10.5 FINAL TWO / SUDDEN DEATH
 
 Condition:
 
@@ -566,16 +600,7 @@ Suggested label:
 ☠ SUDDEN DEATH ☠
 ```
 
-The normal Fate Wheel may switch to a reduced pool.
-
-Suggested default:
-
-| Fate | Approx. Weight |
-|---|---:|
-| Eliminate | 55 |
-| Hunter | 20 |
-| Shield | 15 |
-| Again | 10 |
+The normal Fate Wheel narrows here on its own, with no separate endgame pool: six of the eleven Fates carry a weight of 0 in the `sudden_death` column of `abilityWeights.ts`, and a weight of 0 keeps a Fate off the wheel entirely.
 
 Goal:
 
@@ -1071,6 +1096,40 @@ Possible future effect:
 
 ---
 
+# 12b. Session Fate Pool
+
+Not every Fate in the registry is in play in every game.
+
+At `START_GAME` the engine draws the **session pool**: every mandatory Fate, plus a fixed number of the optional ones. Only Fates in that pool can reach the wheel for the rest of the game — `getAvailableAbilities` filters on it before any other eligibility rule.
+
+## Mandatory
+
+Always in, every session:
+
+- Eliminate
+- Shield
+- Death Mark
+- Hunter
+- Duel
+
+These are what keeps a game moving. They also make category quotas unnecessary: the two failure modes worth guarding against are a session with no defence and a session with no Fate involving a second player, and Shield rules out the first while Hunter and Duel rule out the second. A quota system would be a second mechanism enforcing something already structurally true.
+
+## Drawn
+
+Four of the six optional Fates — Safe, Close Call, Revive, Steal Shield, Double Fate, Bomb.
+
+Four is the draw size because C(6,4) = 15 distinct pools, and any one optional Fate sits out roughly one game in three. Drawing more would show most of the same Fates every session and the draw would stop being felt.
+
+## The pool is fixed for the whole game
+
+It is drawn once and **never re-rolled** — not on a phase change, not on undo, and not after a Revive.
+
+A pool that moved mid-game would make the wheel a moving target for anyone following it. Half the tension in a late round comes from the room knowing what can still come up; if the set of possible Fates quietly changed under them, that knowledge would be worthless and the wheel would read as arbitrary rather than dangerous.
+
+Because the pool is part of the game's identity, it lives on state (`sessionAbilityIds`) and is persisted with the save, so a resumed game continues with the pool it started with.
+
+---
+
 # 13. Player Status System
 
 ## MVP statuses
@@ -1167,7 +1226,8 @@ type AbilityDefinition = {
 
   isAvailable: (context: GameContext) => boolean;
 
-  getWeight: (phase: GamePhase) => number;
+  /** Always in the session pool when true. See §12b. */
+  mandatory?: boolean;
 
   resolve: (
     context: GameContext,
@@ -1187,14 +1247,8 @@ const reviveAbility: AbilityDefinition = {
 
   isAvailable: (context) =>
     context.eliminatedPlayers.length > 0 &&
-    context.phase !== "final_five" &&
+    context.phase !== "final_four" &&
     context.phase !== "sudden_death",
-
-  getWeight: (phase) => {
-    if (phase === "chaos") return 7;
-    if (phase === "danger") return 5;
-    return 0;
-  },
 
   resolve: (...) => {
     // return game events
@@ -1601,7 +1655,8 @@ rising / restoration cue
 Dedicated stings:
 
 - Danger
-- Final Five
+- Bloodbath
+- Final Four
 - Sudden Death
 
 ## Winner
@@ -1772,13 +1827,13 @@ Hunter       10
 
 ## Phase Thresholds
 
-Example:
+Example, at the shipped defaults (§10):
 
 ```text
-Chaos         12+
-Danger        6–11
-Final Five    3–5
-Sudden Death  2
+Danger        ≤ 70% of the starting roster
+Bloodbath     ≤ 40% of the starting roster
+Final Four    ≤ 4 alive
+Sudden Death  ≤ 2 alive
 ```
 
 ---
@@ -1814,35 +1869,74 @@ MAXIMUM CHAOS
 
 # 32. Game Configuration Model
 
-Possible future shape:
+Shape as built:
 
 ```ts
 type GameConfig = {
   preset: "normal" | "chaos" | "quick" | "custom";
 
   phaseThresholds: {
-    dangerAt: number;
-    finalAt: number;
-    suddenDeathAt: number;
+    // Shares of the STARTING roster (§10).
+    dangerAtShare: number;    // 0.7
+    bloodbathAtShare: number; // 0.4
+    // Absolute alive counts.
+    finalAt: number;          // 4
+    suddenDeathAt: number;    // 2
   };
 
   abilities: Record<
     string,
     {
       enabled: boolean;
+      /**
+       * OVERRIDE map, not the source of truth.
+       *
+       * Defaults live in one table, `src/game/config/abilityWeights.ts`.
+       * Anything set here wins over that table; anything absent falls
+       * through to it. Weights used to be declared twice — once per
+       * ability file and once in the default config — with the config
+       * copy silently winning and the ability-local numbers dead code.
+       */
       weights: Partial<Record<GamePhase, number>>;
     }
   >;
 
   animationSpeed: "slow" | "normal" | "fast";
 
+  simultaneousSpin?: boolean;
+
   audio: {
     master: number;
     music: number;
     sfx: number;
+    muted?: boolean;
   };
 };
 ```
+
+Two fields on the **state** (not the config) are load-bearing for the above and must be persisted with a save:
+
+```ts
+type GameState = {
+  // ...
+
+  /**
+   * The Fates in play for this game — §12b. Drawn at START_GAME,
+   * never re-rolled.
+   */
+  sessionAbilityIds: string[];
+
+  /**
+   * The roster size the game began with — the denominator for the
+   * share-based phase bands (§10). Captured at START_GAME rather than
+   * derived from `players.length`, which is the CURRENT roster and can
+   * shrink when a host edits players while idle.
+   */
+  startingPlayerCount: number;
+};
+```
+
+Both are required, so a save written before they existed cannot be resumed — see the `SAVE_VERSION` note in `src/storage/gameStorage.ts` (§24).
 
 ---
 
@@ -1994,8 +2088,10 @@ The MVP should be playable from start to finish.
 
 - Chaos
 - Danger
-- Final Five
+- Final Four
 - Sudden Death
+
+Bloodbath was added after MVP (§10) and is not required for MVP scope.
 
 ### Effects
 
@@ -2099,10 +2195,11 @@ After revival, phase should be recalculated.
 Example:
 
 ```text
-5 alive
+4 alive
 → Revive
-→ 6 alive
-→ phase may return from Final Five to Danger
+→ 5 alive
+→ phase may return from Final Four to whichever band 5 alive falls in
+   for this roster (Bloodbath, or Danger in a smaller game)
 ```
 
 MVP recommendation:

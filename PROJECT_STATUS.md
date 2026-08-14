@@ -27,8 +27,9 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 # Current Phase
 
 ```text
-Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
+Enh. Phase 3 — Ability Expansion (3a COMPLETE, 3b not started)
 
+Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 Enh. Phase 2 — Game Flow Polish  COMPLETE (one click per round)
 Enh. Phase 1 — Wheel Polish      COMPLETE
 Enh. Phase 0 — Technical Cleanup NEARLY DONE (1 refactor left, see below)
@@ -49,7 +50,9 @@ playtest-and-tune loop driven by the host, not a build loop.
 Round 2 of playtest feedback is shipped: wider landing spread, both
 wheels spinning together, a live situation line, and a story rail.
 
-Fate rework Waves 2 and 3 are designed but NOT started — see Next Tasks.
+Enhancement Phase 3a (framework) is shipped on branch
+enh3-ability-expansion and is releasable. Part 3b (the pool rework)
+is designed but NOT started — see Next Tasks.
 ```
 
 # Live Deployment
@@ -63,10 +66,15 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 # Current Objective
 
-Play real games. Two rounds of changes have now landed without a full session
-between them. The measurements say the Fate pool is not dead air and that the
-round is 40% shorter; they say nothing about whether it is *fun*. Wave 2 (Bomb)
-should wait until this has been felt live.
+**Play real games.** Enhancement Phase 3a is the ship point for the framework
+half of the ability expansion: the branch is releasable as it stands and the
+host may play it. Part 3b (the pool rework — new Fates, removals, the Shield →
+Wall rename) has **not started**.
+
+Three rounds of change have now landed without a full session between them. The
+measurements say the Fate pool is not dead air, that the round is 40% shorter,
+and that phases now escalate at every roster size; they say nothing about
+whether it is *fun*.
 
 ---
 
@@ -74,7 +82,7 @@ should wait until this has been felt live.
 
 ```text
 GitHub   https://github.com/JayJayJay96/KOF
-Branch   main
+Branch   enh3-ability-expansion  (not yet merged to main)
 ```
 
 ---
@@ -94,7 +102,110 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — Enhancement Phases 1 and 2
+# Completed This Session — Enhancement Phase 3a: Framework
+
+Four changes, none of them a new Fate. 3a is the scaffolding the pool rework in
+3b stands on, and it was built first on purpose: adding Fates to the old
+structure would have meant editing weights in two places per Fate and fitting
+them into a phase model that did not work below twelve players.
+
+## 1. One ability weight table
+
+`src/game/config/abilityWeights.ts` is now the single default table.
+
+Weights used to live **twice** — a local `WEIGHTS` constant in each of eleven
+ability files *and* a duplicate in `defaultConfig.ts` — with the config copy
+silently winning. The ability-local numbers were dead code that read exactly
+like the live ones, which is the worst possible form of duplication: editing the
+obvious place had no effect and nothing said so.
+
+`GameConfig.abilities[id].weights` is now explicitly an **override map** over
+that table and still wins. `AbilityDefinition` lost `getWeight` and gained
+`mandatory?: boolean`.
+
+## 2. A fifth phase, and a rename
+
+`GamePhase` is `chaos | danger | bloodbath | final_four | sudden_death`.
+
+`final_five` became `final_four` because the endgame floor had to drop from 5 to
+4. At a roster of 8 the 70% Danger band lands at 5 alive, so a floor of 5 would
+swallow that step and **delete DANGER from every game under roughly 12
+players**. The rename is a consequence of the threshold fix, not a cosmetic
+choice.
+
+## 3. Phase thresholds scale to the roster
+
+`PhaseThresholds` is now
+`{ dangerAtShare: 0.7, bloodbathAtShare: 0.4, finalAt: 4, suddenDeathAt: 2 }` —
+upper bands a share of the starting roster, endgame bands absolute counts. An
+8-player and a 30-player game should spend the same *proportion* in Chaos, but
+"four left" is a stage of the game rather than a proportion of it.
+
+This fixed a real bug: with absolute thresholds (`dangerAt: 11`) **any game
+under 12 players started in DANGER and never saw Chaos at all**.
+
+`resolvePhase` now takes a named-argument object,
+`{ aliveCount, startingCount, thresholds? }`.
+
+Verified bands (alive counts per phase):
+
+| Roster | Chaos | Danger | Bloodbath | Final Four | Sudden |
+|---|---|---|---|---|---|
+| 8 | 8–6 | 5 | never | 4–3 | 2 |
+| 12 | 12–9 | 8–5 | never | 4–3 | 2 |
+| 16 | 16–12 | 11–7 | 6–5 | 4–3 | 2 |
+| 20 | 20–15 | 14–9 | 8–5 | 4–3 | 2 |
+| 30 | 30–22 | 21–13 | 12–5 | 4–3 | 2 |
+
+**Bloodbath first becomes reachable at a roster of 13.** Intended: below that,
+40% of the start is already at or under the Final Four floor, and a phase
+lasting one round is a transition animation rather than a phase.
+
+## 4. Per-session Fate pool
+
+`GameState.sessionAbilityIds` is drawn at `START_GAME` — every mandatory Fate
+plus four of the optional ones — and held for the whole game.
+`getAvailableAbilities` filters on it.
+
+Mandatory today: `eliminate`, `shield`, `death_mark`, `hunter`, `duel`.
+Optional today: `safe`, `close_call`, `revive`, `steal_shield`, `double_fate`,
+`bomb` — six, drawn four at a time, so C(6,4) = **15 distinct pools** and any
+one optional Fate sits out about one game in three.
+
+The pool is **never re-rolled** — not on a phase change, not on undo, not after
+a Revive. A pool that moved mid-game would make the wheel a moving target for
+anyone following it, and half the tension of a late round is the room knowing
+what can still come up.
+
+`GameState` also gained `startingPlayerCount`, because `players.length` is the
+**current** roster and roster edits are legal at `idle` — a host tidying away
+eliminated players was shrinking the denominator and de-escalating the phase.
+
+## `SAVE_VERSION` → 3
+
+Bumped, and this one is not optional the way the round-2 decision was.
+
+A v2 save is a **hard crash**, not a degradation. `GameState` gained two
+required fields: `getAvailableAbilities` reads `state.sessionAbilityIds.length`,
+`App.tsx` calls it from a `useMemo` on every state, and `.length` of `undefined`
+throws before anything renders — resuming would be a **white screen** mid-party.
+Separately, `PhaseThresholds` changed shape: an old `dangerAt` key yields a NaN
+share and silently resolves every game to Chaos for the rest of the night.
+
+`isPlausibleGameState` checks neither field, so such a save passes validation
+and fails later, far from the cause. Version 3 therefore **rejects every v1 and
+v2 save** — a host with a game in progress across this deploy loses it, which is
+the correct trade against a white screen.
+
+## Not part of 3a
+
+Part 3b — remove Close Call / Steal Shield / Bomb, rename Shield to Wall
+(code as well as UI), add Gale, Demolition, C4, Fate Swap and Purify — is
+**designed but not started**. Do not describe any of it as done.
+
+---
+
+# Completed Earlier — Enhancement Phases 1 and 2
 
 Both designed with the host before any code was written; specs live in
 `docs/superpowers/specs/`. That process is now the agreed shape for every
@@ -477,10 +588,15 @@ reaction came from.
 
 # In Progress
 
-Nothing. Working tree clean.
+**Enhancement Phase 3b — the pool rework. Not started.** Plan and task order in
+`docs/superpowers/plans/2026-08-14-ability-expansion.md`; note the ordering
+constraint recorded there — the removals must run *after* the additions, or the
+optional pool briefly drops to exactly four and every session draws the
+identical pool.
 
-Playtest round 2 (`ac01826`) and Wave 2 / Bomb (`b28211e`) are both **merged,
-pushed and deployed**. The live site is current.
+3a is committed on `enh3-ability-expansion` and **not yet merged to `main`**, so
+the live site does not have it. Playtest round 2 (`ac01826`) and Wave 2 / Bomb
+(`b28211e`) are both merged, pushed and deployed.
 
 ---
 
@@ -505,7 +621,7 @@ real game rather than a harness:
 Tests **done**. Architecture review **mostly done** — dead code removed, one
 finding deliberately left open:
 
-### Open: 20 hand-rolled player lookups
+### Open: 20 hand-rolled player lookups — STILL OUTSTANDING after Enh. Phase 3a
 
 `getPlayerById(state, id)` already exists in `selectors.ts` and **nothing outside
 that file uses it**. Meanwhile this exact line appears 20 times across the
@@ -530,7 +646,8 @@ either side.
 ### Closed
 
 - **Save schema versioning** — done in Phase 6 (`SAVE_VERSION`); the rejection
-  path has since been exercised twice.
+  path has since been exercised twice, and again at version 3 in Enh. Phase 3a,
+  where it is what stands between a v2 save and a white screen.
 - **Oversized components** — measured, and nothing is alarming once the comment
   density is accounted for. Largest are `reducer.ts` 441, `Wheel.tsx` 390,
   `GameScreen.tsx` 302. `GameScreen` is the one to watch if it grows again.
@@ -709,10 +826,20 @@ No blockers.
 
 # Verification Performed
 
-- `npm run build` — passes, 67 modules, no type errors.
-- `npm run lint` (oxlint) — clean.
-- `npx prettier --check` — all files conform.
-- `npm run test:run` — **65 passed**, ~330ms (29 of them wheel geometry).
+- `npm run build` — passes, 72 modules, no type errors.
+- `npm run lint` (oxlint 1.77) — clean, exit 0.
+- `npm run test:run` — **96 passed**, 2 files, ~320ms.
+- `npx prettier --check .` — 11 files reported, **all pre-existing and all
+  Markdown or root config** (`AGENTS.md`, `README.md`, the three product docs,
+  the four `docs/superpowers/` files, `tsconfig.json`, `vite.config.ts`). The
+  enforced gate is `npm run format:check`, which covers `src/**` only and is
+  clean. Do not "fix" these in a feature commit — reformatting every doc would
+  bury the actual change in whitespace. If they are to be normalised it wants
+  its own commit.
+
+Enhancement Phase 3a is documentation plus one constant, so there is nothing new
+to verify in the browser; the engine behaviour it describes was verified by the
+96-test suite in Tasks 1–4.
 
 **Enhancement Phases 1–2**, verified in the browser:
 
@@ -792,9 +919,10 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 # Browser-harness pitfalls
 
 Verification here means driving the real modules in the dev page. It works and
-has caught real bugs, but it has produced a **confidently wrong** reading three
-times in one session. All four traps below cost real time; check them before
-believing any harness result.
+has caught real bugs, but it has produced a **confidently wrong** reading four
+times now. All five traps below cost real time; check them before believing any
+verification result — every one of them is the same failure shape, a tool
+reporting success while proving nothing.
 
 1. **Query-string imports duplicate the module.** Vite treats
    `utils/random.ts` and `utils/random.ts?v=3` as separate instances, so
@@ -814,6 +942,13 @@ believing any harness result.
    bailed mid-round on a Hunter round, which needs ~7.4s of holds alone even with
    spins fast-forwarded — and the next iteration then reported a stall that did
    not exist. Budget from the real timings, not from a guess.
+5. **`npx rg` is not ripgrep on this machine.** It resolves to an unrelated npm
+   package that prints `README.md already exists` and **exits 0** — reporting
+   success while proving nothing — and it tries to write a README into the repo
+   root. It already produced one false "verified clean" result during
+   Enhancement Phase 3, on a check that no `final_five` survived the rename.
+   **Use `git grep -n "pattern" -- src/`** (exit 0 = found, 1 = not found), or
+   bare `rg` if it is on PATH. Never accept a clean result from `npx rg`.
 
 Sampling radius matters too: rim markers are concentric bands, so a single
 radius can fall between them and report zero. Sweep the depth.
@@ -822,9 +957,15 @@ radius can fall between them and report zero. Sweep the depth.
 
 # Notes for Next Agent
 
-**The next step is playing, not building.** Two rounds of change have landed
-without a live session between them. Do not start Wave 2 until the host has
-played real games and said what felt wrong.
+**The next step is playing, not building.** Three rounds of change have now
+landed without a live session between them. Enhancement Phase 3a is the ship
+point for the framework half of the ability expansion — the branch is releasable
+and the host may play it. Prefer a real game over starting 3b.
+
+**If you do start 3b**, read the ordering constraint in the plan first: the
+removals run after the additions, because deleting Close Call and Steal Shield
+while the new Fates are still outstanding drops the optional pool to exactly
+four, and a draw of four from four is the same pool every session.
 
 **If the host says the overlap still hurts:** the lever is
 `DUAL_FATE_START_DELAY_MS` in `GameScreen.tsx`, not a revert. The round length
@@ -869,5 +1010,5 @@ dependency array.
 # Last Updated
 
 ```text
-2026-08-14 (Enhancement Phase 0)
+2026-08-14 (Enhancement Phase 3a — framework)
 ```

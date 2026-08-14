@@ -722,20 +722,21 @@ Implement:
 ```text
 CHAOS
 DANGER
-FINAL FIVE
+BLOODBATH
+FINAL FOUR
 SUDDEN DEATH
 ```
 
 Default thresholds:
 
 ```text
-Chaos         12+
-Danger        6–11
-Final Five    3–5
-Sudden Death  2
+Danger        alive ≤ 70% of the starting roster
+Bloodbath     alive ≤ 40% of the starting roster
+Final Four    alive ≤ 4
+Sudden Death  alive ≤ 2
 ```
 
-These values are provisional.
+The upper bands are a share of the starting roster; the endgame bands are absolute counts. Enhancement Phase 3a replaced the original all-absolute thresholds, which put every game under 12 players into DANGER from round one. BLOODBATH and the FINAL FIVE → FINAL FOUR rename landed in the same change. See PROJECT_SPEC.md §10.
 
 ## Phase-specific Fate pools
 
@@ -768,13 +769,13 @@ Phase can move backward after Revive.
 Example:
 
 ```text
-5 alive
-Final Five
+4 alive
+Final Four
 ↓
 Revive
-6 alive
+5 alive
 ↓
-Danger
+Bloodbath / Danger, depending on the starting roster
 ```
 
 Keep this until playtesting indicates otherwise.
@@ -1084,7 +1085,7 @@ Record:
 - how quickly people die,
 - whether Revive is annoying,
 - whether Again happens too often,
-- whether Final Five drags,
+- whether Final Four drags,
 - whether Sudden Death feels fair,
 - whether Duel is fun enough,
 - which abilities generate the most reaction.
@@ -1284,71 +1285,36 @@ Add:
 
 ## Goal
 
-Add selected advanced Fate abilities only after the MVP mechanics are stable.
+Make every session play differently, and make defence a decision rather than a
+free good.
 
-Suggested order:
+Design: `docs/superpowers/specs/2026-08-14-ability-expansion-design.md`
+Plan: `docs/superpowers/plans/2026-08-14-ability-expansion.md`
 
-## 3A — Double Kill
+## 3A — Framework (COMPLETE)
 
-Requirements:
+- one ability weight table replacing per-ability constants
+- BLOODBATH phase; FINAL FIVE becomes FINAL FOUR
+- phase thresholds scale to the starting roster
+- per-session Fate pool: 5 mandatory + 4 of the optional set
 
-- reuse attack abstraction.
-- disable near broken endgame scenarios.
+## 3B — Pool
 
-## 3B — Fate Swap
+Removed: Close Call, Steal Shield, Bomb.
+Renamed: Shield becomes Wall, through the code as well as the UI.
+Added: Gale, Demolition, C4, Fate Swap, Purify.
 
-Exchange supported statuses.
+## Deferred, not dropped
 
-Initially:
+Bodyguard, Lucky Charm, Revenge and Bounty all need engine work this phase does
+not do — an interceptor chain in `attackPlayer` for the first two, kill
+attribution for the second two.
 
-```text
-Shield
-Death Mark
-```
+## Dropped
 
-## 3C — Steal Shield
-
-Eligibility:
-
-```text
-someone else owns Shield
-```
-
-## 3D — Double Fate
-
-Current player receives two Fate results.
-
-Must define conflict rules.
-
-Examples:
-
-```text
-Shield + Eliminate
-Death Mark + Shield
-Again + Eliminate
-Revive + Eliminate
-```
-
-Do not implement before resolution ordering is explicitly designed.
-
-## 3E — Bomb
-
-Add persistent timed/triggered status.
-
-Only after the status engine is proven stable.
-
-## 3F — Jackpot / King's Blessing
-
-Rare positive Fate.
-
-Potential effects:
-
-- cleanse negative status,
-- immunity,
-- guaranteed protection,
-- skip danger.
-
-Exact behaviour can be playtested.
+Double Kill (superseded by C4's blast), Jackpot (Purify covers the cleanse),
+Ghost (breaks the alive-count invariant, and removes drama rather than adding
+it).
 
 ---
 
@@ -1368,7 +1334,8 @@ Fate Reveal
 Hunter
 Duel
 Danger Transition
-Final Five
+Bloodbath
+Final Four
 Sudden Death
 Winner
 ```
@@ -1621,7 +1588,11 @@ energetic.
 
 darker / stronger warning atmosphere.
 
-### Final Five
+### Bloodbath
+
+red-shifted, heavier than Danger.
+
+### Final Four
 
 high tension.
 
