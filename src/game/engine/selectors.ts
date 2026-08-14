@@ -134,25 +134,6 @@ export function getMainWheelSelectedId(state: GameState): string | null {
   return state.targetPlayerId !== null ? state.targetPlayerId : state.currentPlayerId;
 }
 
-/**
- * The most recent narration line.
- *
- * Multi-step abilities tell their story through SHOW_MESSAGE, so this is what
- * makes Hunter, Duel and Death Mark legible without the UI knowing they exist.
- * Suppressed mid-spin so a message cannot spoil a result still being animated.
- */
-export function getLatestMessage(state: GameState): string | null {
-  if (isAnimating(state)) return null;
-
-  for (let i = state.history.length - 1; i >= 0; i -= 1) {
-    const { event } = state.history[i];
-    if (event.type === 'SHOW_MESSAGE') return event.message;
-    // Stop at a round boundary so stale narration does not linger.
-    if (event.type === 'ROUND_STARTED') return null;
-  }
-  return null;
-}
-
 /** The Fate Wheel is live only once a player is selected (PROJECT_SPEC.md §9). */
 export function canResolveFate(state: GameState): boolean {
   return state.screenState === 'fate_selected' && state.currentAbilityId !== null;
@@ -165,8 +146,4 @@ export function canResolveFate(state: GameState): boolean {
 export function getRevealedAbilityId(state: GameState): string | null {
   if (state.screenState === 'spinning_fate' || state.screenState === 'spinning_both') return null;
   return state.currentAbilityId;
-}
-
-export function isGameOver(state: GameState): boolean {
-  return state.screenState === 'winner';
 }

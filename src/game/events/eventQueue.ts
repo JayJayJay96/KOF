@@ -36,11 +36,6 @@ export function isBlockingEvent(event: GameEvent): boolean {
   return BLOCKING_EVENTS.has(event.type);
 }
 
-/** Resolution is suspended while anything remains queued. */
-export function isQueuePaused(state: GameState): boolean {
-  return state.eventQueue.length > 0;
-}
-
 export function enqueueEvents(state: GameState, events: readonly GameEvent[]): GameState {
   if (events.length === 0) return state;
   return { ...state, eventQueue: [...state.eventQueue, ...events] };

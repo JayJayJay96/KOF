@@ -79,10 +79,6 @@ export function setAudioLevels(next: AudioLevels): void {
   }
 }
 
-export function getAudioLevels(): AudioLevels {
-  return levels;
-}
-
 // --- synthesis helpers ---
 
 function envelope(

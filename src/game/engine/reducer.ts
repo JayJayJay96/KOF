@@ -23,7 +23,6 @@ import {
   createPlayer,
   resetPlayerForNewGame,
 } from './gameEngine';
-import { getAlivePlayers } from './selectors';
 import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
 import { buildGameContext, getAbility } from '../abilities';
 import { findSelectionTriggers } from '../statuses/statusTriggers';
@@ -522,9 +521,4 @@ function setAudio(state: GameState, audio: Partial<GameConfig['audio']>): GameSt
     ...state,
     config: { ...state.config, audio: { ...state.config.audio, ...audio } },
   };
-}
-
-/** Convenience guard for hosts/debug UI: is a spin even possible? */
-export function hasSpinnablePlayers(state: GameState): boolean {
-  return getAlivePlayers(state).length > 0;
 }

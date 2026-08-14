@@ -24,8 +24,6 @@ export const PHASE_LABELS: Record<GamePhase, string> = {
   sudden_death: 'SUDDEN DEATH',
 };
 
-export const PHASE_ORDER: readonly GamePhase[] = ['chaos', 'danger', 'final_five', 'sudden_death'];
-
 /**
  * Full-screen transition titles, verbatim from PROJECT_SPEC.md §10.
  *
