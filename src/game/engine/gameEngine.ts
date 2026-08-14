@@ -78,7 +78,10 @@ export function appendEvents(state: GameState, events: readonly GameEvent[]): Ga
  */
 export function applyPhaseAndWinner(state: GameState): GameState {
   const aliveCount = getAliveCount(state.players);
-  const nextPhase = resolvePhase(aliveCount, state.config.phaseThresholds);
+  // `players` keeps eliminated players, so its length IS the starting roster.
+  // Roster edits are only legal at 'setup' and 'idle', so it cannot shift
+  // mid-round.
+  const nextPhase = resolvePhase(aliveCount, state.players.length, state.config.phaseThresholds);
 
   const events: GameEvent[] = [];
   if (nextPhase !== state.phase) {

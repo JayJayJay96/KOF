@@ -8,12 +8,18 @@
 import type { GamePhase, PhaseThresholds } from '../types/game';
 
 /**
- * Spec §10: Chaos 12+, Danger 6-11, Final Four 3-5, Sudden Death 2.
- * Encoded as inclusive upper bounds so the resolver is a simple cascade.
+ * Encoded as inclusive upper bounds so the resolver stays a simple cascade,
+ * most severe first.
+ *
+ * `finalAt` is 4 rather than 5 for a reason worth keeping: at 8 players the 70%
+ * Danger band lands at 5 alive, and a Final floor of 5 would take that step
+ * first — deleting DANGER from every game under about 12 players, which is the
+ * same bug the share-based bands exist to fix.
  */
 export const DEFAULT_PHASE_THRESHOLDS: PhaseThresholds = {
-  dangerAt: 11,
-  finalAt: 5,
+  dangerAtShare: 0.7,
+  bloodbathAtShare: 0.4,
+  finalAt: 4,
   suddenDeathAt: 2,
 };
 

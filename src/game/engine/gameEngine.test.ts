@@ -373,18 +373,23 @@ describe('Bomb', () => {
 
 describe('Phase transitions', () => {
   it('resolves each band from the alive count', () => {
-    const phaseAt = (alive: number) => resolvePhase(alive, DEFAULT_PHASE_THRESHOLDS);
+    const phaseAt = (alive: number, startingCount: number) =>
+      resolvePhase(alive, startingCount, DEFAULT_PHASE_THRESHOLDS);
 
-    expect(phaseAt(50)).toBe('chaos');
-    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.dangerAt)).toBe('danger');
-    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.finalAt)).toBe('final_four');
-    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.suddenDeathAt)).toBe('sudden_death');
+    // A 20-player roster exercises every band, matching the verified table
+    // for the roster-share rework (Enhancement Phase 3, Task 3).
+    expect(phaseAt(20, 20)).toBe('chaos');
+    expect(phaseAt(14, 20)).toBe('danger');
+    expect(phaseAt(8, 20)).toBe('bloodbath');
+    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.finalAt, 20)).toBe('final_four');
+    expect(phaseAt(DEFAULT_PHASE_THRESHOLDS.suddenDeathAt, 20)).toBe('sudden_death');
   });
 
   it('may move BACKWARD after a Revive (PROJECT_SPEC.md §38)', () => {
     // The move has to CROSS a threshold to be visible. Sudden Death is at 2
-    // alive and Final Four covers 3-5, so dropping to two and reviving one is
-    // the smallest change that actually steps back a band.
+    // alive and Final Four covers 3-4, so dropping to two and reviving one is
+    // the smallest change that actually steps back a band. Both bounds are
+    // absolute (not roster-share), so this holds regardless of starting size.
     let state = startGame(['A', 'B', 'C', 'D', 'E', 'F']);
     for (const name of ['C', 'D', 'E', 'F']) {
       state = gameReducer(state, { type: 'ELIMINATE_PLAYER', playerId: idOf(state, name) });
@@ -397,6 +402,54 @@ describe('Phase transitions', () => {
 
     expect(getAlivePlayers(state)).toHaveLength(3);
     expect(state.phase).toBe('final_four');
+  });
+});
+
+describe('phase thresholds scale to roster size', () => {
+  const bands = (starting: number): GamePhase[] =>
+    Array.from({ length: starting }, (_, index) => resolvePhase(starting - index, starting));
+
+  it('an 8-player game still passes through Danger', () => {
+    expect(bands(8)).toEqual([
+      'chaos', // 8
+      'chaos', // 7
+      'chaos', // 6
+      'danger', // 5
+      'final_four', // 4
+      'final_four', // 3
+      'sudden_death', // 2
+      'sudden_death', // 1
+    ]);
+  });
+
+  it('a 12-player game starts in Chaos', () => {
+    expect(resolvePhase(12, 12)).toBe('chaos');
+    expect(resolvePhase(9, 12)).toBe('chaos');
+    expect(resolvePhase(8, 12)).toBe('danger');
+    expect(resolvePhase(5, 12)).toBe('danger');
+    expect(resolvePhase(4, 12)).toBe('final_four');
+  });
+
+  it('Bloodbath appears only in larger games', () => {
+    expect(bands(12)).not.toContain('bloodbath');
+    expect(bands(20)).toContain('bloodbath');
+    expect(resolvePhase(9, 20)).toBe('danger');
+    expect(resolvePhase(8, 20)).toBe('bloodbath');
+    expect(resolvePhase(5, 20)).toBe('bloodbath');
+    expect(resolvePhase(4, 20)).toBe('final_four');
+  });
+
+  it('a 30-player game uses every phase', () => {
+    const seen = new Set(bands(30));
+    expect(seen.has('chaos')).toBe(true);
+    expect(seen.has('danger')).toBe(true);
+    expect(seen.has('bloodbath')).toBe(true);
+    expect(seen.has('final_four')).toBe(true);
+    expect(seen.has('sudden_death')).toBe(true);
+  });
+
+  it('treats a zero starting count as the alive count', () => {
+    expect(resolvePhase(10, 0)).toBe('chaos');
   });
 });
 
@@ -533,42 +586,34 @@ describe('Round flow', () => {
 
 describe('phase vocabulary', () => {
   // Task 2 renamed final_five -> final_four and added bloodbath as a fifth
-  // tier, but DEFAULT_PHASE_THRESHOLDS is untouched (reshaping it is Task 3's
-  // job). Types cannot catch the two things that rename could have broken: a
-  // shifted band boundary, or bloodbath sneaking into a live range early. This
-  // table pins both down band-by-band.
+  // tier. Task 3 then reshaped DEFAULT_PHASE_THRESHOLDS so the upper bands are
+  // a share of the starting roster rather than absolute counts (see
+  // PhaseThresholds in src/game/types/game.ts). Types cannot catch a shifted
+  // band boundary, so this table pins the bands down count-by-count for a
+  // fixed 15-player roster — large enough to give bloodbath a real range
+  // (5-6 alive; see the DEFAULT_PHASE_THRESHOLDS table in phaseConfig.ts).
   //
-  // Task 3 will legitimately change these expectations once the roster-share
-  // bands land and bloodbath gets a real range. A failure here after that
-  // lands is expected, not a regression — update the table to match the new
-  // thresholds rather than reverting them.
+  // This is deliberately a single fixed roster, not a roster-scaling check —
+  // that behaviour has its own coverage in the "phase thresholds scale to
+  // roster size" describe block above.
   it.each([
     [1, 'sudden_death'],
     [2, 'sudden_death'],
     [3, 'final_four'],
     [4, 'final_four'],
-    [5, 'final_four'],
-    [6, 'danger'],
+    [5, 'bloodbath'],
+    [6, 'bloodbath'],
     [7, 'danger'],
     [8, 'danger'],
     [9, 'danger'],
     [10, 'danger'],
-    [11, 'danger'],
+    [11, 'chaos'],
     [12, 'chaos'],
     [13, 'chaos'],
     [14, 'chaos'],
     [15, 'chaos'],
-  ] as const)('resolves %i alive to %s', (alive, expected) => {
-    expect(resolvePhase(alive, DEFAULT_PHASE_THRESHOLDS)).toBe(expected);
-  });
-
-  it('never resolves to bloodbath under the current thresholds', () => {
-    // Not implied by the table above on its own: this asserts the absence
-    // explicitly so a future edit that wires a bloodbath band in early gets
-    // caught here, rather than the table above simply growing a new row.
-    for (let alive = 1; alive <= 15; alive += 1) {
-      expect(resolvePhase(alive, DEFAULT_PHASE_THRESHOLDS), `alive=${alive}`).not.toBe('bloodbath');
-    }
+  ] as const)('resolves %i alive (of 15) to %s', (alive, expected) => {
+    expect(resolvePhase(alive, 15, DEFAULT_PHASE_THRESHOLDS)).toBe(expected);
   });
 
   it('gives every phase a non-empty label', () => {
@@ -608,8 +653,9 @@ describe('ability weights', () => {
   });
 
   it('config overrides the default table', () => {
-    // 12 players: dangerAt is 11, so this is the smallest roster that starts
-    // in Chaos rather than Danger/Final Four (PROJECT_SPEC.md §10).
+    // A fresh roster is always 100% alive, which is always inside the Chaos
+    // band regardless of size (PROJECT_SPEC.md §10) — no specific player
+    // count is needed to land there, just a game that hasn't started yet.
     const state = startGame(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']);
     const eliminate = getAbility('eliminate');
     if (!eliminate) throw new Error('eliminate missing');

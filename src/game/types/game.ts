@@ -13,10 +13,10 @@ import type { Player } from './player';
  *
  * `bloodbath` sits between Danger and the endgame — a tier meant for larger
  * games, where there is room for a step between "half the room is gone" and
- * "four left". It is not yet reachable: the thresholds that select a phase
- * from the alive count (`PhaseThresholds`, resolved by `resolvePhase`) do not
- * have a band for it yet. That arrives with the roster-share threshold rework
- * later in this phase.
+ * "four left". It is reachable only in games with a roster large enough that
+ * `bloodbathAtShare` of the start still clears `finalAt` (see
+ * `PhaseThresholds`, resolved by `resolvePhase`); a small game steps straight
+ * from DANGER to FINAL FOUR and never sees it.
  */
 export type GamePhase = 'chaos' | 'danger' | 'bloodbath' | 'final_four' | 'sudden_death';
 
@@ -42,12 +42,25 @@ export type GameScreenState =
   | 'phase_transition'
   | 'winner';
 
+/**
+ * Where each phase begins.
+ *
+ * The upper bands are a SHARE of the starting roster, the endgame bands are
+ * absolute counts. An 8-player game and a 30-player game should both spend
+ * roughly the same proportion of their length in Chaos, but "four left" means
+ * the same thing in both — it is a stage of the game, not a proportion of it.
+ *
+ * Before this, thresholds were absolute throughout (`dangerAt: 11`), which
+ * meant any game under 12 players began in DANGER and never saw Chaos.
+ */
 export type PhaseThresholds = {
-  /** Alive count at or below this value enters DANGER. */
-  dangerAt: number;
-  /** Alive count at or below this value enters FINAL FOUR. */
+  /** Alive share at or below this enters DANGER. 0.7 = 70%. */
+  dangerAtShare: number;
+  /** Alive share at or below this enters BLOODBATH. */
+  bloodbathAtShare: number;
+  /** Alive count at or below this enters FINAL FOUR. */
   finalAt: number;
-  /** Alive count at or below this value enters SUDDEN DEATH. */
+  /** Alive count at or below this enters SUDDEN DEATH. */
   suddenDeathAt: number;
 };
 

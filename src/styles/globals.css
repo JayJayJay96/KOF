@@ -703,6 +703,13 @@ body {
   --kof-accent: #ff9d3d;
 }
 
+/* Between Danger's amber and Final Four's orange — same progression as the
+   wheel tint (src/components/MainWheel/wheelTheme.ts: "past warming, not yet
+   hot"). Only reachable in larger games; see PhaseThresholds. */
+.app[data-phase='bloodbath'] {
+  --kof-accent: #ff843d;
+}
+
 .app[data-phase='final_four'] {
   --kof-accent: #ff6b3d;
 }
