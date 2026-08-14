@@ -26,6 +26,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { GamePhase, GameState } from '../types/game';
 import type { Player } from '../types/player';
+import type { AbilityDefinition } from '../types/ability';
 import { createInitialGameState } from './gameEngine';
 import { gameReducer } from './reducer';
 import { attackPlayer } from './attack';
@@ -39,7 +40,7 @@ import {
   getAvailableAbilities,
   selectWeightedAbility,
 } from '../abilities';
-import { SESSION_OPTIONAL_COUNT } from '../abilities/sessionPool';
+import { drawSessionPool, SESSION_OPTIONAL_COUNT } from '../abilities/sessionPool';
 import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
@@ -741,6 +742,36 @@ describe('session pool', () => {
     }
 
     expect(draws.size).toBeGreaterThan(1);
+  });
+
+  it('draws every optional Fate without padding, erroring, or dropping mandatory ones when fewer optional Fates exist than SESSION_OPTIONAL_COUNT', () => {
+    // A short synthetic registry — not the real ABILITIES — because this
+    // exercises a branch that cannot currently happen with the real registry
+    // (it has six optional Fates, well above SESSION_OPTIONAL_COUNT). Later
+    // tasks in this phase move that count around, so the branch needs its own
+    // coverage rather than waiting for the real registry to shrink into it.
+    const stub = (id: string, mandatory: boolean): AbilityDefinition => ({
+      id,
+      name: id,
+      icon: '?',
+      category: 'neutral',
+      mandatory,
+      isAvailable: () => true,
+      resolve: () => [],
+    });
+
+    const shortRegistry = [
+      stub('m1', true),
+      stub('m2', true),
+      stub('o1', false),
+      stub('o2', false),
+    ];
+
+    // Two optional Fates, SESSION_OPTIONAL_COUNT (4) requested — asking for
+    // more than exists.
+    const drawn = drawSessionPool(shortRegistry, SESSION_OPTIONAL_COUNT);
+
+    expect(drawn.sort()).toEqual(['m1', 'm2', 'o1', 'o2']);
   });
 });
 
