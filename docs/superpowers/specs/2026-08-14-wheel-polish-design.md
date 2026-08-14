@@ -98,7 +98,7 @@ wheel then gets an identical greasy tail regardless of its total duration.
 | Main Wheel total | 6800ms | **7800ms** |
 | Fate Wheel total | 5200ms | **6200ms** |
 | Fate stagger | 3000ms | 3000ms |
-| Fast phase | — | unchanged |
+| Fast phase, wind-up included | 4500ms | 4500ms |
 | Gap between reveals | 1.4s | 1.4s |
 | Round | 8.2s | **9.2s** |
 
@@ -106,15 +106,24 @@ The extra second goes entirely into the tail. `CRAWL_DISTANCE` stays at 8.5% of
 travel, so the same boundaries are crossed, each about 20% slower — the feeling
 stretched rather than multiplied.
 
-The wind-up costs roughly 350ms and is taken **from inside** the existing budget,
-not added to it.
+The wind-up costs 350ms and is carved **out of the acceleration phase**, not added
+on top. Acceleration is currently 12% of the spin — 816ms on the Main Wheel — so
+a 350ms wind-up leaves ~466ms of forward acceleration. Total fast-phase wall clock
+is therefore unchanged at 4500ms; only its composition changes.
 
 ### Clamp required
 
 `CRAWL_MS` as a fraction of a short spin can exceed the available time. With
-`ACCEL_TIME` at 0.12, a crawl fraction above ~0.88 drives `DECEL_TIME` negative
-and the velocity solve breaks. The fraction must be clamped (~0.6 max). This
-matters because `config.animationSpeed` is intended to shorten spins.
+`ACCEL_TIME` at 0.12, a crawl fraction above 0.88 drives `DECEL_TIME` negative and
+the velocity solve breaks.
+
+**The fraction is clamped to 0.60.** That leaves at least 0.28 of the spin for
+deceleration at any duration, well clear of the failure point. At the clamp a
+spin is 5500ms or shorter, and it still gets a 3.3s tail — proportionally more
+crawl than the default, which is the right behaviour: a short spin should lose
+blur, not tension.
+
+This matters because `config.animationSpeed` is intended to shorten spins.
 
 ## Where the work lands
 
