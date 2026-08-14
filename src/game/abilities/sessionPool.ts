@@ -13,10 +13,13 @@
  *
  * WHY FOUR
  *
- * With eight optional Fates, drawing four gives 70 distinct pools and every
- * game genuinely omits half of them. Drawing six — the number originally
- * proposed, against a larger pool than this one — would show 75% of the same
- * Fates every session and the draw would stop being felt.
+ * Today: six optional Fates choosing four gives C(6,4) = 15 distinct pools,
+ * and any one Fate is left out of 1 draw in 3 (5 of the 15 combinations omit
+ * it). At the end state of this phase, once two more optional Fates land:
+ * eight optional Fates choosing four gives C(8,4) = 70 distinct pools and
+ * every game genuinely omits half of them. Drawing six — the number
+ * originally proposed, against that larger eight-Fate pool — would show 75%
+ * of the same Fates every session and the draw would stop being felt.
  *
  * WHY NO CATEGORY QUOTAS
  *
