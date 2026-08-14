@@ -544,6 +544,17 @@ describe('ability weights', () => {
     }
   });
 
+  it('has no entries for abilities that are not registered', () => {
+    const registeredIds = new Set(ABILITIES.map((ability) => ability.id));
+
+    for (const id of Object.keys(ABILITY_WEIGHTS)) {
+      expect(
+        registeredIds.has(id),
+        `ABILITY_WEIGHTS has an orphaned entry for "${id}", which is not in ABILITIES`,
+      ).toBe(true);
+    }
+  });
+
   it('config overrides the default table', () => {
     // 12 players: dangerAt is 11, so this is the smallest roster that starts
     // in Chaos rather than Danger/Final Five (PROJECT_SPEC.md §10).
