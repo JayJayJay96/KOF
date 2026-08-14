@@ -27,6 +27,7 @@ export default function App() {
     spinTarget,
     canUndo,
     undo,
+    autoAdvanceMs,
     savedGame,
     resumeSaved,
     discardSaved,
@@ -82,6 +83,7 @@ export default function App() {
             completeFateSpin={completeFateSpin}
             resolveFate={resolveFate}
             spinTarget={spinTarget}
+            autoAdvanceMs={autoAdvanceMs}
           />
         )}
       </main>

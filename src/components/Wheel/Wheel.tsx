@@ -76,6 +76,15 @@ export type WheelProps = {
    * one holds still, visibly armed, until the first has had the room to itself.
    */
   startDelayMs?: number;
+  /**
+   * Whether this spin is preceded by the backward pull.
+   *
+   * False for a re-spin within the same round — the target spin for Hunter or
+   * Duel. The wheel is already loaded, so hauling it back again is a beat that
+   * never happened, and hearing the ratchet twice inside twenty seconds dulls
+   * it. Worth 1.5s off the longest rounds in the game.
+   */
+  windUp?: boolean;
   /** Colours only. The wheel never learns what a phase or a status is. */
   theme?: WheelTheme;
   maxSize?: number;
@@ -147,6 +156,7 @@ export function Wheel({
   minTurns = 4,
   turnVariance = 1.8,
   startDelayMs = 0,
+  windUp = true,
   theme = DEFAULT_WHEEL_THEME,
   maxSize = 680,
 }: WheelProps) {
@@ -191,8 +201,8 @@ export function Wheel({
   //
   // A spin already in flight finishes on the terms it started with; new values
   // apply to the next one.
-  const timingRef = useRef({ spinDurationMs, minTurns, turnVariance, startDelayMs });
-  timingRef.current = { spinDurationMs, minTurns, turnVariance, startDelayMs };
+  const timingRef = useRef({ spinDurationMs, minTurns, turnVariance, startDelayMs, windUp });
+  timingRef.current = { spinDurationMs, minTurns, turnVariance, startDelayMs, windUp };
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -408,6 +418,7 @@ export function Wheel({
       minTurns: baseTurns,
       turnVariance: variance,
       startDelayMs: delay,
+      windUp: wantsWindUp,
     } = timingRef.current;
 
     const count = spinEntries.length;
@@ -455,7 +466,7 @@ export function Wheel({
       // The pull is measured against the ACTUAL travel of this spin, which
       // varies with the random turn count — so the wheel is always hauled back
       // the same number of segments regardless of how hard it was thrown.
-      const profile = createSpinProfile(duration, resolvePullBack(to - from));
+      const profile = createSpinProfile(duration, wantsWindUp ? resolvePullBack(to - from) : 0);
 
       const startedAt = performance.now();
       lastTickSegmentRef.current = segmentAtPointer(from, count);

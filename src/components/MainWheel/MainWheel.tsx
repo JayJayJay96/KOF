@@ -32,6 +32,12 @@ type MainWheelProps = {
   selectedId: string | null;
   spinning: boolean;
   phase: GamePhase;
+  /**
+   * True when this spin is picking a Hunter's prey or a Duel's opponent rather
+   * than opening a round. The same wheel serves both, so this is the only place
+   * that can tell them apart.
+   */
+  isTargetSpin: boolean;
   onSpinComplete: () => void;
 };
 
@@ -40,6 +46,7 @@ export function MainWheel({
   selectedId,
   spinning,
   phase,
+  isTargetSpin,
   onSpinComplete,
 }: MainWheelProps) {
   // Stable identity while the roster is unchanged — a new array every render
@@ -83,6 +90,9 @@ export function MainWheel({
       spinning={spinning}
       onSpinComplete={handleComplete}
       theme={themeForPhase(phase)}
+      // A re-spin inside the same round: the wheel is already loaded, so it is
+      // not hauled back a second time.
+      windUp={!isTargetSpin}
       // Two different physical events share one detector: during the pull the
       // pointer is being dragged over a tooth, during the spin one is flying
       // past it. They should not sound the same.

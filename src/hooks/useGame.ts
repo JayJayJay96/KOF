@@ -15,7 +15,13 @@ import type { GameAction } from '../game/engine/reducer';
 import { createInitialGameState } from '../game/engine/gameEngine';
 import { canUndo as canUndoStack, createHistoryStack, historyReducer } from '../game/engine/undo';
 import { canSpinPlayerWheel, selectRandomEligiblePlayer } from '../game/engine/selectors';
-import { canSpinFateWheel, canSpinTarget, getTargetPool } from '../game/engine/selectors';
+import {
+  canAdvanceRound,
+  canResolveFate,
+  canSpinFateWheel,
+  canSpinTarget,
+  getTargetPool,
+} from '../game/engine/selectors';
 import { buildGameContext, selectWeightedAbility } from '../game/abilities';
 import { selectionReplacesFate } from '../game/statuses/statusTriggers';
 import { randomItem } from '../utils/random';
@@ -24,8 +30,60 @@ import { isSimultaneousSpinEnabled } from '../game/types/game';
 import type { SavedGame } from '../storage/gameStorage';
 import { clearSave, loadGame, saveGame } from '../storage/gameStorage';
 
-/** Beat between the player landing and the Fate Wheel starting. */
-export const AUTO_FATE_DELAY_MS = 900;
+/**
+ * How long each beat is held before the game moves itself on.
+ *
+ * These replace clicks, so they are sized to the time a host was already
+ * spending pressing the button — a plain round lands about where it did, just
+ * hands-free. Any of them can be cut short by pressing the button, which still
+ * does the same thing immediately.
+ */
+const HOLD_MS = {
+  /** Player landed, Fate Wheel about to start. Only the sequential fallback. */
+  fate: 900,
+  /** Fate revealed and read, about to be applied. */
+  resolve: 1600,
+  /** A target spin has been requested by Hunter or Duel. */
+  target: 1200,
+  /** Mid-resolution beat inside a multi-step Fate. The dramatic one. */
+  continue: 2200,
+  /** Outcome shown, round about to close. Sized for a future outcome animation. */
+  nextRound: 2400,
+} as const;
+
+type AutoAdvance =
+  | { step: 'fate' | 'target'; delayMs: number }
+  | { step: 'dispatch'; delayMs: number; action: GameAction };
+
+/**
+ * What the game should do to itself next, and how long to wait first.
+ *
+ * Pure, and derived entirely from state — which is what lets the effect that
+ * runs it be cancelled and rescheduled by any state change, undo included.
+ * Returns null wherever the game should wait for a human: at 'idle', where the
+ * host opens the round, and at 'winner', which nothing may roll past.
+ */
+function resolveAutoAdvance(state: GameState): AutoAdvance | null {
+  if (state.screenState === 'winner') return null;
+
+  // A suspended resolution outranks everything else: the queue is mid-ability.
+  if (state.eventQueue.length > 0) {
+    return { step: 'dispatch', delayMs: HOLD_MS.continue, action: { type: 'CONTINUE_EVENTS' } };
+  }
+
+  if (canSpinTarget(state)) return { step: 'target', delayMs: HOLD_MS.target };
+  if (canSpinFateWheel(state)) return { step: 'fate', delayMs: HOLD_MS.fate };
+
+  if (canResolveFate(state)) {
+    return { step: 'dispatch', delayMs: HOLD_MS.resolve, action: { type: 'RESOLVE_FATE' } };
+  }
+
+  if (canAdvanceRound(state)) {
+    return { step: 'dispatch', delayMs: HOLD_MS.nextRound, action: { type: 'NEXT_ROUND' } };
+  }
+
+  return null;
+}
 
 export type UseGameResult = {
   state: GameState;
@@ -39,6 +97,13 @@ export type UseGameResult = {
 
   canUndo: boolean;
   undo: () => void;
+
+  /**
+   * How long until the game advances itself, or null when it is waiting for the
+   * host. Drives the progress fill on the action button, so an armed button
+   * reads as "this is about to happen" rather than "press me".
+   */
+  autoAdvanceMs: number | null;
 
   /** A previous session found on load, until the host resumes or discards it. */
   savedGame: SavedGame | null;
@@ -197,33 +262,46 @@ export function useGame(): UseGameResult {
   }, [state]);
 
   /**
-   * Auto-continue from a landed player spin into the Fate spin.
+   * ONE CLICK PER ROUND.
    *
-   * The fallback path for rounds that could not spin both wheels together: the
-   * Fate Wheel still follows on its own without a second click. It does not fire
-   * when a Death Mark intercepts the round, because that skips Fate entirely and
-   * leaves `screenState` somewhere other than 'player_selected' — which is also
-   * why a dual spin never reaches here: it rests in 'spinning_fate'.
+   * The host clicks Spin. Everything after it — the Fate resolving, the beats
+   * inside a multi-step Fate, the target spin, the round closing — runs on a
+   * timer, and the game comes to rest back at 'idle' ready for the next click.
    *
-   * The short delay lets the selected name register before the second wheel
-   * starts moving; without it the reveal is lost under the next animation.
+   * The buttons have NOT been removed. Each still does exactly what its timer is
+   * about to do, so pressing one simply skips the wait. That gives click-to-skip
+   * for free, hands control back whenever the room is still reacting, and means
+   * nothing here can strand the game: if a timer somehow never fires, the button
+   * is still sitting there.
+   *
+   * Every hold is scheduled off `state`, so any change cancels and reschedules.
+   * That is what makes undo safe — an undo mid-hold rewrites the state, the
+   * cleanup clears the pending timer, and the new state schedules its own.
    */
   const spinFateRef = useRef(spinFate);
+  const spinTargetRef = useRef(spinTarget);
   spinFateRef.current = spinFate;
+  spinTargetRef.current = spinTarget;
+
+  const autoAdvance = useMemo(() => resolveAutoAdvance(state), [state]);
 
   useEffect(() => {
-    if (!autoFatePending.current) return;
+    if (autoAdvance === null) return;
+    // The host has not decided about a previous session yet; nothing should be
+    // running underneath that prompt.
+    if (pendingResume) return;
 
-    // Anything other than a plain reveal (Death Mark, a win) cancels it.
-    if (state.screenState !== 'player_selected') {
-      autoFatePending.current = false;
-      return;
-    }
+    const timer = window.setTimeout(() => {
+      // Checked against 'dispatch' first: narrowing away two members of a union
+      // whose discriminant is itself a union does not leave TypeScript with the
+      // third, so the positive test is the one that types.
+      if (autoAdvance.step === 'dispatch') dispatchHistory(autoAdvance.action);
+      else if (autoAdvance.step === 'fate') spinFateRef.current();
+      else spinTargetRef.current();
+    }, autoAdvance.delayMs);
 
-    autoFatePending.current = false;
-    const timer = window.setTimeout(() => spinFateRef.current(), AUTO_FATE_DELAY_MS);
     return () => window.clearTimeout(timer);
-  }, [state.screenState]);
+  }, [autoAdvance, pendingResume]);
 
   const canUndo = useMemo(() => canUndoStack(stack), [stack]);
 
@@ -238,6 +316,7 @@ export function useGame(): UseGameResult {
     spinTarget,
     canUndo,
     undo,
+    autoAdvanceMs: pendingResume ? null : (autoAdvance?.delayMs ?? null),
     savedGame,
     resumeSaved,
     discardSaved,

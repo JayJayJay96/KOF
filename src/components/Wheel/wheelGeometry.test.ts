@@ -164,13 +164,26 @@ describe('spin profile', () => {
   it('fits the full 1.5s pull AND the full 3.3s tail on both wheels', () => {
     // The reason the clamps were raised. At the old ceilings a 1.5s pull was
     // silently cut to 1.17s and the Fate Wheel's tail to 2.8s.
+    const pull = resolvePullBack(5 * TWO_PI);
+
     for (const duration of [6200, 7800]) {
-      const profile = createSpinProfile(duration);
+      const profile = createSpinProfile(duration, pull);
 
       expect(duration * profile.windUp).toBeCloseTo(WIND_UP_MS, 6);
       expect(duration * (1 - profile.windUp) * profile.crawl).toBeCloseTo(CRAWL_MS, 6);
       expect(profile.decel).toBeGreaterThan(0.1);
     }
+  });
+
+  it('spends no TIME on the pull when there is no pull DISTANCE', () => {
+    // A target re-spin skips the wind-up. Without this rule it would still sit
+    // motionless for 1.5s, which reads as a hang rather than a saving.
+    const skipped = createSpinProfile(7800, 0);
+
+    expect(skipped.windUp).toBe(0);
+    expect(skipped.pullBack).toBe(0);
+    // The whole duration goes to the throw, so the tail is still exact.
+    expect(7800 * skipped.crawl).toBeCloseTo(CRAWL_MS, 6);
   });
 });
 

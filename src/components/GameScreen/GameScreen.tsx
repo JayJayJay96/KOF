@@ -1,18 +1,28 @@
 /**
  * Main game screen — Phase 2 two-wheel loop.
  *
- * WHO → WHAT FATE, with a host-triggered pause at every step. Nothing
- * auto-chains (PROJECT_SPEC.md §7, AGENTS.md §8).
+ * WHO → WHAT FATE.
  *
- * One primary action at a time, relabelled by state:
+ * ONE CLICK PER ROUND (Enhancement Phase 2). The host clicks Spin; the Fate
+ * resolving, the beats inside a multi-step Fate, the target spin and the round
+ * closing all follow on timers, and the game comes to rest at 'idle' ready for
+ * the next click.
  *
- *   Spin Player -> Spin Fate -> Resolve -> Next Round
+ * The single contextual action button remains, relabelled by state:
  *
- * Only Hunter/Duel/Revive/Death Mark are missing from the MVP ability set;
- * those are Phase 4. No arcade theming yet — that is Phase 7.
+ *   Spin Player -> Spin Fate -> Spin Target -> Resolve -> Continue -> Next Round
+ *
+ * It is no longer required, only offered: each button dispatches exactly what
+ * its timer is about to dispatch, so pressing one skips the wait. While a timer
+ * is armed the button carries a progress fill, because otherwise it reads as
+ * "press me" when it means "this is about to happen".
+ *
+ * This supersedes the original rule that nothing auto-chains (PROJECT_SPEC.md
+ * §7). The pauses still exist — they are simply held rather than gated.
  */
 
 import { useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { GameAction } from '../../game/engine/reducer';
 import type { AbilityDefinition } from '../../game/types/ability';
 import type { GameState } from '../../game/types/game';
@@ -89,6 +99,8 @@ type GameScreenProps = {
   completeFateSpin: () => void;
   resolveFate: () => void;
   spinTarget: () => void;
+  /** Null when the game is waiting for the host rather than for a timer. */
+  autoAdvanceMs: number | null;
 };
 
 export function GameScreen({
@@ -105,6 +117,7 @@ export function GameScreen({
   completeFateSpin,
   resolveFate,
   spinTarget,
+  autoAdvanceMs,
 }: GameScreenProps) {
   const [storyOpen, setStoryOpen] = useState(true);
 
@@ -167,6 +180,7 @@ export function GameScreen({
               selectedId={getMainWheelSelectedId(state)}
               spinning={spinningPlayer}
               phase={state.phase}
+              isTargetSpin={state.pendingTargetSpin !== null}
               onSpinComplete={completePlayerSpin}
             />
           </div>
@@ -214,6 +228,7 @@ export function GameScreen({
             resolveFate={resolveFate}
             spinTarget={spinTarget}
             dispatch={dispatch}
+            autoAdvanceMs={autoAdvanceMs}
           />
         </div>
 
@@ -244,6 +259,7 @@ function PrimaryAction({
   resolveFate,
   spinTarget,
   dispatch,
+  autoAdvanceMs,
 }: {
   state: GameState;
   spinPlayer: () => void;
@@ -251,8 +267,15 @@ function PrimaryAction({
   resolveFate: () => void;
   spinTarget: () => void;
   dispatch: (action: GameAction) => void;
+  autoAdvanceMs: number | null;
 }) {
-  const className = 'button button--primary button--large';
+  // An armed button is about to press itself. Without the fill it looks like it
+  // is waiting for the host, which is the opposite of what is happening — and
+  // pressing it early simply skips the wait, since it dispatches the same thing
+  // the timer would.
+  const armed = autoAdvanceMs !== null;
+  const className = `button button--primary button--large${armed ? ' button--armed' : ''}`;
+  const armStyle = armed ? ({ '--hold-ms': `${autoAdvanceMs}ms` } as CSSProperties) : undefined;
 
   if (state.screenState === 'winner') {
     return (
@@ -275,7 +298,7 @@ function PrimaryAction({
   // An ability is waiting on a target (Hunter, Duel).
   if (canSpinTarget(state)) {
     return (
-      <button type="button" className={className} onClick={spinTarget}>
+      <button type="button" className={className} style={armStyle} onClick={spinTarget}>
         Spin Target
       </button>
     );
@@ -287,6 +310,7 @@ function PrimaryAction({
       <button
         type="button"
         className={className}
+        style={armStyle}
         onClick={() => dispatch({ type: 'CONTINUE_EVENTS' })}
       >
         Continue
@@ -296,7 +320,12 @@ function PrimaryAction({
 
   if (canAdvanceRound(state)) {
     return (
-      <button type="button" className={className} onClick={() => dispatch({ type: 'NEXT_ROUND' })}>
+      <button
+        type="button"
+        className={className}
+        style={armStyle}
+        onClick={() => dispatch({ type: 'NEXT_ROUND' })}
+      >
         Next Round
       </button>
     );
@@ -304,7 +333,7 @@ function PrimaryAction({
 
   if (canResolveFate(state)) {
     return (
-      <button type="button" className={className} onClick={resolveFate}>
+      <button type="button" className={className} style={armStyle} onClick={resolveFate}>
         Resolve
       </button>
     );
@@ -312,7 +341,7 @@ function PrimaryAction({
 
   if (canSpinFateWheel(state)) {
     return (
-      <button type="button" className={className} onClick={spinFate}>
+      <button type="button" className={className} style={armStyle} onClick={spinFate}>
         Spin Fate
       </button>
     );

@@ -29,6 +29,8 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 ```text
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 
+Enh. Phase 2 — Game Flow Polish  COMPLETE (one click per round)
+Enh. Phase 1 — Wheel Polish      COMPLETE
 Enh. Phase 0 — Technical Cleanup NEARLY DONE (1 refactor left, see below)
 Phase 8 edge-case sweep          COMPLETE (agent-testable half)
 Fate rework Wave 3               DROPPED  (host decision)
@@ -92,7 +94,63 @@ the git log; the summaries below are kept short so this file stays current.
 
 ---
 
-# Completed This Session — Enhancement Phase 0: dead code
+# Completed This Session — Enhancement Phases 1 and 2
+
+Both designed with the host before any code was written; specs live in
+`docs/superpowers/specs/`. That process is now the agreed shape for every
+enhancement phase: question from several angles, propose, agree, spec, build.
+
+## Phase 1 — Wheel Polish
+
+Arcade fighter-select direction. Gutter cells with a **bright separator line**, a
+bright edge on the landed slice only, an impact flash, a pawl-shaped pointer,
+uppercase condensed labels from system fonts, and a per-phase tint on the rim and
+gutters alone.
+
+Timing was rebuilt twice, both times from host feedback:
+
+- **The crawl became absolute** (`CRAWL_MS`, 3.3s) rather than a share of the
+  spin. As a fraction it gave the two wheels different tails.
+- **The wind-up became a pull-and-release.** The first attempt dipped back and
+  returned to exactly zero before accelerating, so the eye saw the wheel reach
+  neutral and then start again — a visibly wasted motion. It now releases *from*
+  the back, and the pull is 1.5s with a **ratchet** clicking over its own teeth.
+
+Two findings worth keeping:
+
+1. **Ratchet clicks must not be counted off segment boundaries.** A test caught
+   it: at three players one segment is 120°, so a capped pull crossed barely one
+   boundary and the ratchet fell almost silent. A pawl's teeth are finer than the
+   wheel's slices and unrelated to roster size, so `RATCHET_TEETH` is counted
+   separately.
+2. **Clamps were silently eating the host's request.** Sized for a 350ms pull, at
+   1500ms they cut the pull to 1.17s and the Fate Wheel's tail to 2.8s. The real
+   constraint is only that deceleration stays positive.
+
+**Both wheels now run 7800ms, and that is load-bearing.** With an absolute crawl,
+a shorter wheel gives that tail a larger share of its throw and far less time to
+shed speed into it — at 6200ms the Fate Wheel braked about 3.5× harder than the
+Main Wheel and read as "stopping on purpose". Equal durations make every phase
+ratio equal. **Do not give the two wheels different durations again.**
+
+## Phase 2 — Game Flow
+
+**One click per round.** The host clicks Spin; the Fate resolving, the beats
+inside a multi-step Fate, the target spin and the round closing all follow on
+timers, and the game rests at `idle` ready for the next click.
+
+The buttons are **not removed** — each still dispatches what its timer is about
+to dispatch, so click-to-skip is free, control is returned rather than taken, and
+nothing can strand the game. An armed button carries a progress fill, because
+otherwise it reads as "press me" when it means "this is about to happen".
+
+Target re-spins skip the pull: the wheel is already loaded inside the round.
+
+Round costs: plain ~14.8s, Hunter/Duel ~24.5s.
+
+---
+
+# Completed Earlier — Enhancement Phase 0: dead code
 
 Six exports referenced nowhere but their own definition, deleted:
 `getLatestMessage` and `isGameOver` (selectors), `hasSpinnablePlayers`
@@ -640,7 +698,20 @@ No blockers.
 - `npm run build` — passes, 67 modules, no type errors.
 - `npm run lint` (oxlint) — clean.
 - `npx prettier --check` — all files conform.
-- `npm run test:run` — **36 passed**, 342ms.
+- `npm run test:run` — **65 passed**, ~330ms (29 of them wheel geometry).
+
+**Enhancement Phases 1–2**, verified in the browser:
+
+| Check | Result |
+|---|---|
+| Main reveals 7839ms, Fate 10822ms, gap 2983ms | PASS |
+| Ratchet: 8 clicks across the pull, gaps widening 136→153ms | PASS |
+| Separator visible — 178 bright pixels across 12 boundaries | PASS |
+| Gutters, fills, landed accent and full rim tint all render | PASS |
+| Pointer renders at 30×34 with its clip-path pawl shape | PASS |
+| One click drives a plain round back to rest unattended | PASS |
+| One click drives a Hunter round (6 states) back to rest | PASS |
+| Armed fill present during holds at 1600/1200/2200ms, absent at rest | PASS |
 
 Exercised against the real modules, in the browser, through Vite's module graph:
 

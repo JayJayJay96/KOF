@@ -248,7 +248,12 @@ export type SpinProfile = {
 export function createSpinProfile(durationMs: number, pullBack = 0): SpinProfile {
   const safeDuration = Math.max(1, durationMs);
 
-  const windUp = Math.min(WIND_UP_MS / safeDuration, MAX_WIND_UP_FRACTION);
+  // No pull distance means no pull time. Without this, a spin asked to skip its
+  // wind-up would still sit motionless for 1.5s, which reads as a hang rather
+  // than a saving. The target re-spin inside a Hunter round is exactly that
+  // case: the wheel is already loaded, so re-loading it is a beat that never
+  // happened.
+  const windUp = pullBack > 0 ? Math.min(WIND_UP_MS / safeDuration, MAX_WIND_UP_FRACTION) : 0;
   const throwMs = safeDuration * (1 - windUp);
 
   // Clamped on the INNER timeline, not the outer one: the wind-up has already

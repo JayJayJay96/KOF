@@ -258,6 +258,49 @@ body {
   color: var(--kof-danger);
 }
 
+/*
+ * An armed action button — one the game is about to press itself.
+ *
+ * The fill is the whole point. Without it, a button that is counting down looks
+ * identical to one waiting for input, so the host either presses it needlessly
+ * or sits wondering whether anything is happening. With it, the button reads as
+ * "this is about to happen, press to hurry it along".
+ *
+ * `--hold-ms` is set inline from the hook's own hold, so the bar always matches
+ * the real wait rather than approximating it.
+ */
+.button--armed {
+  position: relative;
+  overflow: hidden;
+}
+
+.button--armed::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0;
+  background: currentcolor;
+  opacity: 0.55;
+  animation: button-arm var(--hold-ms, 2s) linear forwards;
+}
+
+@keyframes button-arm {
+  to {
+    width: 100%;
+  }
+}
+
+/* The countdown still runs; only its animation is dropped. */
+@media (prefers-reduced-motion: reduce) {
+  .button--armed::after {
+    animation: none;
+    width: 100%;
+    opacity: 0.3;
+  }
+}
+
 /* --- Game screen --- */
 
 /* Two columns: the game being played, and the story rail beside it. The
