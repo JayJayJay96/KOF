@@ -132,19 +132,19 @@ export function segmentAtPointer(rotation: number, count: number): number {
  * several segments, slowly, each tick longer than the last. That is where "it's
  * on A but it's RIGHT at the edge of B" lives.
  *
- *   0   .. w        the wind-up: a backward dip, zero net distance
- *   w   .. w+a      constant acceleration, velocity 0 -> V
+ *   0   .. w        the pull: hauled backwards to -pullBack, ending at rest
+ *   w   .. w+a      released, constant acceleration, velocity 0 -> V
  *       .. 1-c      linear decay, V -> vCrawl      (the blur, bleeding off)
  *   1-c .. 1        linear decay, vCrawl -> 0      (the greasy final creep)
  *
  * Velocity is continuous across every join, so there is no visual jerk, and V is
- * solved so the total normalised distance is exactly 1 — the wheel still stops
+ * solved so the throw covers exactly (1 + pullBack) — the wheel still stops
  * precisely on the target angle rather than "close enough".
  *
- * THE WIND-UP IS NOT MONOTONIC, DELIBERATELY. Progress goes negative during the
- * dip, which is a real backward rotation, and the tick detector fires on the
- * boundaries it crosses. Those ticks should play: a wheel clicking as it is
- * hauled backwards is correct.
+ * THE PULL IS NOT MONOTONIC, DELIBERATELY. Progress goes negative, which is a
+ * real backward rotation, and the tick detector fires on every boundary it
+ * crosses. Those ticks are the point: they are the ratchet, the pointer dragging
+ * over one tooth at a time as the wheel is loaded.
  */
 
 /** Share of the throw spent accelerating, once the wind-up is done. */
@@ -164,9 +164,45 @@ export const CRAWL_DISTANCE = 0.085;
  */
 export const CRAWL_MS = 3300;
 /** Wall-clock length of the backward pull before the throw. */
-export const WIND_UP_MS = 350;
-/** How far back the wheel is hauled, as a share of the spin's total travel. */
-export const WIND_UP_DISTANCE = 0.012;
+export const WIND_UP_MS = 1500;
+
+/**
+ * How far back the wheel is hauled. Purely a visual choice.
+ *
+ * An earlier version measured this in segment boundaries, so that the pull would
+ * cross a fixed number of them and the ratchet would click a fixed number of
+ * times. That was the wrong model, and a test caught it: at three players one
+ * segment is 120 degrees, so a capped pull crossed barely one boundary and the
+ * ratchet fell almost silent across a second and a half.
+ *
+ * The mistake was tying the clicks to segments at all. A pawl has its own teeth,
+ * far finer than the wheel's slices and completely unrelated to how many people
+ * are playing. So the sound is counted separately (RATCHET_TEETH) and this angle
+ * is free to be whatever looks like a pull at any roster size.
+ */
+export const PULL_BACK_RAD = (110 * Math.PI) / 180;
+
+/**
+ * Ratchet clicks across the pull.
+ *
+ * Independent of segment count, so the cadence is identical whether three people
+ * are playing or twenty. They are emitted against the pull's eased position
+ * rather than against time, so they naturally space out as the wheel reaches the
+ * back — which is what a pawl does as the spring loads.
+ */
+export const RATCHET_TEETH = 9;
+
+/**
+ * The backward pull as a share of the spin's total travel.
+ *
+ * Returned as a fraction because `spinProgress` works in normalised distance.
+ * Guards against a zero, negative or non-finite travel, which would make the
+ * share meaningless.
+ */
+export function resolvePullBack(totalTravel: number): number {
+  if (!Number.isFinite(totalTravel) || totalTravel <= 0) return 0;
+  return PULL_BACK_RAD / totalTravel;
+}
 
 /**
  * Ceilings, so a short spin degrades instead of breaking.
@@ -176,8 +212,18 @@ export const WIND_UP_DISTANCE = 0.012;
  * solve. Clamping the crawl means a short spin loses blur rather than tension,
  * which is the right thing to sacrifice.
  */
-export const MAX_CRAWL_FRACTION = 0.6;
-export const MAX_WIND_UP_FRACTION = 0.15;
+/**
+ * The binding constraint is only `decel > 0`, i.e. crawl < 1 - ACCEL_TIME =
+ * 0.88. These sit below that with room to spare.
+ *
+ * They were originally 0.6 and 0.15, sized for a 350ms pull. At a 1.5s pull both
+ * bound: the wind-up silently shortened to 1.17s, and the Fate Wheel's tail was
+ * cut to 2.8s. Raising them lets a 1.5s pull and a 3.3s tail coexist inside the
+ * existing durations, so the round does not grow — the time comes out of the
+ * fast blur, which is the least valuable stretch on screen.
+ */
+export const MAX_CRAWL_FRACTION = 0.75;
+export const MAX_WIND_UP_FRACTION = 0.25;
 
 /**
  * A spin's timing, solved once per spin rather than once per frame.
@@ -188,6 +234,8 @@ export const MAX_WIND_UP_FRACTION = 0.15;
  */
 export type SpinProfile = {
   windUp: number;
+  /** How far back the wheel is hauled, as a share of total travel. */
+  pullBack: number;
   accel: number;
   decel: number;
   crawl: number;
@@ -197,7 +245,7 @@ export type SpinProfile = {
   decelDistance: number;
 };
 
-export function createSpinProfile(durationMs: number): SpinProfile {
+export function createSpinProfile(durationMs: number, pullBack = 0): SpinProfile {
   const safeDuration = Math.max(1, durationMs);
 
   const windUp = Math.min(WIND_UP_MS / safeDuration, MAX_WIND_UP_FRACTION);
@@ -215,6 +263,7 @@ export function createSpinProfile(durationMs: number): SpinProfile {
 
   return {
     windUp,
+    pullBack: Math.max(0, pullBack),
     accel,
     decel,
     crawl,
@@ -231,45 +280,52 @@ export const DEFAULT_SPIN_PROFILE = createSpinProfile(7800);
 /**
  * Progress along the spin at normalised time `t`.
  *
- * Returns a value in [-WIND_UP_DISTANCE, 1]: negative through the wind-up, and
- * exactly 1 at t = 1.
+ * Returns a value in [-pullBack, 1]: negative through the pull, and exactly 1 at
+ * t = 1. The throw therefore covers (1 + pullBack) of distance, so the wheel
+ * still lands precisely on target despite having started behind the origin.
  */
 export function spinProgress(t: number, profile: SpinProfile = DEFAULT_SPIN_PROFILE): number {
   if (t <= 0) return 0;
   if (t >= 1) return 1;
 
-  const { windUp, accel, decel, crawl, peakVelocity, crawlVelocity } = profile;
+  const { windUp, pullBack, accel, decel, crawl, peakVelocity, crawlVelocity } = profile;
 
-  // The dip. A full cosine, so it leaves and returns at exactly zero velocity —
-  // no jerk into the throw — and contributes no net distance.
+  // The pull. Smoothstep, so the wheel is taken up from rest and set down at
+  // rest at the back — which also spaces the ratchet clicks out as it goes,
+  // the way a real pawl does as the spring loads.
   if (t < windUp) {
     const u = t / windUp;
-    return -(WIND_UP_DISTANCE / 2) * (1 - Math.cos(2 * Math.PI * u));
+    return -pullBack * (u * u * (3 - 2 * u));
   }
 
-  // Everything below runs on the throw's own timeline.
+  // The throw runs on its own timeline, and RELEASES FROM THE BACK rather than
+  // from the origin. An earlier version dipped back and returned to exactly
+  // zero before accelerating, so the eye saw the wheel arrive at neutral and
+  // then start again — a visibly wasted motion. Starting the throw at -pullBack
+  // means the release sweeps through the origin already carrying speed.
   const s = (t - windUp) / (1 - windUp);
+  const travel = 1 + pullBack;
+
+  let thrown: number;
 
   if (s < accel) {
-    return (peakVelocity * s * s) / (2 * accel);
-  }
-
-  if (s < accel + decel) {
+    thrown = (peakVelocity * s * s) / (2 * accel);
+  } else if (s < accel + decel) {
     const u = s - accel;
-    return (
+    thrown =
       profile.accelDistance +
       peakVelocity * u +
-      ((crawlVelocity - peakVelocity) * u * u) / (2 * decel)
-    );
+      ((crawlVelocity - peakVelocity) * u * u) / (2 * decel);
+  } else {
+    const w = s - accel - decel;
+    thrown =
+      profile.accelDistance +
+      profile.decelDistance +
+      crawlVelocity * w -
+      (crawlVelocity * w * w) / (2 * crawl);
   }
 
-  const w = s - accel - decel;
-  return (
-    profile.accelDistance +
-    profile.decelDistance +
-    crawlVelocity * w -
-    (crawlVelocity * w * w) / (2 * crawl)
-  );
+  return -pullBack + travel * thrown;
 }
 
 /**

@@ -10,9 +10,11 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
+  RATCHET_TEETH,
   createSpinProfile,
   edgeBiasedOffset,
   resolveLabelFontSize,
+  resolvePullBack,
   resolveTargetRotation,
   segmentArc,
   segmentAtPointer,
@@ -46,8 +48,16 @@ export type WheelProps = {
   selectedId: string | null;
   spinning: boolean;
   onSpinComplete: () => void;
-  /** Fired each time a segment boundary passes the pointer. */
-  onTick?: () => void;
+  /**
+   * Fired each time a segment boundary passes the pointer.
+   *
+   * `windingUp` is true while the wheel is being hauled backwards, so a caller
+   * can play a ratchet click there instead of a spin tick — during the pull the
+   * pointer is dragging over teeth, not flying past them. `progress` is the
+   * spin's normalised position, for callers that want to bend pitch with the
+   * slowdown.
+   */
+  onTick?: (tick: { windingUp: boolean; progress: number }) => void;
   spinDurationMs?: number;
   minTurns?: number;
   /**
@@ -341,20 +351,45 @@ export function Wheel({
       // Solved once per spin rather than once per frame. It also inherits the
       // timing latch above, so a duration change mid-spin cannot re-time an
       // animation that is already in flight.
-      const profile = createSpinProfile(duration);
+      //
+      // The pull is measured against the ACTUAL travel of this spin, which
+      // varies with the random turn count — so the wheel is always hauled back
+      // the same number of segments regardless of how hard it was thrown.
+      const profile = createSpinProfile(duration, resolvePullBack(to - from));
 
       const startedAt = performance.now();
       lastTickSegmentRef.current = segmentAtPointer(from, count);
 
+      let lastTooth = 0;
+
       const step = (now: number) => {
         const t = Math.min(1, (now - startedAt) / duration);
-        rotationRef.current = from + (to - from) * spinProgress(t, profile);
+        const progress = spinProgress(t, profile);
+        rotationRef.current = from + (to - from) * progress;
 
-        const current = segmentAtPointer(rotationRef.current, count);
-        if (current !== lastTickSegmentRef.current) {
-          lastTickSegmentRef.current = current;
-          onTickRef.current?.();
-          setPointerKick((n) => n + 1);
+        const windingUp = t < profile.windUp;
+
+        // Two different detectors, because the pull and the spin are different
+        // physical events. During the pull the pointer drags over the ratchet's
+        // own teeth — fixed in number, nothing to do with the roster — so
+        // counting segment boundaries there would fall silent on a small wheel.
+        // Once thrown, a boundary flying past IS the tick.
+        if (windingUp) {
+          const depth = profile.pullBack > 0 ? Math.abs(progress) / profile.pullBack : 0;
+          const tooth = Math.floor(depth * RATCHET_TEETH);
+
+          if (tooth !== lastTooth) {
+            lastTooth = tooth;
+            onTickRef.current?.({ windingUp: true, progress });
+            setPointerKick((n) => n + 1);
+          }
+        } else {
+          const current = segmentAtPointer(rotationRef.current, count);
+          if (current !== lastTickSegmentRef.current) {
+            lastTickSegmentRef.current = current;
+            onTickRef.current?.({ windingUp: false, progress });
+            setPointerKick((n) => n + 1);
+          }
         }
 
         drawRef.current();

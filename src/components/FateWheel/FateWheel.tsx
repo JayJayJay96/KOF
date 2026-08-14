@@ -60,7 +60,7 @@ export function FateWheel({
         selectedId={selectedId}
         spinning={spinning}
         onSpinComplete={handleComplete}
-        onTick={() => playSound('wheelTick')}
+        onTick={({ windingUp }) => playSound(windingUp ? 'wheelRatchet' : 'wheelTick')}
         // 6200 against the Main Wheel's 7800. The crawl is an absolute 3.3s on
         // both, so the whole difference sits in the fast phase — and this wheel
         // has fewer segments, so it earns less from a long blur.

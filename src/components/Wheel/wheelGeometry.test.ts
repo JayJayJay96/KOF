@@ -25,12 +25,15 @@ import {
   MAX_CRAWL_FRACTION,
   MAX_LANDING_OFFSET,
   MIN_EDGE_MARGIN_RAD,
+  PULL_BACK_RAD,
+  RATCHET_TEETH,
   TWO_PI,
-  WIND_UP_DISTANCE,
+  WIND_UP_MS,
   createSpinProfile,
   edgeBiasedOffset,
   normalizeAngle,
   resolveMaxLandingOffset,
+  resolvePullBack,
   resolveTargetRotation,
   segmentArc,
   segmentAtPointer,
@@ -157,6 +160,59 @@ describe('spin profile', () => {
       expect(profile.decel).toBeGreaterThan(0);
     }
   });
+
+  it('fits the full 1.5s pull AND the full 3.3s tail on both wheels', () => {
+    // The reason the clamps were raised. At the old ceilings a 1.5s pull was
+    // silently cut to 1.17s and the Fate Wheel's tail to 2.8s.
+    for (const duration of [6200, 7800]) {
+      const profile = createSpinProfile(duration);
+
+      expect(duration * profile.windUp).toBeCloseTo(WIND_UP_MS, 6);
+      expect(duration * (1 - profile.windUp) * profile.crawl).toBeCloseTo(CRAWL_MS, 6);
+      expect(profile.decel).toBeGreaterThan(0.1);
+    }
+  });
+});
+
+describe('pull-back distance', () => {
+  it('pulls the same angle regardless of roster size', () => {
+    // The pull is a visual choice, not a function of the wheel's contents. An
+    // earlier version measured it in segment boundaries so the ratchet would
+    // click a fixed number of times, which fell apart at three players — one
+    // segment is 120 degrees there, so a capped pull crossed barely one
+    // boundary and the ratchet went almost silent. Clicks are counted
+    // separately now (RATCHET_TEETH), which frees this to stay constant.
+    const travel = 5 * TWO_PI;
+    const angle = resolvePullBack(travel) * travel;
+
+    expect(angle).toBeCloseTo(PULL_BACK_RAD, 6);
+  });
+
+  it('shrinks as a share of travel when the wheel is thrown harder', () => {
+    // A fixed angle over a longer throw is a smaller fraction, so a hard throw
+    // is not preceded by a proportionally huge wind-up.
+    const gentle = resolvePullBack(4 * TWO_PI);
+    const hard = resolvePullBack(6 * TWO_PI);
+
+    expect(hard).toBeLessThan(gentle);
+    expect(hard * 6 * TWO_PI).toBeCloseTo(gentle * 4 * TWO_PI, 6);
+  });
+
+  it('stays well under half a turn, so it reads as a pull not a reverse spin', () => {
+    expect(PULL_BACK_RAD).toBeLessThan(Math.PI);
+  });
+
+  it('gives the ratchet enough teeth to have a rhythm', () => {
+    // Across a 1.5s pull this is the difference between a ratchet and a click.
+    expect(RATCHET_TEETH).toBeGreaterThanOrEqual(6);
+    expect(WIND_UP_MS / RATCHET_TEETH).toBeLessThan(300);
+  });
+
+  it('refuses a degenerate travel rather than returning nonsense', () => {
+    for (const travel of [0, -1, Number.NaN]) {
+      expect(resolvePullBack(travel)).toBe(0);
+    }
+  });
 });
 
 describe('spinProgress', () => {
@@ -174,18 +230,43 @@ describe('spinProgress', () => {
     expect(spinProgress(0.9999, profile)).toBeLessThanOrEqual(1);
   });
 
-  it('goes backward during the wind-up, and only during the wind-up', () => {
-    const lowest = Math.min(
-      ...Array.from({ length: 200 }, (_, i) => spinProgress((i / 200) * profile.windUp, profile)),
-    );
+  it('hauls backward and RELEASES FROM THE BACK, not from the origin', () => {
+    const pulled = createSpinProfile(7800, 0.08);
 
-    expect(lowest).toBeLessThan(0);
-    expect(lowest).toBeGreaterThanOrEqual(-WIND_UP_DISTANCE);
-    // Back to zero by the time the throw starts, so the dip costs no distance.
-    expect(spinProgress(profile.windUp, profile)).toBeCloseTo(0, 6);
+    // Deepest point is the end of the pull, not somewhere in the middle: this
+    // is a pull-and-release, not a dip that returns to neutral first. An
+    // earlier version came back to zero before accelerating, which read as a
+    // visibly wasted motion.
+    const atRelease = spinProgress(pulled.windUp * 0.999, pulled);
+    expect(atRelease).toBeCloseTo(-0.08, 3);
+
+    const samples = Array.from({ length: 200 }, (_, i) =>
+      spinProgress((i / 200) * pulled.windUp, pulled),
+    );
+    expect(Math.min(...samples)).toBeCloseTo(-0.08, 3);
+    expect(samples[0]).toBeCloseTo(0, 6);
   });
 
-  it('is monotonic after the wind-up completes', () => {
+  it('is monotonically backward through the pull', () => {
+    const pulled = createSpinProfile(7800, 0.08);
+    let previous = 0;
+
+    for (let i = 1; i <= 500; i += 1) {
+      const current = spinProgress((i / 500) * pulled.windUp, pulled);
+      expect(current).toBeLessThanOrEqual(previous + 1e-9);
+      previous = current;
+    }
+  });
+
+  it('still lands exactly on target despite starting behind the origin', () => {
+    for (const pull of [0, 0.02, 0.08, 0.2]) {
+      const pulled = createSpinProfile(7800, pull);
+      expect(spinProgress(1, pulled)).toBe(1);
+      expect(spinProgress(0.99999, pulled)).toBeGreaterThan(0.999);
+    }
+  });
+
+  it('is monotonic after the pull completes', () => {
     let previous = spinProgress(profile.windUp, profile);
 
     for (let i = 0; i <= 4000; i += 1) {

@@ -68,14 +68,41 @@ Gutters are drawn *inside* each slice. `segmentAtPointer` and
 `resolveTargetRotation` are untouched, so the landing behaviour verified in
 Phase 8 keeps working and the pointer can never sit in a gap.
 
-### The wind-up makes the spin non-monotonic
+### The pull makes the spin non-monotonic
 
 The wheel rotates backward before launching. `spinProgress` therefore stops being
-monotonic — a property currently asserted. Two consequences:
+monotonic — a property previously asserted. The assertion becomes "monotonic
+after the pull completes".
 
-- The monotonicity assertion becomes "monotonic after the wind-up completes".
-- The tick detector fires on backward boundary crossings. **These ticks play.** A
-  wheel clicking as it is pulled back is correct, not a bug.
+### Revised after first build: it is a pull, not a dip
+
+The first attempt eased back and returned to **exactly zero** before
+accelerating, so the eye saw the wheel arrive at neutral and then start again —
+a visibly wasted motion, and the reason it read as awkward. The throw now
+releases **from** the back: it starts at `-pullBack` and covers `1 + pullBack`,
+so the release sweeps through the origin already carrying speed.
+
+The pull is **1500ms**, up from 350ms.
+
+### The ratchet is not tied to segments
+
+The pull should sound like a pawl dragging over teeth. The obvious
+implementation — reuse the segment-boundary tick detector — is wrong, and a test
+caught it: at three players one segment is 120°, so a capped pull crossed barely
+one boundary and the ratchet fell almost silent across a second and a half.
+
+A real pawl's teeth are far finer than the wheel's slices and have nothing to do
+with how many people are playing. So `RATCHET_TEETH` is counted separately and
+independently of roster size, emitted against the pull's eased position rather
+than against time — which makes the clicks bunch where the pull is fastest and
+stretch as it loads, exactly like a spring under increasing tension.
+
+Measured: 8 clicks, gaps 136 → 102 → 153ms, then ~290ms held at the back before
+release.
+
+Two sounds, therefore: `wheelRatchet` during the pull (low, dull, with a scrape
+of noise under it) and the existing `wheelTick` once thrown. `onTick` carries
+`{ windingUp, progress }` so an adapter can tell them apart.
 
 ## Timing
 
@@ -124,11 +151,16 @@ is therefore unchanged at 4500ms; only its composition changes.
 `ACCEL_TIME` at 0.12, a crawl fraction above 0.88 drives `DECEL_TIME` negative and
 the velocity solve breaks.
 
-**The fraction is clamped to 0.60.** That leaves at least 0.28 of the spin for
-deceleration at any duration, well clear of the failure point. At the clamp a
-spin is 5500ms or shorter, and it still gets a 3.3s tail — proportionally more
-crawl than the default, which is the right behaviour: a short spin should lose
-blur, not tension.
+**The fraction is clamped to 0.75, and the pull to 0.25.** That leaves at least
+0.13 of the throw for deceleration at any duration, clear of the failure point.
+A short spin therefore loses blur rather than tension, which is the right thing
+to sacrifice.
+
+These began at 0.60 and 0.15, sized for the original 350ms pull. At 1500ms both
+bound — and silently: the pull was cut to 1.17s and the Fate Wheel's tail to
+2.8s, so the requested values would have been quietly ignored. Raising the
+ceilings lets a 1.5s pull and a 3.3s tail coexist **inside the existing
+durations**, so the round does not grow; the time comes out of the fast blur.
 
 This matters because `config.animationSpeed` is intended to shorten spins.
 

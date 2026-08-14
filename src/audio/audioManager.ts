@@ -17,6 +17,7 @@
 
 export type SoundName =
   | 'wheelTick'
+  | 'wheelRatchet'
   | 'wheelStop'
   | 'fateReveal'
   | 'eliminate'
@@ -169,6 +170,15 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number)
   switch (name) {
     case 'wheelTick':
       tone(ctx, out, { type: 'square', from: 1500, at: now, duration: 0.018, peak: 0.06 });
+      break;
+
+    // The pull, not the spin. A pawl dragging over a tooth is a heavier, duller
+    // event than a segment flying past: lower, longer, with a scrape of noise
+    // under it. Deliberately far from `wheelTick` in pitch — during the pull the
+    // wheel is being loaded, and it should not sound like it is already going.
+    case 'wheelRatchet':
+      tone(ctx, out, { type: 'square', from: 320, to: 190, at: now, duration: 0.055, peak: 0.16 });
+      noise(ctx, out, { at: now, duration: 0.035, peak: 0.1, cutoff: 900 });
       break;
 
     case 'wheelStop':

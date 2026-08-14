@@ -73,7 +73,10 @@ export function MainWheel({ players, selectedId, spinning, onSpinComplete }: Mai
       selectedId={selectedId}
       spinning={spinning}
       onSpinComplete={handleComplete}
-      onTick={() => playSound('wheelTick')}
+      // Two different physical events share one detector: during the pull the
+      // pointer is being dragged over a tooth, during the spin one is flying
+      // past it. They should not sound the same.
+      onTick={({ windingUp }) => playSound(windingUp ? 'wheelRatchet' : 'wheelTick')}
     />
   );
 }
