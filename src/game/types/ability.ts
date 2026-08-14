@@ -33,7 +33,7 @@ export type AbilityDefinition = {
   /**
    * Always in the pool, exempt from the per-session draw.
    *
-   * The five Fates that keep the game moving — Eliminate, Shield, Death Mark,
+   * The five Fates that keep the game moving — Eliminate, Wall, Death Mark,
    * Hunter, Duel. Everything else is optional and drawn per session, which is
    * what makes two games feel different.
    */
