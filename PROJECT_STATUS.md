@@ -27,7 +27,7 @@ PASS 1 — MVP  (all phases built; Phase 8 playtesting is the open gate)
 # Current Phase
 
 ```text
-Enh. Phase 3 — Ability Expansion (3a COMPLETE, 3b not started)
+Enh. Phase 3 — Ability Expansion COMPLETE (3a and 3b)
 
 Phase 8 — Full-Game Validation   (IN PROGRESS — host-led playtesting)
 Enh. Phase 2 — Game Flow Polish  COMPLETE (one click per round)
@@ -204,13 +204,86 @@ and fails later, far from the cause. Version 3 therefore **rejects every v1 and
 v2 save** — a host with a game in progress across this deploy loses it, which is
 the correct trade against a white screen.
 
-## Part 3b — in progress
+## Part 3b — COMPLETE
 
-Part 3b renames Shield to Wall (code as well as UI), removes Close Call,
-Steal Wall and Bomb, and adds Gale, Demolition, C4, Fate Swap and Purify.
+Shield renamed to Wall through the code as well as the UI. Close Call and Steal
+Wall removed. Bomb replaced by C4. Gale, Demolition, Fate Swap and Purify added.
 
-Only the **rename has landed**. Everything else is designed but not started —
-do not describe any of it as done.
+The pool is now **13 Fates: 5 mandatory, 8 optional**, drawn 4 at a time for
+C(8,4) = 70 distinct session pools.
+
+### Why Shield became Wall
+
+A shield is worn, so it only ever reads as protection. A wall is a thing you
+stand behind — which means it can also fall on you. That is Gale: a spin across
+every living player where being **behind a Wall is what kills you** and open
+ground is safe. The mechanic is instant with a wall and needs a beat of thought
+with a shield.
+
+The rename went through the code, not just the screen: `Player.wall`,
+`ADD_WALL` / `REMOVE_WALL` / `WALL_BLOCK`, `MAX_WALL`, the 🧱 icon and a stone
+rim colour. A codebase saying one word while the screen says another is the
+drift that costs a future session an hour.
+
+Together Gale and Demolition make armour a decision instead of a free good —
+one takes it, the other kills you for having it.
+
+### Why C4 replaced Bomb
+
+Wave 2 argued a stationary countdown is a slower Death Mark, which is why Bomb
+passed hand to hand. C4 answers that differently: the **neighbours** have a
+stake because they can see what they are standing next to, and the **holder**
+has one because being selected is the only way out.
+
+That inverts the wheel for one player. Every other round being picked is dread;
+for the person carrying the charge it is rescue. That beat exists nowhere else.
+
+It also fixed Bomb's measured flaw — 49% of bombs died with their holder and
+the countdown stopped, patched in Wave 2 with an announcement. A charge can
+only end by being defused or by going off.
+
+Fuse is **5, not 3**. Selection is the only escape, so fuse length IS escape
+probability: at twelve alive a 3-round fuse gives ~23%, meaning three quarters
+of charges would take three people.
+
+### Measured over 200 games of 12 players
+
+| | Result | Baseline |
+|---|---|---|
+| Games reaching a valid winner | 200/200, 0 stuck | — |
+| Rolls that change nothing | **3.1%** | 3.3% (Wave 1) |
+| Rolls involving a second player | **37.7%** | 37.1% (Wave 1) |
+| Gale whiff rate | **58.2%** (55 spins, 23 hits) | predicted 83% |
+| C4 ends without a blast | **66.7%** (99 planted, 33 detonated) | — |
+| Players caught per blast | **3.00** | up to 3 by design |
+
+Every figure sits inside the thresholds the plan set in advance, so **no weight
+changes were needed**.
+
+Two findings worth keeping:
+
+1. **The 83% Gale whiff prediction was wrong; it is 58%.** The two-Wall gate
+   that makes Gale available also correlates with a later, smaller board where
+   walls are a larger share of the roster. The gate that gates it also aims it.
+2. **The harness biased its own measurement at first.** It picked targets at a
+   fixed mid-pool index rather than randomly, which is exactly the number Gale's
+   whiff rate depends on. Now `randomItem`, as the real wheel is.
+
+`balance.test.ts` is kept, not deleted — it asserts only what would be bugs
+(every game ends, no negative fuse) and prints the rest for a human to judge.
+
+### Still open, for a real session to answer
+
+- **Does C4 detonate often enough?** Two thirds of charges end without a blast.
+  That figure merges "defused by the wheel" with "holder died to something
+  else", deliberately — splitting them would mean matching events against
+  message text, and a metric that breaks when someone rewords a string is worse
+  than a coarser one that cannot. If the split matters, give the trigger two
+  distinct events rather than parsing prose.
+- **Does Gale's 58% miss read as tension or as nothing happening?** The
+  argument is that a miss is the release after every walled player sweats
+  through a spin. Only a live room settles that.
+- **Is a 4-of-8 draw felt at all?** The whole session-pool feature rests on it.
 
 ---
 

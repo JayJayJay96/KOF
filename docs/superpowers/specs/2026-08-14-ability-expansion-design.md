@@ -1,7 +1,7 @@
 # Enhancement Phase 3 — Ability Expansion
 
 **Date:** 2026-08-14
-**Status:** approved, not yet implemented
+**Status:** implemented — see PROJECT_STATUS.md for measured results
 **Roadmap:** `DEVELOPMENT_ROADMAP.md` → Enhancement Phase 3
 
 ## Goal
@@ -237,7 +237,12 @@ purpose instead of on top of someone.
 
 ## C4 🧨 — replaces Bomb
 
-Planted on the selected player. Ticks down at the end of each round.
+Planted on the selected player. Ticks down on each Main Wheel selection.
+
+That is the same cadence as "once per round" — there is exactly one selection
+per round — but it keeps the countdown inside the status-trigger registry,
+where every other status lives, rather than adding a special case to the
+reducer.
 
 - **The Main Wheel lands on the holder while it is live** → defused. This
   **consumes the round**, like a Death Mark, because the escape deserves the

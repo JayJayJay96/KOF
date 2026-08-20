@@ -1300,11 +1300,16 @@ Plan: `docs/superpowers/plans/2026-08-14-ability-expansion.md`
 - phase thresholds scale to the starting roster
 - per-session Fate pool: 5 mandatory + 4 of the optional set
 
-## 3B — Pool (IN PROGRESS — rename landed, Fates not yet added)
+## 3B — Pool (COMPLETE)
 
 Removed: Close Call, Steal Wall, Bomb.
-Renamed: Shield became Wall, through the code as well as the UI. **DONE**
+Renamed: Shield became Wall, through the code as well as the UI.
 Added: Gale, Demolition, C4, Fate Swap, Purify.
+
+Result: 13 Fates — 5 mandatory, 8 optional, drawn 4 at a time.
+Measured over 200 games: 200/200 valid winners, 3.1% inert rolls, 37.7%
+two-player rolls, Gale whiffs 58.2%, C4 detonates 33 of 99. No weight changes
+needed.
 
 ## Deferred, not dropped
 

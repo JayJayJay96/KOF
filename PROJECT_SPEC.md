@@ -414,7 +414,7 @@ Available Fate entries should depend on:
 Example:
 
 - `Revive` should not appear if nobody is eliminated.
-- `Steal Wall` should not appear if nobody has a wall.
+- `Steal Wall` should not appear if nobody has a wall. *(Removed in Enh. 3b; kept as an illustration of a board-level availability check — see Demolition and Purify for live examples.)*
 - `Double Kill` should be disabled near the final stage if it could break the intended ending.
 
 ---
@@ -738,33 +738,21 @@ with Safe it made almost a fifth of every spin dead air.
 Double Fate keeps the "spin again" energy and turns it into the most explosive
 result on the wheel instead of the emptiest.
 
-## 11.4b CLOSE CALL
+## 11.4b CLOSE CALL — REMOVED
 
-*Added after Phase 7 playtesting.*
+Removed in Enhancement Phase 3b.
 
-Icon:
+Unwalled, Close Call emitted `ADD_DEATH_MARK` — it *was* Death Mark with an
+extra sentence in front of it. The host said as much on reading the pool back,
+and the code agreed.
 
-```text
-😰
-```
+Removing it also closed a known issue for free. "Double Fate can waste half a
+roll" was only ever the Close Call + Death Mark collision: the two were the last
+remaining pair that could produce one effect from two Fates.
 
-Effect:
-
-The player survives, but never for free:
-
-```text
-Has a Wall  →  the Wall is destroyed absorbing the graze
-No Wall     →  survives, but gains a Death Mark
-```
-
-That branch is what keeps it from being a reskin of Death Mark. For a walled
-player it is a real loss with no lingering threat; for an exposed player it is
-survival bought on credit.
-
-Safe (§11.3) still exists but is now rare. If every roll matters the tension
-flatlines — an occasional clean escape is what makes the rest land.
-
----
+Dead air did not return. Wave 1 cut "rolls that change nothing" from 19.4% to
+3.3% and Close Call was part of that work, but it always *did* something. The
+200-game measurement after its removal reads 3.1%.
 
 ## 11.5 HUNTER
 
@@ -970,92 +958,142 @@ Possible statuses:
 
 - Wall
 - Death Mark
-- future Bomb
+- future timed statuses
 - future Curse
 - future Blessing
 
 ---
 
-## STEAL WALL
+## STEAL WALL — REMOVED
 
-*Promoted to the live pool after Phase 7 playtesting.*
+Removed in Enhancement Phase 3b, superseded by Fate Swap.
 
-Selected player steals a Wall from another walled player.
-
-If nobody owns a Wall, ability should not appear.
-
-Chosen because only ~21% of rolls involved a second player and those were the
-moments people actually reacted to. Steal Wall is the cheapest way to add
-another: it needs no target spin, because the victim is simply whoever
-already has one up.
-
-The thief's own Wall is irrelevant — a second is still capped at the MVP
-maximum of 1 (§11.2), but the victim loses theirs regardless, which is the
-point of the roll. If the only Wall holder turns out to be the thief, the
-Fate announces that nothing was stolen rather than silently doing nothing.
+Both occupy the same slot — a two-player Fate needing no target spin — but Fate
+Swap moves marks and charges as well as walls, and is valence-neutral where a
+theft never can be. That neutrality is also what makes it the honest home for
+moving a live C4: "steal the charge" as its own Fate would be a name that is
+sometimes a gain and sometimes suicide.
 
 ---
 
-## BOMB
+## C4 🧨
 
-*Promoted to the live pool in Wave 2 of the Fate rework. The open questions
-below are now answered.*
+*Replaced Bomb in Enhancement Phase 3b.*
 
-A **hot potato**. The selected player is handed the bomb with a fuse of 3.
+A charge is planted on the selected player with a fuse of 5. It does not move.
 
-From then on every Main Wheel selection passes it to whoever was just picked and
-drops the fuse by one. When the fuse runs out it goes off in the hands of the
-player selected on that tick.
+Every Main Wheel selection ticks it down by one. Two outcomes end it:
 
 ```text
-Round 4   Bomb rolls on Daniel        💣3 Daniel
-Round 5   Jason is selected           💣2 Jason
-Round 6   Priya is selected           💣1 Priya
-Round 7   Wei is selected             BOOM — Wei
+the wheel lands on the holder   ->  DEFUSED, and that consumes the round
+the fuse reaches zero           ->  the holder and BOTH wheel neighbours
 ```
 
-### Why it passes rather than sitting still
+```text
+Round 4   C4 rolls on Daniel          🧨5 Daniel
+Round 5   Jason is selected           🧨4 Daniel
+Round 6   Daniel is selected          DEFUSED — the wheel found him in time
+```
 
-A bomb that stays put and counts down is a slower Death Mark: the holder can do
-nothing about it and nobody else has a stake in it. Passing it to whoever is
-selected inverts that. Every spin becomes "not me", the rim marker visibly
-travels around the wheel, and on the last tick being selected simply kills you.
-The whole table watches one object for three rounds.
+Blast radius is the two players **adjacent on the wheel**, over the alive
+roster, wrapping at the ends. The list is deduplicated, so at two or three alive
+nobody takes two hits from one charge.
 
-A consequence worth saying out loud: because it moves every round, *holding* it
-between ticks is not itself dangerous. The danger is being selected on the final
-tick. The bomb is a countdown everyone can see, wearing someone's name.
+A Wall saves anyone it catches, holder included, and breaks doing so — the blast
+is an ordinary attack through the shared flow, not a piercing one.
 
-### Rules
+Available only at six or more alive, and never while another charge is live.
 
-- **One bomb at a time.** The Fate is unavailable while one is live. Two
-  countdowns at once would break §45's simplicity requirement.
-- **At least four players alive**, or the potato has nowhere to travel.
-- **Wall blocks the blast**, through the shared attack flow, and the bomb is
-  spent either way — the same rule as a Death Mark.
-- **It does not eat the round.** A pass happens alongside the normal Fate. Only
-  the detonating tick replaces the Fate Wheel, exactly as a Death Mark does.
-- **Revival returns a clean player**, bomb included.
-- **Weight 0 in Sudden Death** — a three-round fuse cannot tell its story when
-  the game is one elimination from over.
+### Why it sits still where Bomb passed
 
-### It dies with its holder, and says so
+Wave 2 argued that a stationary countdown is a slower Death Mark: the holder can
+do nothing and nobody else has a stake. Passing the bomb fixed that. C4 fixes it
+differently, and better — the **neighbours** have a stake because they can see
+what they are standing next to, and the **holder** has one because being
+selected is the only way out.
 
-If the holder is eliminated by anything else, the bomb goes with them. That is
-intended: dying to something else is a fair way to take it out of play.
+That second point inverts the game for one player. Every other round the wheel
+landing on you is dread; for the person carrying this it is rescue. That beat
+exists nowhere else in KOF.
 
-Measured over 200 games, this is how **roughly half** of all bombs end, because
-the player who takes the bomb then receives that same round's Fate — and an
-Eliminate roll kills the bomb it was just handed. The countdown is therefore
-announced when it ends this way, rather than silently vanishing.
+It also fixed Bomb's measured flaw. 49% of bombs died with their holder and the
+countdown simply stopped, which Wave 2 patched with an announcement. A charge
+can only end by being defused or by going off.
 
-If playtesting shows that fizzle rate is unsatisfying, the designed fix is to
-move the tick to the **end** of the round, after the Fate has resolved, so the
-bomb only ever passes to a player who survived. That was not done first because
-it makes the detonation land between rounds, which costs the host an extra click
-at the most dramatic moment in the mechanic.
+### Fuse length
+
+Being selected is the only escape, so fuse length IS escape probability. At
+twelve alive a 3-round fuse gives roughly 23% — three quarters of all charges
+would take three people. Five was chosen instead; measured over 200 games, 33 of
+99 charges detonated, each catching 3.00 players.
 
 ---
+
+## GALE 💨
+
+*Added in Enhancement Phase 3b.*
+
+A target spin across **every** living player, the caller included. Where it
+lands:
+
+```text
+behind a Wall  ->  the Wall comes down on them; they die
+open ground    ->  the gust passes; nothing happens
+```
+
+The Wall does not block this. It is the thing doing the killing, so the attack
+pierces (§7.7 `AttackOptions.pierce`).
+
+Available only at two or more Walls, so a spin never has one lonely candidate.
+
+This is the reason Shield was renamed to Wall. Armour stops being a free good
+and becomes a decision, because Demolition takes it and Gale kills you for
+having it.
+
+Self is deliberately not excluded. Hunter and Duel exclude the initiator because
+hunting yourself is incoherent and a duel needs two people; a gale catching the
+person who called it is perfectly coherent, and a walled player who rolls it is
+in immediate danger from their own Fate.
+
+**It misses often, and that is intended.** Measured over 200 games the whiff
+rate is 58.2%. That is not the dead air Wave 1 removed — Safe put nothing at
+risk, whereas here every walled player is publicly at risk for the length of a
+spin, and the miss is the release.
+
+---
+
+## DEMOLITION 🔨
+
+*Added in Enhancement Phase 3b.*
+
+Every Wall on the board comes down, including the roller's own. Nobody is hurt.
+
+Available from a single Wall: there is no beneficiary, so unlike a theft it
+still changes the board when only one is standing.
+
+The merciful opposite of Gale — same subject, walls coming down, but on purpose
+rather than on top of someone.
+
+Named Demolition rather than the EMP originally proposed, because an
+electromagnetic pulse does nothing to masonry.
+
+---
+
+## PURIFY ✨
+
+*Added in Enhancement Phase 3b.*
+
+Lifts a Death Mark from whoever is carrying one, preferring the selected player
+when they are marked.
+
+**It cannot touch a C4.** A charge has exactly one escape — the wheel landing on
+its holder — and Purify appears in roughly half of all sessions. A second escape
+route that common would leave the countdown toothless.
+
+It aims at the board rather than the selected player for a structural reason: in
+a dual spin the Fate is chosen while `currentPlayerId` is still null, so
+availability can only ask board-level questions. Aimed at the selected player it
+would do nothing most of the time.
 
 ## DOUBLE FATE
 
@@ -1082,9 +1120,9 @@ Exclusions:
 - **Sudden Death**, where two stacked Fates can produce an ending nobody can
   follow.
 
-Note that two different Fates can still produce the same effect — Close Call
-without a Wall and Death Mark both mark the player. `deathMark` is a boolean,
-so this is harmless, but it does waste half the roll.
+Two different Fates could once produce the same effect — Close Call without a
+Wall and Death Mark both marked the player, wasting half the roll. Removing
+Close Call in Enhancement Phase 3b closed that: no remaining pair collides.
 
 ---
 
@@ -1129,9 +1167,11 @@ These are what keeps a game moving. They also make category quotas unnecessary: 
 
 ## Drawn
 
-Four of the six optional Fates — Safe, Close Call, Revive, Steal Wall, Double Fate, Bomb.
+Four of the eight optional Fates — Safe, Revive, Double Fate, C4, Demolition, Gale, Fate Swap, Purify.
 
-Four is the draw size because C(6,4) = 15 distinct pools, and any one optional Fate sits out roughly one game in three. Drawing more would show most of the same Fates every session and the draw would stop being felt.
+Four is the draw size because C(8,4) = 70 distinct pools, and every game genuinely omits half of them. Drawing six — the number originally proposed — would show 75% of the same Fates every session and the draw would stop being felt.
+
+The count is load-bearing downward too: if the optional pool ever shrinks to four, the draw becomes degenerate — one possible pool, every session identical, and the feature silently dead.
 
 ## The pool is fixed for the whole game
 
@@ -2155,10 +2195,10 @@ These should not delay the first playable version:
 - online multiplayer,
 - AI,
 - heavy sprite animation,
-- advanced PixiJS scene system,
+- C4, *(shipped in Enh. 3b)*
 - complex custom ability editor,
-- Bomb,
-- Double Fate,
+- Bomb, *(shipped in Wave 2, replaced by C4 in Enh. 3b)*
+- Double Fate, *(shipped in Wave 1)*
 - Chain Reaction,
 - Team Battle,
 - Boss Mode,
