@@ -30,7 +30,7 @@ import type { AbilityDefinition } from '../types/ability';
 import { createInitialGameState } from './gameEngine';
 import { gameReducer } from './reducer';
 import { attackPlayer } from './attack';
-import { canSpinTarget, getAlivePlayers, getTargetPool } from './selectors';
+import { canSpinTarget, getAlivePlayers, getTargetPool, getWheelNeighbours } from './selectors';
 import {
   ABILITIES,
   ABILITY_BY_ID,
@@ -286,6 +286,59 @@ describe('Demolition', () => {
     const after = playRound(state, 'B', 'demolition');
 
     expect(playerOf(after, 'B').wall).toBe(0);
+  });
+});
+
+// --- Wheel neighbours --------------------------------------------------------
+
+describe('wheel neighbours', () => {
+  it('returns the players either side, wrapping at the ends', () => {
+    const state = startGame(['A', 'B', 'C', 'D', 'E']);
+
+    expect(
+      getWheelNeighbours(state, idOf(state, 'C'))
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['B', 'D']);
+
+    expect(
+      getWheelNeighbours(state, idOf(state, 'A'))
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['B', 'E']);
+  });
+
+  it('skips eliminated players, because the wheel does not draw them', () => {
+    let state = startGame(['A', 'B', 'C', 'D', 'E']);
+    state = withStatus(state, 'B', { status: 'eliminated' });
+
+    expect(
+      getWheelNeighbours(state, idOf(state, 'C'))
+        .map((p) => p.name)
+        .sort(),
+    ).toEqual(['A', 'D']);
+  });
+
+  it('deduplicates when both sides are the same player', () => {
+    let state = startGame(['A', 'B', 'C']);
+    state = withStatus(state, 'C', { status: 'eliminated' });
+
+    expect(getWheelNeighbours(state, idOf(state, 'A')).map((p) => p.name)).toEqual(['B']);
+  });
+
+  it('returns nothing when the player stands alone', () => {
+    let state = startGame(['A', 'B', 'C']);
+    state = withStatus(state, 'B', { status: 'eliminated' });
+    state = withStatus(state, 'C', { status: 'eliminated' });
+
+    expect(getWheelNeighbours(state, idOf(state, 'A'))).toEqual([]);
+  });
+
+  it('returns nothing for a player who is not alive', () => {
+    let state = startGame(['A', 'B', 'C']);
+    state = withStatus(state, 'A', { status: 'eliminated' });
+
+    expect(getWheelNeighbours(state, idOf(state, 'A'))).toEqual([]);
   });
 });
 
