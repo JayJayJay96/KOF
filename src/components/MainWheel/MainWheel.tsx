@@ -11,7 +11,6 @@
 
 import { useCallback, useMemo } from 'react';
 import type { Player } from '../../game/types/player';
-import { neighboursIn } from '../../game/engine/selectors';
 import type { GamePhase } from '../../game/types/game';
 import { Wheel } from '../Wheel/Wheel';
 import type { WheelEntry, WheelMarker } from '../Wheel/Wheel';
@@ -75,19 +74,6 @@ export function MainWheel({
   // spin itself. The status panel already lists who is marked, but nobody is
   // looking down there while the pointer is crawling — they are watching the
   // wheel (PROJECT_SPEC.md §13).
-  // Who dies with the charge if it reaches zero. Computed from the SAME
-  // adjacency rule the engine detonates by, so what the audience sees and what
-  // happens cannot drift apart.
-  //
-  // Suppressed during a target spin: the wheel is showing a restricted pool
-  // then, so adjacency on screen would not be adjacency in the engine.
-  const blastRadius = useMemo(() => {
-    if (isTargetSpin) return new Set<string>();
-    const holder = players.find((player) => player.c4Fuse !== undefined);
-    if (!holder) return new Set<string>();
-    return new Set(neighboursIn(players, holder.id).map((player) => player.id));
-  }, [players, isTargetSpin]);
-
   const entries: WheelEntry[] = useMemo(
     () =>
       players.map((player) => {
@@ -97,7 +83,7 @@ export function MainWheel({
         // once, and on the last tick it is the reason to care about this spin.
         if (player.c4Fuse !== undefined) {
           markers.push({ color: c4RimColor(player.c4Fuse), icon: '🧨' });
-        } else if (blastRadius.has(player.id)) {
+        } else if (player.c4Blast) {
           markers.push({ color: BLAST_COLOR, icon: '⚠' });
         }
         if (player.deathMark) markers.push({ color: DEATH_MARK_COLOR, icon: '💀' });
@@ -109,7 +95,7 @@ export function MainWheel({
           markers: markers.length > 0 ? markers : undefined,
         };
       }),
-    [players, blastRadius],
+    [players],
   );
 
   // The wheel exposes onTick per segment boundary; this is where it becomes

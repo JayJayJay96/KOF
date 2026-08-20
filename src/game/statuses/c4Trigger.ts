@@ -43,7 +43,6 @@ import type { GameEvent } from '../events/eventTypes';
 import type { Player } from '../types/player';
 import type { StatusTrigger } from './statusTriggers';
 import { attackPlayer } from '../engine/attack';
-import { getWheelNeighbours } from '../engine/selectors';
 
 /**
  * Rounds from planting to detonation.
@@ -125,9 +124,16 @@ export const c4Trigger: StatusTrigger = {
       return [{ type: 'SET_C4', playerId: holder.id, fuse: next }];
     }
 
-    // Deduplicated by the selector, so nobody takes two hits from one blast
-    // when the board is down to two or three.
-    const caught = [holder, ...getWheelNeighbours(context.state, holder.id)];
+    // The radius was bound when the charge was planted, so any reordering since
+    // then cannot have changed who is caught. Bound players who died in the
+    // meantime are simply not here any more — the blast shrinks rather than
+    // topping itself up from whoever moved in beside the holder.
+    const caught = [
+      holder,
+      ...context.state.players.filter(
+        (player) => player.status === 'alive' && player.c4Blast && player.id !== holder.id,
+      ),
+    ];
 
     return [
       { type: 'SET_C4', playerId: holder.id, fuse: 0 },

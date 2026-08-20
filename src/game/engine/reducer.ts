@@ -34,6 +34,7 @@ import {
 import { drainEventQueue, enqueueEvents } from '../events/eventQueue';
 import { ABILITIES, buildGameContext, getAbility } from '../abilities';
 import { drawSessionPool } from '../abilities/sessionPool';
+import { shuffle } from '../../utils/random';
 import { findSelectionTriggers } from '../statuses/statusTriggers';
 
 /** A game needs at least two players to have a loser and a winner. */
@@ -58,6 +59,7 @@ export type GameAction =
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'NEXT_ROUND' }
   | { type: 'RESET_GAME' }
+  | { type: 'SHUFFLE_WHEELS' }
   | { type: 'SET_AUDIO'; audio: Partial<GameConfig['audio']> }
   | { type: 'SET_SIMULTANEOUS_SPIN'; enabled: boolean };
 
@@ -107,6 +109,9 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
     case 'NEXT_ROUND':
       return nextRound(state);
+
+    case 'SHUFFLE_WHEELS':
+      return shuffleWheels(state);
 
     case 'RESET_GAME':
       return resetGame(state);
@@ -520,6 +525,33 @@ function nextRound(state: GameState): GameState {
   return { ...advanced, history: appendEvents(advanced, [{ type: 'ROUND_STARTED', round }]) };
 }
 
+/**
+ * Reorder both wheels without changing a single outcome.
+ *
+ * Player selection is already position-blind (`randomItem` over the alive set)
+ * and the Fate is chosen by weight before its wheel moves, so segment order is
+ * pure presentation on both. This is theatre: it breaks the layout viewers have
+ * memorised and gives the host something to do between rounds.
+ *
+ * It is deliberately NOT a weapon. A live C4's blast radius is bound to specific
+ * players when the charge is planted (`Player.c4Blast`), so reordering cannot
+ * re-roll who dies — otherwise a host reaching for this to improve pacing would
+ * be quietly rewriting the endgame.
+ *
+ * Legal at 'idle' only, the same window as roster edits: no wheel is turning, no
+ * ability is suspended, and `currentPlayerId` has been cleared by NEXT_ROUND.
+ * Reordering mid-spin would restart the animation, because `Wheel` keys its
+ * entries by id.
+ */
+function shuffleWheels(state: GameState): GameState {
+  if (state.screenState !== 'idle') return state;
+
+  return {
+    ...state,
+    players: shuffle(state.players),
+    sessionAbilityIds: shuffle(state.sessionAbilityIds),
+  };
+}
 /** Back to setup with the same roster, all status cleared. */
 function resetGame(state: GameState): GameState {
   return {

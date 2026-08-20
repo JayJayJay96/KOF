@@ -509,8 +509,10 @@ describe('C4', () => {
     expect(getAlivePlayers(state)).toHaveLength(7);
   });
 
-  it('detonates on the tick that empties the fuse, taking both neighbours', () => {
+  it('detonates on the tick that empties the fuse, taking both bound players', () => {
     let state = withStatus(startGame(roster), 'B', { c4Fuse: 1 });
+    state = withStatus(state, 'A', { c4Blast: true });
+    state = withStatus(state, 'C', { c4Blast: true });
     state = drain(selectOnly(state, 'D'));
 
     // Roster order is A B C D E F G, so B's wheel neighbours are A and C.
@@ -520,9 +522,10 @@ describe('C4', () => {
     expect(playerOf(state, 'D').status).toBe('alive');
   });
 
-  it('a walled neighbour survives and loses the Wall', () => {
+  it('a walled bound player survives and loses the Wall', () => {
     let state = withStatus(startGame(roster), 'B', { c4Fuse: 1 });
-    state = withStatus(state, 'A', { wall: 1 });
+    state = withStatus(state, 'A', { wall: 1, c4Blast: true });
+    state = withStatus(state, 'C', { c4Blast: true });
     state = drain(selectOnly(state, 'D'));
 
     expect(playerOf(state, 'A').status).toBe('alive');
@@ -712,6 +715,8 @@ describe('C4 tension', () => {
 
   it('names a live charge and its blast radius every round', () => {
     let state = withStatus(startGame(roster), 'B', { c4Fuse: 4 });
+    state = withStatus(state, 'A', { c4Blast: true });
+    state = withStatus(state, 'C', { c4Blast: true });
     state = selectOnly(state, 'D');
 
     const line = describeSituation(state);
@@ -734,6 +739,63 @@ describe('C4 tension', () => {
     // The round line is suppressed mid-spin to avoid spoiling the result, but a
     // countdown spoils nothing and is already painted on the rim.
     expect(describeSituation(state) ?? '').toContain('🧨');
+  });
+});
+// --- Shuffle -----------------------------------------------------------------
+
+describe('shuffle', () => {
+  const roster = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
+  it('reorders players without changing who is alive or what they carry', () => {
+    let state = withStatus(startGame(roster), 'B', { wall: 1 });
+    state = withStatus(state, 'E', { deathMark: true });
+
+    const shuffled = gameReducer(state, { type: 'SHUFFLE_WHEELS' });
+
+    expect([...shuffled.players].map((p) => p.name).sort()).toEqual(
+      [...state.players].map((p) => p.name).sort(),
+    );
+    expect(playerOf(shuffled, 'B').wall).toBe(1);
+    expect(playerOf(shuffled, 'E').deathMark).toBe(true);
+    expect(getAlivePlayers(shuffled)).toHaveLength(8);
+  });
+
+  it('keeps the same Fates in the session pool', () => {
+    const state = startGame(roster);
+    const shuffled = gameReducer(state, { type: 'SHUFFLE_WHEELS' });
+
+    expect([...shuffled.sessionAbilityIds].sort()).toEqual([...state.sessionAbilityIds].sort());
+  });
+
+  it('cannot change who a live C4 will catch', () => {
+    // The whole reason the radius is bound at plant rather than recomputed.
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 2 });
+    state = withStatus(state, 'A', { c4Blast: true });
+    state = withStatus(state, 'C', { c4Blast: true });
+
+    let shuffled = gameReducer(state, { type: 'SHUFFLE_WHEELS' });
+    const bound = shuffled.players.filter((p) => p.c4Blast).map((p) => p.name);
+
+    expect(bound.sort()).toEqual(['A', 'C']);
+    expect(playerOf(shuffled, 'B').c4Fuse).toBe(2);
+
+    // And it still detonates against exactly those two.
+    shuffled = withStatus(shuffled, 'B', { c4Fuse: 1 });
+    shuffled = drain(selectOnly(shuffled, 'D'));
+
+    expect(playerOf(shuffled, 'A').status).toBe('eliminated');
+    expect(playerOf(shuffled, 'C').status).toBe('eliminated');
+    expect(playerOf(shuffled, 'B').status).toBe('eliminated');
+  });
+
+  it('is refused while a wheel is turning', () => {
+    const state = startGame(roster);
+    const spinning = gameReducer(state, {
+      type: 'START_PLAYER_SPIN',
+      playerId: idOf(state, 'A'),
+    });
+
+    expect(gameReducer(spinning, { type: 'SHUFFLE_WHEELS' })).toBe(spinning);
   });
 });
 

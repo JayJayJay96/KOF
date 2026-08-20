@@ -28,6 +28,21 @@ export type Player = {
    */
   c4Fuse?: number;
 
+  /**
+   * In the blast radius of the live charge.
+   *
+   * Bound when the charge is PLANTED, not recomputed at detonation. The host
+   * can reorder the wheel freely without changing who dies — a shuffle is
+   * presentation, and it would be a stealth weapon if it re-rolled the radius.
+   *
+   * The cost is that the link stops being derivable from geometry once players
+   * move apart, so the warning rim and the situation line have to carry it.
+   *
+   * Members who die before the fuse runs out simply are not there any more: the
+   * blast shrinks rather than topping itself up.
+   */
+  c4Blast?: boolean;
+
   eliminatedAtRound?: number;
   revivedCount: number;
 };

@@ -38,7 +38,7 @@ export type GameEvent =
   // Plants the charge on playerId and sets its fuse, clearing it from anyone
   // who held it before. One event covers planting and every tick, which is what
   // makes "only one C4 exists" structural rather than a rule to remember.
-  | { type: 'SET_C4'; playerId: string; fuse: number }
+  | { type: 'SET_C4'; playerId: string; fuse: number; blastPlayerIds?: string[] }
   | { type: 'CLEAR_C4' }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'REVIVE_PLAYER'; playerId: string }

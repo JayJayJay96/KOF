@@ -108,6 +108,15 @@ export function HostPanel({
           <button
             type="button"
             className="button button--small"
+            disabled={state.screenState !== 'idle'}
+            title="Reorder both wheels. Changes no odds — player selection is position-blind and the Fate is chosen by weight before its wheel moves."
+            onClick={() => dispatch({ type: 'SHUFFLE_WHEELS' })}
+          >
+            Shuffle wheels
+          </button>
+          <button
+            type="button"
+            className="button button--small"
             onClick={() => dispatch({ type: 'RESET_GAME' })}
           >
             Reset to setup

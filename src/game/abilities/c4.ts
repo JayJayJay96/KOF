@@ -25,6 +25,7 @@
 import type { AbilityDefinition } from '../types/ability';
 import type { GameEvent } from '../events/eventTypes';
 import { C4_FUSE, getC4Holder } from '../statuses/c4Trigger';
+import { getWheelNeighbours } from '../engine/selectors';
 
 /**
  * A blast takes up to three people. Below this the charge alone could end the
@@ -41,8 +42,19 @@ export const c4Ability: AbilityDefinition = {
   isAvailable: (context) =>
     context.alivePlayers.length >= MIN_ALIVE && getC4Holder(context.state.players) === null,
 
-  resolve: (_context, selectedPlayerId): GameEvent[] => [
-    { type: 'SET_C4', playerId: selectedPlayerId, fuse: C4_FUSE },
+  // The blast radius is bound HERE, at planting, and never recomputed. That is
+  // what lets the host reorder the wheel without changing who dies — a shuffle
+  // is presentation, and re-rolling the radius would make it a stealth weapon.
+  // See `Player.c4Blast`.
+  resolve: (context, selectedPlayerId): GameEvent[] => [
+    {
+      type: 'SET_C4',
+      playerId: selectedPlayerId,
+      fuse: C4_FUSE,
+      blastPlayerIds: getWheelNeighbours(context.state, selectedPlayerId).map(
+        (player) => player.id,
+      ),
+    },
   ],
 
   describeStakes: (context, selectedPlayerId) => {

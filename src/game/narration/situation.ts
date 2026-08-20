@@ -20,7 +20,7 @@
 import type { GameState } from '../types/game';
 import type { Player } from '../types/player';
 import { buildGameContext, getAbility } from '../abilities';
-import { getAlivePlayers, getCurrentPlayer, neighboursIn } from '../engine/selectors';
+import { getCurrentPlayer } from '../engine/selectors';
 import { describeEvent } from '../events/eventLog';
 
 /** How many recent lines the resolution burst may show at once. */
@@ -113,7 +113,10 @@ function describeLiveCharge(state: GameState): string | null {
   );
   if (!holder) return null;
 
-  const beside = neighboursIn(getAlivePlayers(state), holder.id)
+  // The bound members, not whoever happens to be adjacent now — the radius was
+  // fixed when the charge was planted and a shuffle must not appear to move it.
+  const beside = state.players
+    .filter((player) => player.status === 'alive' && player.c4Blast && player.id !== holder.id)
     .map((player) => player.name)
     .join(' and ');
 

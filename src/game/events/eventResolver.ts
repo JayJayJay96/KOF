@@ -93,22 +93,39 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
     // Setting the charge clears it from everyone else in the same step, so two
     // holders cannot exist even briefly. An eliminated target is refused for
     // the same reason a corpse cannot be armed with a Wall.
-    case 'SET_C4':
+    // `blastPlayerIds` is only carried when the charge is PLANTED. A tick omits
+    // it, and omitting it leaves the existing membership alone — which is what
+    // makes the radius survive a shuffle. Passing an empty array is therefore
+    // meaningfully different from passing nothing: it clears the radius.
+    case 'SET_C4': {
+      const blast = event.blastPlayerIds;
+
       return {
         ...state,
         players: state.players.map((player) => {
-          if (player.id !== event.playerId) {
-            return player.c4Fuse === undefined ? player : { ...player, c4Fuse: undefined };
-          }
-          return player.status === 'alive' ? { ...player, c4Fuse: event.fuse } : player;
+          const isHolder = player.id === event.playerId;
+
+          const c4Fuse = isHolder
+            ? player.status === 'alive'
+              ? event.fuse
+              : player.c4Fuse
+            : undefined;
+
+          const c4Blast = blast ? blast.includes(player.id) || undefined : player.c4Blast;
+
+          if (c4Fuse === player.c4Fuse && c4Blast === player.c4Blast) return player;
+          return { ...player, c4Fuse, c4Blast };
         }),
       };
+    }
 
     case 'CLEAR_C4':
       return {
         ...state,
         players: state.players.map((player) =>
-          player.c4Fuse === undefined ? player : { ...player, c4Fuse: undefined },
+          player.c4Fuse === undefined && player.c4Blast === undefined
+            ? player
+            : { ...player, c4Fuse: undefined, c4Blast: undefined },
         ),
       };
 
@@ -144,6 +161,7 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
               wall: 0,
               deathMark: false,
               c4Fuse: undefined,
+              c4Blast: undefined,
               eliminatedAtRound: undefined,
               revivedCount: player.revivedCount + 1,
             }

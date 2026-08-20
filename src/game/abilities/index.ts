@@ -102,12 +102,21 @@ export function getAvailableAbilities(state: GameState): AbilityDefinition[] {
   // dead-guard pattern removed from phaseResolver in Task 3.
   const pool = state.sessionAbilityIds.length > 0 ? new Set(state.sessionAbilityIds) : null;
 
-  return ABILITIES.filter((ability) => {
+  const available = ABILITIES.filter((ability) => {
     if (pool !== null && !pool.has(ability.id)) return false;
     if (state.config.abilities[ability.id]?.enabled === false) return false;
     if (!ability.isAvailable(context)) return false;
     return getAbilityWeight(state, ability) > 0;
   });
+
+  // Returned in SESSION-POOL order rather than registry order, so the Fate
+  // Wheel can be reordered simply by shuffling `sessionAbilityIds`. Selection
+  // is weighted and happens before the wheel moves, so segment order is
+  // presentation only and this cannot change a single outcome.
+  if (pool === null) return available;
+
+  const order = new Map(state.sessionAbilityIds.map((id, index) => [id, index]));
+  return available.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
 }
 
 /**
