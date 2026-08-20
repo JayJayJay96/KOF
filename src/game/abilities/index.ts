@@ -23,6 +23,7 @@ import { reviveAbility } from './revive';
 import { duelAbility } from './duel';
 import { stealWallAbility } from './stealWall';
 import { bombAbility } from './bomb';
+import { galeAbility } from './gale';
 import { DOUBLE_FATE_ID, doubleFateAbility, setDoubleFatePoolProvider } from './doubleFate';
 
 export const ABILITIES: readonly AbilityDefinition[] = [
@@ -37,6 +38,7 @@ export const ABILITIES: readonly AbilityDefinition[] = [
   stealWallAbility,
   doubleFateAbility,
   bombAbility,
+  galeAbility,
 ];
 
 export const ABILITY_BY_ID: Record<string, AbilityDefinition> = Object.fromEntries(

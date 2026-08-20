@@ -32,6 +32,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     steal_wall: { enabled: true, weights: {} },
     double_fate: { enabled: true, weights: {} },
     bomb: { enabled: true, weights: {} },
+    gale: { enabled: true, weights: {} },
     fate_swap: { enabled: false, weights: {} },
     double_kill: { enabled: false, weights: {} },
   },

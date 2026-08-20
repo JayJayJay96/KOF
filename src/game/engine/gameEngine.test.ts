@@ -181,6 +181,82 @@ describe('piercing attacks', () => {
   });
 });
 
+// --- Gale --------------------------------------------------------------------
+
+describe('Gale', () => {
+  const roster = ['A', 'B', 'C', 'D', 'E'];
+
+  /** Two Walls up and Gale in the session pool — Gale's minimum conditions. */
+  function twoWalls(): GameState {
+    let state = withStatus(startGame(roster), 'A', { wall: 1 });
+    state = withStatus(state, 'B', { wall: 1 });
+    return { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'gale'] };
+  }
+
+  function gale() {
+    const ability = getAbility('gale');
+    if (!ability?.resolveTargetSpin) throw new Error('gale is not registered');
+    return ability;
+  }
+
+  it('is unavailable below two Walls', () => {
+    let state = startGame(roster);
+    state = { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'gale'] };
+    expect(getAvailableAbilities(state).map((a) => a.id)).not.toContain('gale');
+
+    state = withStatus(state, 'A', { wall: 1 });
+    expect(getAvailableAbilities(state).map((a) => a.id)).not.toContain('gale');
+
+    state = withStatus(state, 'B', { wall: 1 });
+    expect(getAvailableAbilities(state).map((a) => a.id)).toContain('gale');
+  });
+
+  it('requests a target spin that excludes nobody', () => {
+    const state = twoWalls();
+    const request = gale()
+      .resolve(buildGameContext(state), idOf(state, 'C'))
+      .find((event) => event.type === 'REQUEST_PLAYER_SPIN');
+
+    if (request?.type !== 'REQUEST_PLAYER_SPIN') throw new Error('no target spin requested');
+    expect(request.excludePlayerIds ?? []).toEqual([]);
+  });
+
+  it('kills a walled target through its Wall', () => {
+    const state = twoWalls();
+    const types = gale().resolveTargetSpin!(
+      buildGameContext(state),
+      idOf(state, 'C'),
+      idOf(state, 'A'),
+    ).map((event) => event.type);
+
+    expect(types).toContain('ELIMINATE_PLAYER');
+    expect(types).not.toContain('WALL_BLOCK');
+  });
+
+  it('spares an unwalled target', () => {
+    const state = twoWalls();
+    const types = gale().resolveTargetSpin!(
+      buildGameContext(state),
+      idOf(state, 'A'),
+      idOf(state, 'C'),
+    ).map((event) => event.type);
+
+    expect(types).not.toContain('ELIMINATE_PLAYER');
+    expect(types).toContain('SHOW_MESSAGE');
+  });
+
+  it('can catch the player who called it', () => {
+    const state = twoWalls();
+    const types = gale().resolveTargetSpin!(
+      buildGameContext(state),
+      idOf(state, 'A'),
+      idOf(state, 'A'),
+    ).map((event) => event.type);
+
+    expect(types).toContain('ELIMINATE_PLAYER');
+  });
+});
+
 // --- Death Mark --------------------------------------------------------------
 
 describe('Death Mark', () => {
