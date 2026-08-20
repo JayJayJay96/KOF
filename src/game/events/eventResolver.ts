@@ -65,6 +65,31 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
     case 'REMOVE_DEATH_MARK':
       return mapPlayer(state, event.playerId, (player) => ({ ...player, deathMark: false }));
 
+    case 'SWAP_STATUSES': {
+      const first = state.players.find((player) => player.id === event.playerId);
+      const second = state.players.find((player) => player.id === event.otherPlayerId);
+      if (!first || !second) return state;
+
+      // Everything a status can be. Adding a new one means adding it here —
+      // which is the point of doing this in a single event rather than a
+      // sequence of primitives that could each be forgotten.
+      const swap = (player: Player, from: Player): Player => ({
+        ...player,
+        wall: from.wall,
+        deathMark: from.deathMark,
+        c4Fuse: from.c4Fuse,
+      });
+
+      return {
+        ...state,
+        players: state.players.map((player) => {
+          if (player.id === first.id) return swap(player, second);
+          if (player.id === second.id) return swap(player, first);
+          return player;
+        }),
+      };
+    }
+
     // Setting the charge clears it from everyone else in the same step, so two
     // holders cannot exist even briefly. An eliminated target is refused for
     // the same reason a corpse cannot be armed with a Wall.

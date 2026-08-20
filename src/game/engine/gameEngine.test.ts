@@ -26,6 +26,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import type { GamePhase, GameState } from '../types/game';
 import type { Player } from '../types/player';
+import type { GameEvent } from '../events/eventTypes';
+import { applyGameEvent } from '../events/eventResolver';
 import type { AbilityDefinition } from '../types/ability';
 import { createInitialGameState } from './gameEngine';
 import { gameReducer } from './reducer';
@@ -67,6 +69,10 @@ function playerOf(state: GameState, name: string): Player {
   return player;
 }
 
+/** Apply events straight to state, bypassing the queue. */
+function applyEvents(state: GameState, events: GameEvent[]): GameState {
+  return events.reduce(applyGameEvent, state);
+}
 /** Force a status onto a player without going through a Fate. */
 function withStatus(state: GameState, name: string, patch: Partial<Player>): GameState {
   return {
@@ -573,6 +579,69 @@ describe('C4', () => {
       .filter((fuse): fuse is number => fuse !== undefined);
 
     for (const fuse of fuses) expect(fuse).toBeGreaterThanOrEqual(0);
+  });
+});
+// --- Fate Swap ---------------------------------------------------------------
+
+describe('Fate Swap', () => {
+  const roster = ['A', 'B', 'C', 'D'];
+
+  it('exchanges every status between the two players', () => {
+    let state = startGame(roster);
+    state = withStatus(state, 'A', { wall: 1, deathMark: false });
+    state = withStatus(state, 'B', { wall: 0, deathMark: true, c4Fuse: 2 });
+
+    const swapped = applyEvents(state, [
+      { type: 'SWAP_STATUSES', playerId: idOf(state, 'A'), otherPlayerId: idOf(state, 'B') },
+    ]);
+
+    expect(playerOf(swapped, 'A').wall).toBe(0);
+    expect(playerOf(swapped, 'A').deathMark).toBe(true);
+    expect(playerOf(swapped, 'A').c4Fuse).toBe(2);
+    expect(playerOf(swapped, 'B').wall).toBe(1);
+    expect(playerOf(swapped, 'B').deathMark).toBe(false);
+    expect(playerOf(swapped, 'B').c4Fuse).toBeUndefined();
+  });
+
+  it('keeps only one live charge on the board', () => {
+    let state = startGame(roster);
+    state = withStatus(state, 'B', { c4Fuse: 3 });
+
+    const swapped = applyEvents(state, [
+      { type: 'SWAP_STATUSES', playerId: idOf(state, 'A'), otherPlayerId: idOf(state, 'B') },
+    ]);
+
+    const live = swapped.players.filter((player) => player.c4Fuse !== undefined);
+    expect(live).toHaveLength(1);
+    expect(live[0].name).toBe('A');
+  });
+
+  it('is unavailable when the board is completely clean', () => {
+    let state = startGame(roster);
+    state = { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'fate_swap'] };
+    expect(getAvailableAbilities(state).map((a) => a.id)).not.toContain('fate_swap');
+
+    state = withStatus(state, 'A', { deathMark: true });
+    expect(getAvailableAbilities(state).map((a) => a.id)).toContain('fate_swap');
+  });
+
+  it('prefers a partner whose statuses actually differ', () => {
+    let state = startGame(roster);
+    state = withStatus(state, 'A', { wall: 1 });
+    state = withStatus(state, 'B', { wall: 1 });
+    state = withStatus(state, 'C', { wall: 1 });
+    // Only D differs from A, so every draw must land on D.
+    const swap = getAbility('fate_swap');
+    if (!swap) throw new Error('fate_swap is not registered');
+
+    for (let run = 0; run < 20; run += 1) {
+      const event = swap
+        .resolve(buildGameContext(state), idOf(state, 'A'))
+        .find((candidate) => candidate.type === 'SWAP_STATUSES');
+
+      if (event?.type !== 'SWAP_STATUSES') throw new Error('no swap emitted');
+      expect(event.otherPlayerId).toBe(idOf(state, 'D'));
+    }
   });
 });
 

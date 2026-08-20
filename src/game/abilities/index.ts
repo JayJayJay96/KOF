@@ -25,6 +25,7 @@ import { stealWallAbility } from './stealWall';
 import { c4Ability } from './c4';
 import { galeAbility } from './gale';
 import { demolitionAbility } from './demolition';
+import { fateSwapAbility } from './fateSwap';
 import { DOUBLE_FATE_ID, doubleFateAbility, setDoubleFatePoolProvider } from './doubleFate';
 
 export const ABILITIES: readonly AbilityDefinition[] = [
@@ -41,6 +42,7 @@ export const ABILITIES: readonly AbilityDefinition[] = [
   c4Ability,
   galeAbility,
   demolitionAbility,
+  fateSwapAbility,
 ];
 
 export const ABILITY_BY_ID: Record<string, AbilityDefinition> = Object.fromEntries(

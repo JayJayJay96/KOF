@@ -5,8 +5,8 @@
  * `config/abilityWeights.ts` (PROJECT_SPEC.md §10.1-10.4) — this file only
  * carries the enabled flags and any host-tuned overrides.
  *
- * `double_kill` and `fate_swap` are listed but DISABLED: they appear in the
- * spec's Chaos/Danger tables yet are Post-MVP abilities (PROJECT_SPEC.md §12).
+ * `double_kill` is listed but DISABLED: it appears in the spec's Chaos and
+ * Danger tables yet was never built (PROJECT_SPEC.md §12).
  */
 
 import type { GameConfig } from '../types/game';
@@ -34,7 +34,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     c4: { enabled: true, weights: {} },
     gale: { enabled: true, weights: {} },
     demolition: { enabled: true, weights: {} },
-    fate_swap: { enabled: false, weights: {} },
+    fate_swap: { enabled: true, weights: {} },
     double_kill: { enabled: false, weights: {} },
   },
 

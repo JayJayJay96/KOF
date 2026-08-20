@@ -31,6 +31,10 @@ export type GameEvent =
   | { type: 'REMOVE_WALL'; playerId: string }
   | { type: 'ADD_DEATH_MARK'; playerId: string }
   | { type: 'REMOVE_DEATH_MARK'; playerId: string }
+  // Exchanges every status between two players in ONE step. Built from
+  // primitives instead, the sequence could trip the one-charge invariant that
+  // SET_C4 enforces by clearing other holders as it lands.
+  | { type: 'SWAP_STATUSES'; playerId: string; otherPlayerId: string }
   // Plants the charge on playerId and sets its fuse, clearing it from anyone
   // who held it before. One event covers planting and every tick, which is what
   // makes "only one C4 exists" structural rather than a rule to remember.

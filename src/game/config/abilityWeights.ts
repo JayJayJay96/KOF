@@ -49,6 +49,7 @@ export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
   double_fate: { chaos: 8, danger: 8, bloodbath: 7, final_four: 6, sudden_death: 0 },
   demolition: { chaos: 6, danger: 7, bloodbath: 8, final_four: 6, sudden_death: 6 },
   gale: { chaos: 6, danger: 8, bloodbath: 10, final_four: 10, sudden_death: 12 },
+  fate_swap: { chaos: 8, danger: 7, bloodbath: 5, final_four: 4, sudden_death: 0 },
   // Kept modest on purpose: a live charge colours five whole rounds, so rolling
   // it often would mean one is almost always running and the countdown stops
   // being an event. It gates itself too — one charge at a time, and never below
