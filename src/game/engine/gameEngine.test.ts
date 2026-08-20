@@ -644,6 +644,56 @@ describe('Fate Swap', () => {
     }
   });
 });
+// --- Purify ------------------------------------------------------------------
+
+describe('Purify', () => {
+  const roster = ['A', 'B', 'C', 'D'];
+
+  it('is unavailable with no Death Mark on the board', () => {
+    let state = startGame(roster);
+    state = { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'purify'] };
+
+    expect(getAvailableAbilities(state).map((a) => a.id)).not.toContain('purify');
+
+    state = withStatus(state, 'C', { deathMark: true });
+    expect(getAvailableAbilities(state).map((a) => a.id)).toContain('purify');
+  });
+
+  it('clears a mark from whoever is carrying it', () => {
+    const state = withStatus(startGame(roster), 'C', { deathMark: true });
+    const after = playRound(state, 'A', 'purify');
+
+    expect(playerOf(after, 'C').deathMark).toBe(false);
+  });
+
+  it('cleanses the selected player when they are the marked one', () => {
+    let state = withStatus(startGame(roster), 'A', { deathMark: true });
+    state = withStatus(state, 'C', { deathMark: true });
+    const after = playRound(state, 'A', 'purify');
+
+    // Self is preferred over the draw, so A's own mark is the one that lifts.
+    expect(playerOf(after, 'A').deathMark).toBe(false);
+    expect(playerOf(after, 'C').deathMark).toBe(true);
+  });
+
+  it('cannot touch a live C4', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 3 });
+    state = withStatus(state, 'C', { deathMark: true });
+
+    // Resolved directly rather than through playRound: a selection fires the
+    // C4 trigger and ticks the fuse, which would mask what Purify itself does.
+    const events = getAbility('purify')!.resolve(buildGameContext(state), idOf(state, 'A'));
+    const types = events.map((event) => event.type);
+
+    expect(types).not.toContain('CLEAR_C4');
+    expect(types).not.toContain('SET_C4');
+    expect(types).toContain('REMOVE_DEATH_MARK');
+
+    const after = applyEvents(state, events);
+    expect(playerOf(after, 'B').c4Fuse).toBe(3);
+    expect(playerOf(after, 'C').deathMark).toBe(false);
+  });
+});
 
 // --- Phases and winner -------------------------------------------------------
 

@@ -35,6 +35,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     gale: { enabled: true, weights: {} },
     demolition: { enabled: true, weights: {} },
     fate_swap: { enabled: true, weights: {} },
+    purify: { enabled: true, weights: {} },
     double_kill: { enabled: false, weights: {} },
   },
 
