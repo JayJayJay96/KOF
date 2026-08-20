@@ -31,7 +31,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     duel: { enabled: true, weights: {} },
     steal_wall: { enabled: true, weights: {} },
     double_fate: { enabled: true, weights: {} },
-    bomb: { enabled: true, weights: {} },
+    c4: { enabled: true, weights: {} },
     gale: { enabled: true, weights: {} },
     demolition: { enabled: true, weights: {} },
     fate_swap: { enabled: false, weights: {} },

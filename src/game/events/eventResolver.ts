@@ -65,25 +65,25 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
     case 'REMOVE_DEATH_MARK':
       return mapPlayer(state, event.playerId, (player) => ({ ...player, deathMark: false }));
 
-    // Moving the bomb clears it from everyone else in the same step, so two
+    // Setting the charge clears it from everyone else in the same step, so two
     // holders cannot exist even briefly. An eliminated target is refused for
     // the same reason a corpse cannot be armed with a Wall.
-    case 'SET_BOMB':
+    case 'SET_C4':
       return {
         ...state,
         players: state.players.map((player) => {
           if (player.id !== event.playerId) {
-            return player.bombFuse === undefined ? player : { ...player, bombFuse: undefined };
+            return player.c4Fuse === undefined ? player : { ...player, c4Fuse: undefined };
           }
-          return player.status === 'alive' ? { ...player, bombFuse: event.fuse } : player;
+          return player.status === 'alive' ? { ...player, c4Fuse: event.fuse } : player;
         }),
       };
 
-    case 'CLEAR_BOMB':
+    case 'CLEAR_C4':
       return {
         ...state,
         players: state.players.map((player) =>
-          player.bombFuse === undefined ? player : { ...player, bombFuse: undefined },
+          player.c4Fuse === undefined ? player : { ...player, c4Fuse: undefined },
         ),
       };
 
@@ -95,16 +95,16 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
               status: 'eliminated',
               wall: 0,
               deathMark: false,
-              // NOTE: `bombFuse` is deliberately NOT cleared here.
+              // NOTE: `c4Fuse` is deliberately NOT cleared here.
               //
-              // The bomb does die with its holder — that is the intended rule,
+              // The charge does die with its holder — that is the intended rule,
               // and dying to something else is a fair way to take it out of
               // play. But clearing it here would delete the countdown with
-              // nothing said, and half of all bombs end this way. The fuse is
-              // left on the body so `bombTrigger` can clear it on the next
-              // selection and explain what happened. `getBombHolder` only ever
-              // looks at living players, so a bomb on a corpse is already inert
-              // for every other purpose.
+              // nothing said, which is how half of all bombs used to end. The fuse
+              // is left on the body so `c4Trigger` can clear it on the next
+              // selection and explain what happened. `getC4Holder` only ever looks
+              // at living players, so a charge on a corpse is already inert for
+              // every other purpose.
               eliminatedAtRound: state.round,
             }
           : player,
@@ -118,7 +118,7 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
               status: 'alive',
               wall: 0,
               deathMark: false,
-              bombFuse: undefined,
+              c4Fuse: undefined,
               eliminatedAtRound: undefined,
               revivedCount: player.revivedCount + 1,
             }

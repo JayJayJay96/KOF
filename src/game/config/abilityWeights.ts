@@ -47,11 +47,11 @@ export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
   duel: { chaos: 12, danger: 14, bloodbath: 15, final_four: 16, sudden_death: 0 },
   steal_wall: { chaos: 9, danger: 8, bloodbath: 6, final_four: 6, sudden_death: 6 },
   double_fate: { chaos: 8, danger: 8, bloodbath: 7, final_four: 6, sudden_death: 0 },
-  // Wave 2. Kept modest on purpose: a live bomb colours three whole rounds,
-  // so rolling it often would mean it is almost always running and the
-  // countdown stops being an event. It gates itself too — one bomb at a
-  // time, and never below four players.
   demolition: { chaos: 6, danger: 7, bloodbath: 8, final_four: 6, sudden_death: 6 },
   gale: { chaos: 6, danger: 8, bloodbath: 10, final_four: 10, sudden_death: 12 },
-  bomb: { chaos: 8, danger: 10, bloodbath: 10, final_four: 0, sudden_death: 0 },
+  // Kept modest on purpose: a live charge colours five whole rounds, so rolling
+  // it often would mean one is almost always running and the countdown stops
+  // being an event. It gates itself too — one charge at a time, and never below
+  // six alive, because a blast takes up to three people.
+  c4: { chaos: 8, danger: 10, bloodbath: 10, final_four: 0, sudden_death: 0 },
 };

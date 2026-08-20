@@ -275,7 +275,7 @@ function completePlayerSpin(state: GameState): GameState {
  * Reveal the selected player, then give persistent statuses a chance to fire.
  *
  * Death Mark replaces the round's Fate rather than being one, so this is where
- * it intercepts. A Bomb changes hands here too, without taking the round. The
+ * it intercepts. A C4 ticks down here too, without taking the round. The
  * reducer asks the status registry what fires and whether it consumes the
  * round, and never learns which status any of them were (AGENTS.md §7.6).
  */
@@ -302,8 +302,8 @@ function revealSelectedPlayer(
 
   const events = triggers.flatMap((trigger) => trigger.resolve(context, playerId));
 
-  // Some statuses ARE the round — a Death Mark, or a bomb whose fuse just ran
-  // out. Others merely happen during it, like a bomb changing hands. Only the
+  // Some statuses ARE the round — a Death Mark, a defused charge, or a C4 whose
+  // fuse just ran out. Others merely happen during it, like a C4 ticking. Only the
   // first kind takes over, and `currentAbilityId` is cleared along with it
   // because a dual spin will have pre-rolled a Fate that now never gets dealt;
   // nothing should claim otherwise in the readout or the log.

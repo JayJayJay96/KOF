@@ -22,7 +22,7 @@ import { hunterAbility } from './hunter';
 import { reviveAbility } from './revive';
 import { duelAbility } from './duel';
 import { stealWallAbility } from './stealWall';
-import { bombAbility } from './bomb';
+import { c4Ability } from './c4';
 import { galeAbility } from './gale';
 import { demolitionAbility } from './demolition';
 import { DOUBLE_FATE_ID, doubleFateAbility, setDoubleFatePoolProvider } from './doubleFate';
@@ -38,7 +38,7 @@ export const ABILITIES: readonly AbilityDefinition[] = [
   duelAbility,
   stealWallAbility,
   doubleFateAbility,
-  bombAbility,
+  c4Ability,
   galeAbility,
   demolitionAbility,
 ];

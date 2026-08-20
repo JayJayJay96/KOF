@@ -33,15 +33,15 @@ export function StatusPanel({ alive, eliminated, selectedId }: StatusPanelProps)
             >
               <span className="status__name">{player.name}</span>
               {/* The fuse IS the mechanic, so the number rides on the badge. A
-                  bare 💣 would say someone is holding it but not how long
+                  bare 🧨 would say someone is holding it but not how long
                   anyone has left to care. */}
-              {player.bombFuse !== undefined && (
+              {player.c4Fuse !== undefined && (
                 <span
-                  className="status__badge status__badge--bomb"
-                  title={`Bomb — ${player.bombFuse} round${player.bombFuse === 1 ? '' : 's'} left`}
-                  aria-label={`Bomb, ${player.bombFuse} rounds left`}
+                  className="status__badge status__badge--c4"
+                  title={`C4 — ${player.c4Fuse} round${player.c4Fuse === 1 ? '' : 's'} left`}
+                  aria-label={`C4, ${player.c4Fuse} rounds left`}
                 >
-                  💣{player.bombFuse}
+                  🧨{player.c4Fuse}
                 </span>
               )}
               {player.wall > 0 && (

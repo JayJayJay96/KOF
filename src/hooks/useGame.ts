@@ -163,14 +163,14 @@ export function useGame(): UseGameResult {
    * Both wheels turn together when nothing about this selection would make the
    * Fate roll meaningless. Two cases opt out:
    *
-   *   - a status is about to CONSUME the round (a Death Mark, or a bomb whose
+   *   - a status is about to CONSUME the round (a Death Mark, or a C4 that is
    *     fuse runs out on this selection). It replaces the round's Fate, so a
    *     Fate rolled in parallel would be thrown away and its wheel left
    *     spinning over a resolution already in progress.
    *   - no Fate is available at all, which the sequential path already handles.
    *
    * Note the question is "does it consume the round", not "does anything fire".
-   * A bomb changing hands fires on every selection and must NOT drop the game
+   * A C4 ticking down fires on every selection and must NOT drop the game
    * back to sequential spinning for the whole length of a fuse.
    *
    * The check happens here rather than in the reducer because it is a question

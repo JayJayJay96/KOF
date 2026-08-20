@@ -3,20 +3,20 @@
  *
  * Some statuses act on their own schedule rather than being rolled on the Fate
  * Wheel. Death Mark fires when the Main Wheel selects the marked player, which
- * is not a Fate outcome at all — it replaces one. Bomb fires on every selection
- * while it is live, passing from hand to hand, and only replaces the Fate on
- * the round it goes off.
+ * is not a Fate outcome at all — it replaces one. C4 fires on every selection
+ * while it is live, ticking down, and only replaces the Fate when it is defused
+ * or on the round it goes off.
  *
  * Keeping these as data mirrors the ability registry: the reducer asks "does
- * anything trigger for this selection?" and never learns what a Death Mark or a
- * Bomb is.
+ * anything trigger for this selection?" and never learns what a Death Mark or
+ * a C4 is.
  */
 
 import type { GameEvent } from '../events/eventTypes';
 import type { GameContext } from '../types/ability';
 import type { Player } from '../types/player';
 import { deathMarkTrigger } from './deathMarkTrigger';
-import { bombTrigger } from './bombTrigger';
+import { c4Trigger } from './c4Trigger';
 
 export type StatusTrigger = {
   id: string;
@@ -25,7 +25,7 @@ export type StatusTrigger = {
    * Whether this fires for the current selection.
    *
    * Takes the whole context, not just the selected player, because a status can
-   * live elsewhere on the board: the Bomb sits with its current holder and
+   * live elsewhere on the board: the C4 sits with its holder and
    * fires because *someone new was selected*, which a predicate seeing only the
    * selected player cannot express.
    */
@@ -34,7 +34,7 @@ export type StatusTrigger = {
   /**
    * Does firing consume the round, skipping the Fate Wheel?
    *
-   * Death Mark always does — the mark IS the round's outcome. Bomb usually does
+   * Death Mark always does — the mark IS the round's outcome. A C4 usually does
    * not; it hands over and ticks down while the round carries on normally, and
    * only takes the round on the tick that detonates it.
    *
@@ -48,14 +48,14 @@ export type StatusTrigger = {
 };
 
 /** Checked in order when the Main Wheel selects a player. */
-export const SELECTION_TRIGGERS: readonly StatusTrigger[] = [deathMarkTrigger, bombTrigger];
+export const SELECTION_TRIGGERS: readonly StatusTrigger[] = [deathMarkTrigger, c4Trigger];
 
 /**
  * Every trigger that fires for this selection, in order.
  *
  * Collection STOPS after the first trigger that consumes the round. A Death
  * Mark that kills its holder has already decided the round, and letting the
- * Bomb then pass into their hands would hand it to a corpse. "The round was
+ * a charge then landing on them would plant it on a corpse. "The round was
  * spent on the mark" is both correct and easy to say out loud.
  */
 export function findSelectionTriggers(player: Player, context: GameContext): StatusTrigger[] {

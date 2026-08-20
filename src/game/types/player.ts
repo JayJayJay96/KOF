@@ -18,16 +18,15 @@ export type Player = {
   deathMark: boolean;
 
   /**
-   * Rounds left on the bomb this player is holding (PROJECT_SPEC.md §12).
+   * Rounds left on the C4 charge planted on this player (PROJECT_SPEC.md §12).
    *
-   * Absent means they are not holding it. At most one bomb exists at a time,
-   * which `SET_BOMB` enforces by clearing every other holder as it moves — so
-   * storing it per player is a convenience for rendering, not a licence for two
-   * bombs to be live at once.
+   * Absent means no charge. At most one exists at a time, which `SET_C4`
+   * enforces by clearing every other holder as it lands — so storing it per
+   * player is a convenience for rendering, not a licence for two live charges.
    *
-   * Optional so saves written before Bomb existed still load.
+   * Optional so saves written before the charge existed still load.
    */
-  bombFuse?: number;
+  c4Fuse?: number;
 
   eliminatedAtRound?: number;
   revivedCount: number;

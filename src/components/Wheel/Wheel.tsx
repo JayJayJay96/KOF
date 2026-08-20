@@ -104,7 +104,7 @@ const SEGMENT_FILLS_ACTIVE = ['#3a2a12', '#4a3616'];
  *
  * `tint` is the only value that moves with the phase, and it only reaches the
  * gutters and the rim — never a slice fill. That keeps the four status colours
- * (gold landed, purple Death Mark, stone Wall, orange Bomb) legible in every
+ * (gold landed, purple Death Mark, stone Wall, orange C4) legible in every
  * phase, which a full reskin would not.
  */
 export type WheelTheme = {

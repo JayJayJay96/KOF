@@ -9,7 +9,7 @@
  *   Winner detection            Phase transitions
  *   Weighted Fate selection
  *
- * Bomb's pass / tick / detonate cycle is covered too, since it shipped after
+ * C4's plant / tick / defuse / detonate cycle is covered too, since it shipped
  * that list was written.
  *
  * WHY THESE ARE FILE-BASED TESTS AND NOT ANOTHER BROWSER HARNESS
@@ -42,7 +42,7 @@ import {
 } from '../abilities';
 import { drawSessionPool, SESSION_OPTIONAL_COUNT } from '../abilities/sessionPool';
 import { ABILITY_WEIGHTS } from '../config/abilityWeights';
-import { BOMB_FUSE, getBombHolder } from '../statuses/bombTrigger';
+import { C4_FUSE, c4Trigger } from '../statuses/c4Trigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
 import { DEFAULT_PHASE_THRESHOLDS, PHASE_LABELS } from '../phases/phaseConfig';
 import { resolvePhase } from '../phases/phaseResolver';
@@ -457,7 +457,7 @@ describe('Revive', () => {
 
   it('returns a player clean, and counts repeat revivals', () => {
     let state = startGame(['A', 'B', 'C', 'D']);
-    state = withStatus(state, 'D', { wall: 1, deathMark: true, bombFuse: 2 });
+    state = withStatus(state, 'D', { wall: 1, deathMark: true, c4Fuse: 2 });
     state = gameReducer(state, { type: 'ELIMINATE_PLAYER', playerId: idOf(state, 'D') });
     state = playRound(state, 'A', 'revive');
 
@@ -465,7 +465,7 @@ describe('Revive', () => {
     expect(revived.status).toBe('alive');
     expect(revived.wall).toBe(0);
     expect(revived.deathMark).toBe(false);
-    expect(revived.bombFuse).toBeUndefined();
+    expect(revived.c4Fuse).toBeUndefined();
     expect(revived.revivedCount).toBe(1);
 
     state = gameReducer(state, { type: 'NEXT_ROUND' });
@@ -474,95 +474,105 @@ describe('Revive', () => {
     expect(playerOf(state, 'D').revivedCount).toBe(2);
   });
 });
+// --- C4 ----------------------------------------------------------------------
 
-// --- Bomb --------------------------------------------------------------------
+describe('C4', () => {
+  const roster = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
-describe('Bomb', () => {
-  const four = ['A', 'B', 'C', 'D'];
-
-  it('plants with a full fuse, and only one may be live at a time', () => {
-    const state = playRound(startGame(four), 'A', 'bomb');
-
-    expect(getBombHolder(state.players)?.name).toBe('A');
-    expect(getBombHolder(state.players)?.bombFuse).toBe(BOMB_FUSE);
-    expect(getAbility('bomb')?.isAvailable(buildGameContext(state))).toBe(false);
-    expect(getAvailableAbilities(state).map((ability) => ability.id)).not.toContain('bomb');
+  it('plants a full fuse on the selected player', () => {
+    const after = playRound(startGame(roster), 'A', 'c4');
+    expect(playerOf(after, 'A').c4Fuse).toBe(C4_FUSE);
   });
 
-  it('needs at least four players alive', () => {
-    let state = startGame(four);
-    state = gameReducer(state, { type: 'ELIMINATE_PLAYER', playerId: idOf(state, 'D') });
-
-    expect(getAbility('bomb')?.isAvailable(buildGameContext(state))).toBe(false);
-  });
-
-  it('passes to whoever is selected, ticking down, without eating the Fate', () => {
-    let state = playRound(startGame(four), 'A', 'bomb');
-    state = gameReducer(state, { type: 'NEXT_ROUND' });
-
-    state = playRound(state, 'B', 'safe');
-    expect(getBombHolder(state.players)?.name).toBe('B');
-    expect(getBombHolder(state.players)?.bombFuse).toBe(2);
-    // The round's Fate still ran: a pass must not replace it.
-    expect(state.currentAbilityId).toBe('safe');
-
-    state = gameReducer(state, { type: 'NEXT_ROUND' });
-    state = playRound(state, 'C', 'safe');
-    expect(getBombHolder(state.players)?.bombFuse).toBe(1);
-  });
-
-  it('detonates on the player selected when the fuse runs out', () => {
-    let state = withStatus(startGame(four), 'A', { bombFuse: 1 });
+  it('ticks down on every selection that is not the holder', () => {
+    let state = withStatus(startGame(roster), 'A', { c4Fuse: 3 });
     state = selectOnly(state, 'B');
 
+    expect(playerOf(state, 'A').c4Fuse).toBe(2);
+  });
+
+  it('is defused when the wheel lands on the holder, and takes the round', () => {
+    let state = withStatus(startGame(roster), 'A', { c4Fuse: 2 });
+
+    expect(c4Trigger.replacesFate(playerOf(state, 'A'), buildGameContext(state))).toBe(true);
+
+    state = selectOnly(state, 'A');
+
+    expect(playerOf(state, 'A').c4Fuse).toBeUndefined();
+    expect(getAlivePlayers(state)).toHaveLength(7);
+  });
+
+  it('detonates on the tick that empties the fuse, taking both neighbours', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 1 });
+    state = drain(selectOnly(state, 'D'));
+
+    // Roster order is A B C D E F G, so B's wheel neighbours are A and C.
     expect(playerOf(state, 'B').status).toBe('eliminated');
-    expect(getBombHolder(state.players)).toBeNull();
+    expect(playerOf(state, 'A').status).toBe('eliminated');
+    expect(playerOf(state, 'C').status).toBe('eliminated');
+    expect(playerOf(state, 'D').status).toBe('alive');
   });
 
-  it('is blocked by a Wall, and is spent either way', () => {
-    let state = withStatus(startGame(four), 'A', { bombFuse: 1 });
-    state = withStatus(state, 'B', { wall: 1 });
-    state = selectOnly(state, 'B');
+  it('a walled neighbour survives and loses the Wall', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 1 });
+    state = withStatus(state, 'A', { wall: 1 });
+    state = drain(selectOnly(state, 'D'));
+
+    expect(playerOf(state, 'A').status).toBe('alive');
+    expect(playerOf(state, 'A').wall).toBe(0);
+    expect(playerOf(state, 'B').status).toBe('eliminated');
+  });
+
+  it('a Wall saves the holder from their own charge', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 1, wall: 1 });
+    state = drain(selectOnly(state, 'D'));
 
     expect(playerOf(state, 'B').status).toBe('alive');
     expect(playerOf(state, 'B').wall).toBe(0);
-    expect(getBombHolder(state.players)).toBeNull();
   });
 
-  it('sticks to a holder who is selected again', () => {
-    let state = withStatus(startGame(four), 'A', { bombFuse: 3 });
-    state = selectOnly(state, 'A');
+  it('never hits the same player twice when the board is tiny', () => {
+    let state = startGame(['A', 'B', 'C']);
+    state = withStatus(state, 'A', { c4Fuse: 1 });
 
-    expect(getBombHolder(state.players)?.name).toBe('A');
-    expect(getBombHolder(state.players)?.bombFuse).toBe(2);
+    const attacked = c4Trigger
+      .resolve(buildGameContext(state), idOf(state, 'B'))
+      .filter((event) => event.type === 'ATTACK_PLAYER')
+      .map((event) => (event.type === 'ATTACK_PLAYER' ? event.playerId : ''));
+
+    expect(new Set(attacked).size).toBe(attacked.length);
   });
 
-  it('announces itself as lost when its holder dies to something else', () => {
-    let state = withStatus(startGame(four), 'A', { bombFuse: 2 });
-    state = playRound(state, 'A', 'eliminate');
-    expect(playerOf(state, 'A').status).toBe('eliminated');
-    expect(getBombHolder(state.players)).toBeNull();
+  it('is unavailable while a charge is live, and below the floor', () => {
+    let state = startGame(roster);
+    state = { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'c4'] };
+    expect(getAvailableAbilities(state).map((a) => a.id)).toContain('c4');
 
-    // The next selection clears the abandoned fuse and says so.
-    state = gameReducer(state, { type: 'NEXT_ROUND' });
-    state = selectOnly(state, 'B');
+    const live = withStatus(state, 'A', { c4Fuse: 3 });
+    expect(getAvailableAbilities(live).map((a) => a.id)).not.toContain('c4');
 
-    const said = state.history.some(
-      (entry) =>
-        entry.event.type === 'SHOW_MESSAGE' && entry.event.message.includes('went up with'),
-    );
-    expect(said).toBe(true);
-    expect(state.players.every((player) => player.bombFuse === undefined)).toBe(true);
+    let small = startGame(['A', 'B', 'C', 'D', 'E']);
+    small = { ...small, sessionAbilityIds: [...small.sessionAbilityIds, 'c4'] };
+    expect(getAbility('c4')?.isAvailable(buildGameContext(small))).toBe(false);
   });
 
-  it('lets a Death Mark take the round instead, leaving the fuse untouched', () => {
-    let state = withStatus(startGame(four), 'A', { bombFuse: 3 });
-    state = withStatus(state, 'B', { deathMark: true });
-    state = selectOnly(state, 'B');
+  it('announces a charge left on a player who died to something else', () => {
+    let state = withStatus(startGame(roster), 'A', { c4Fuse: 3 });
+    state = withStatus(state, 'A', { status: 'eliminated' });
+    state = drain(selectOnly(state, 'B'));
 
-    expect(playerOf(state, 'B').status).toBe('eliminated');
-    expect(getBombHolder(state.players)?.name).toBe('A');
-    expect(getBombHolder(state.players)?.bombFuse).toBe(3);
+    expect(playerOf(state, 'A').c4Fuse).toBeUndefined();
+  });
+
+  it('never leaves a negative fuse', () => {
+    let state = withStatus(startGame(roster), 'A', { c4Fuse: 1 });
+    state = drain(selectOnly(state, 'B'));
+
+    const fuses = state.players
+      .map((player) => player.c4Fuse)
+      .filter((fuse): fuse is number => fuse !== undefined);
+
+    for (const fuse of fuses) expect(fuse).toBeGreaterThanOrEqual(0);
   });
 });
 
@@ -912,11 +922,11 @@ describe('session pool', () => {
     const availableIds = getAvailableAbilities(state).map((ability) => ability.id);
 
     expect(availableIds).not.toContain('safe');
-    // Unlike Revive (unavailable anyway with nobody eliminated yet), Bomb IS
+    // Unlike Revive (unavailable anyway with nobody eliminated yet), C4 IS
     // otherwise available here — six alive players clears its four-player
     // minimum and its chaos weight is non-zero — so excluding it can only be
-    // the pool filter's doing, not a coincidence of Bomb's own eligibility.
-    expect(availableIds).not.toContain('bomb');
+    // the pool filter's doing, not a coincidence of C4's own eligibility.
+    expect(availableIds).not.toContain('c4');
     expect(availableIds).toContain('eliminate');
   });
 

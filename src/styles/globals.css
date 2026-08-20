@@ -961,7 +961,7 @@ body {
 
 /* The fuse count rides inside the badge, so it has to read as one unit and pull
    the eye — it is the only number on screen that is counting down. */
-.status__badge--bomb {
+.status__badge--c4 {
   display: inline-flex;
   align-items: center;
   gap: 0.1rem;

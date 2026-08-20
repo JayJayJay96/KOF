@@ -31,11 +31,11 @@ export type GameEvent =
   | { type: 'REMOVE_WALL'; playerId: string }
   | { type: 'ADD_DEATH_MARK'; playerId: string }
   | { type: 'REMOVE_DEATH_MARK'; playerId: string }
-  // Moves the bomb TO playerId and sets its fuse, clearing it from whoever held
-  // it before. One event covers both planting and passing, which is what makes
-  // "only one bomb exists" structural rather than a rule to remember.
-  | { type: 'SET_BOMB'; playerId: string; fuse: number }
-  | { type: 'CLEAR_BOMB' }
+  // Plants the charge on playerId and sets its fuse, clearing it from anyone
+  // who held it before. One event covers planting and every tick, which is what
+  // makes "only one C4 exists" structural rather than a rule to remember.
+  | { type: 'SET_C4'; playerId: string; fuse: number }
+  | { type: 'CLEAR_C4' }
   | { type: 'ELIMINATE_PLAYER'; playerId: string }
   | { type: 'REVIVE_PLAYER'; playerId: string }
   | { type: 'PHASE_CHANGED'; phase: GamePhase }
