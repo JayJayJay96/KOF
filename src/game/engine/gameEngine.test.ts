@@ -148,6 +148,39 @@ describe('Wall', () => {
   });
 });
 
+// --- Piercing attacks --------------------------------------------------------
+
+describe('piercing attacks', () => {
+  it('a normal attack is blocked by a Wall', () => {
+    const state = withStatus(startGame(['A', 'B', 'C']), 'A', { wall: 1 });
+    const events = attackPlayer(state, idOf(state, 'A'), 'test');
+
+    expect(events.map((event) => event.type)).toEqual(['ATTACK_PLAYER', 'WALL_BLOCK']);
+  });
+
+  it('a piercing attack eliminates through a Wall', () => {
+    const state = withStatus(startGame(['A', 'B', 'C']), 'A', { wall: 1 });
+    const events = attackPlayer(state, idOf(state, 'A'), 'gale', { pierce: true });
+
+    expect(events.map((event) => event.type)).toEqual(['ATTACK_PLAYER', 'ELIMINATE_PLAYER']);
+  });
+
+  it('piercing changes nothing for an unwalled target', () => {
+    const state = startGame(['A', 'B', 'C']);
+
+    expect(attackPlayer(state, idOf(state, 'A'), 'gale', { pierce: true })).toEqual(
+      attackPlayer(state, idOf(state, 'A'), 'gale'),
+    );
+  });
+
+  it('never touches an already-eliminated player, pierce or not', () => {
+    let state = startGame(['A', 'B', 'C']);
+    state = withStatus(state, 'A', { status: 'eliminated', wall: 1 });
+
+    expect(attackPlayer(state, idOf(state, 'A'), 'gale', { pierce: true })).toEqual([]);
+  });
+});
+
 // --- Death Mark --------------------------------------------------------------
 
 describe('Death Mark', () => {
