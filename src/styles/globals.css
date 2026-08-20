@@ -1021,7 +1021,7 @@ body {
   right: 0;
   bottom: 1.5rem;
   z-index: 30;
-  padding: 0.4rem 0.6rem;
+  padding: 0.55rem 0.8rem;
   border: 1px solid var(--kof-border);
   border-right: none;
   border-radius: 4px 0 0 4px;
@@ -1031,7 +1031,7 @@ body {
   font-size: 0.6rem;
   letter-spacing: 0.2em;
   cursor: pointer;
-  opacity: 0.45;
+  opacity: 0.7;
 }
 
 .host-panel__handle:hover {
