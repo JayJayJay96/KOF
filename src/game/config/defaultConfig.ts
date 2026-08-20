@@ -33,6 +33,7 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
     double_fate: { enabled: true, weights: {} },
     bomb: { enabled: true, weights: {} },
     gale: { enabled: true, weights: {} },
+    demolition: { enabled: true, weights: {} },
     fate_swap: { enabled: false, weights: {} },
     double_kill: { enabled: false, weights: {} },
   },

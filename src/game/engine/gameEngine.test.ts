@@ -257,6 +257,38 @@ describe('Gale', () => {
   });
 });
 
+// --- Demolition --------------------------------------------------------------
+
+describe('Demolition', () => {
+  it('is unavailable with no Walls standing', () => {
+    let state = startGame(['A', 'B', 'C', 'D']);
+    state = { ...state, sessionAbilityIds: [...state.sessionAbilityIds, 'demolition'] };
+
+    expect(getAvailableAbilities(state).map((a) => a.id)).not.toContain('demolition');
+
+    state = withStatus(state, 'A', { wall: 1 });
+    expect(getAvailableAbilities(state).map((a) => a.id)).toContain('demolition');
+  });
+
+  it('clears every Wall on the board and harms nobody', () => {
+    let state = withStatus(startGame(['A', 'B', 'C', 'D']), 'A', { wall: 1 });
+    state = withStatus(state, 'C', { wall: 1 });
+
+    const after = playRound(state, 'B', 'demolition');
+
+    expect(playerOf(after, 'A').wall).toBe(0);
+    expect(playerOf(after, 'C').wall).toBe(0);
+    expect(getAlivePlayers(after)).toHaveLength(4);
+  });
+
+  it('takes the roller own Wall down with everyone else', () => {
+    const state = withStatus(startGame(['A', 'B', 'C', 'D']), 'B', { wall: 1 });
+    const after = playRound(state, 'B', 'demolition');
+
+    expect(playerOf(after, 'B').wall).toBe(0);
+  });
+});
+
 // --- Death Mark --------------------------------------------------------------
 
 describe('Death Mark', () => {

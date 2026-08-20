@@ -51,6 +51,7 @@ export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
   // so rolling it often would mean it is almost always running and the
   // countdown stops being an event. It gates itself too — one bomb at a
   // time, and never below four players.
+  demolition: { chaos: 6, danger: 7, bloodbath: 8, final_four: 6, sudden_death: 6 },
   gale: { chaos: 6, danger: 8, bloodbath: 10, final_four: 10, sudden_death: 12 },
   bomb: { chaos: 8, danger: 10, bloodbath: 10, final_four: 0, sudden_death: 0 },
 };
