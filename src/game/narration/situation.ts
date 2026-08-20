@@ -20,15 +20,33 @@
 import type { GameState } from '../types/game';
 import type { Player } from '../types/player';
 import { buildGameContext, getAbility } from '../abilities';
-import { getCurrentPlayer } from '../engine/selectors';
+import { getAlivePlayers, getCurrentPlayer, neighboursIn } from '../engine/selectors';
 import { describeEvent } from '../events/eventLog';
 
 /** How many recent lines the resolution burst may show at once. */
 const MAX_BURST_LINES = 3;
 
 const BURST_SEPARATOR = ' · ';
-
+/**
+ * The line under the wheels.
+ *
+ * Two parts: what this round is about, and — if a charge is ticking anywhere —
+ * where it is and who is standing beside it.
+ *
+ * The charge line survives even when the round line is suppressed mid-spin.
+ * Going silent during a spin exists to avoid spoiling a result the engine has
+ * already chosen; a live countdown spoils nothing, it is already painted on the
+ * wheel rim, and the spin is exactly when it is most worth saying out loud.
+ */
 export function describeSituation(state: GameState): string | null {
+  const round = describeRound(state);
+  const charge = describeLiveCharge(state);
+
+  if (round === null) return charge;
+  return charge ? `${round}  ${charge}` : round;
+}
+
+function describeRound(state: GameState): string | null {
   switch (state.screenState) {
     // Nothing is known yet. Any line at all would spoil a result the engine has
     // already chosen but the wheel has not reached.
@@ -75,10 +93,32 @@ function describeStanding(player: Player | null): string | null {
   const carried: string[] = [];
   if (player.wall > 0) carried.push('🧱 behind a Wall');
   if (player.deathMark) carried.push('💀 already Marked');
+  if (player.c4Fuse !== undefined) carried.push(`🧨 carrying the charge, ${player.c4Fuse} left`);
 
   return carried.length > 0
     ? `${player.name} is up — ${carried.join(', ')}.`
     : `${player.name} is up — nothing protecting them.`;
+}
+
+/**
+ * A live charge, wherever it is sitting.
+ *
+ * Appended to whatever the round is otherwise about, because a countdown the
+ * whole table is following should not vanish from the commentary on the rounds
+ * that happen to be about someone else — which was most of them.
+ */
+function describeLiveCharge(state: GameState): string | null {
+  const holder = state.players.find(
+    (player) => player.status === 'alive' && player.c4Fuse !== undefined,
+  );
+  if (!holder) return null;
+
+  const beside = neighboursIn(getAlivePlayers(state), holder.id)
+    .map((player) => player.name)
+    .join(' and ');
+
+  const radius = beside ? `, and ${beside} beside them` : '';
+  return `🧨 ${holder.c4Fuse} on ${holder.name}${radius}.`;
 }
 
 /**

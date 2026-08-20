@@ -105,9 +105,17 @@ export const c4Trigger: StatusTrigger = {
     if (!holder) return [];
 
     // The wheel picked the person carrying it. For once, that is good news.
+    //
+    // WAIT_FOR_HOST before the charge is cleared, so the rescue gets its own
+    // beat instead of passing in a single log line. This is the one moment in
+    // the game where being selected saves you, and it is worth the pause.
     if (holder.id === playerId) {
       return [
-        { type: 'SHOW_MESSAGE', message: `🧨 DEFUSED — the wheel found ${holder.name} in time` },
+        {
+          type: 'SHOW_MESSAGE',
+          message: `🧨 DEFUSED — the wheel found ${holder.name} with ${holder.c4Fuse} to spare`,
+        },
+        { type: 'WAIT_FOR_HOST' },
         { type: 'CLEAR_C4' },
       ];
     }

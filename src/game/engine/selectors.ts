@@ -149,6 +149,32 @@ export function getRevealedAbilityId(state: GameState): string | null {
 }
 
 /**
+ * The players either side of one player in a given list, wrapping at the ends.
+ *
+ * Split out from `getWheelNeighbours` so the Main Wheel adapter can mark a C4's
+ * blast radius using the SAME rule the engine detonates by. Two implementations
+ * of "adjacent" would drift, and the whole point of wheel-adjacency is that
+ * what the audience sees and what the engine does are the same thing.
+ *
+ * Deduplicated, and never includes the player themselves. In a two-entry list
+ * both sides are the same person; in a one-entry list there is nobody.
+ */
+export function neighboursIn(players: readonly Player[], playerId: string): Player[] {
+  const index = players.findIndex((player) => player.id === playerId);
+  if (index === -1) return [];
+
+  const byId = new Map<string, Player>();
+  const left = players[(index - 1 + players.length) % players.length];
+  const right = players[(index + 1) % players.length];
+
+  for (const neighbour of [left, right]) {
+    if (neighbour.id !== playerId) byId.set(neighbour.id, neighbour);
+  }
+
+  return [...byId.values()];
+}
+
+/**
  * The living players either side of one player on the Main Wheel.
  *
  * Adjacency is over the ALIVE roster, wrapping at the ends, because that is
@@ -156,24 +182,7 @@ export function getRevealedAbilityId(state: GameState): string | null {
  * therefore takes the two slices either side of the one that just lit up,
  * which explains itself on screen with no commentary. A fixed seat order would
  * be stable but invisible, and an audience cannot follow a rule it cannot see.
- *
- * Deduplicated, and never includes the player themselves. At two alive both
- * sides are the same person, and at one alive there is nobody — returning a
- * unique set means callers can attack every entry without hitting anyone
- * twice.
  */
 export function getWheelNeighbours(state: GameState, playerId: string): Player[] {
-  const alive = getAlivePlayers(state);
-  const index = alive.findIndex((player) => player.id === playerId);
-  if (index === -1) return [];
-
-  const byId = new Map<string, Player>();
-  const left = alive[(index - 1 + alive.length) % alive.length];
-  const right = alive[(index + 1) % alive.length];
-
-  for (const neighbour of [left, right]) {
-    if (neighbour.id !== playerId) byId.set(neighbour.id, neighbour);
-  }
-
-  return [...byId.values()];
+  return neighboursIn(getAlivePlayers(state), playerId);
 }

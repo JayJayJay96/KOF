@@ -48,6 +48,7 @@ import { C4_FUSE, c4Trigger } from '../statuses/c4Trigger';
 import { resetRandomSource, setRandomSource } from '../../utils/random';
 import { DEFAULT_PHASE_THRESHOLDS, PHASE_LABELS } from '../phases/phaseConfig';
 import { resolvePhase } from '../phases/phaseResolver';
+import { describeSituation } from '../narration/situation';
 
 // --- helpers -----------------------------------------------------------------
 
@@ -692,6 +693,47 @@ describe('Purify', () => {
     const after = applyEvents(state, events);
     expect(playerOf(after, 'B').c4Fuse).toBe(3);
     expect(playerOf(after, 'C').deathMark).toBe(false);
+  });
+});
+// --- C4 tension presentation -------------------------------------------------
+
+describe('C4 tension', () => {
+  const roster = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+
+  it('gives the defusal its own beat instead of one log line', () => {
+    const state = withStatus(startGame(roster), 'A', { c4Fuse: 3 });
+    const types = c4Trigger
+      .resolve(buildGameContext(state), idOf(state, 'A'))
+      .map((event) => event.type);
+
+    // The rescue holds before the charge is cleared, like the Death Mark reveal.
+    expect(types).toEqual(['SHOW_MESSAGE', 'WAIT_FOR_HOST', 'CLEAR_C4']);
+  });
+
+  it('names a live charge and its blast radius every round', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 4 });
+    state = selectOnly(state, 'D');
+
+    const line = describeSituation(state);
+
+    // Roster order A B C D E F G, so B's neighbours are A and C.
+    expect(line).toContain('🧨 3 on B');
+    expect(line).toContain('A');
+    expect(line).toContain('C');
+  });
+
+  it('says nothing about a charge when none is live', () => {
+    const state = selectOnly(startGame(roster), 'D');
+    expect(describeSituation(state) ?? '').not.toContain('🧨');
+  });
+
+  it('keeps the charge visible during a spin, when the round line is silent', () => {
+    let state = withStatus(startGame(roster), 'B', { c4Fuse: 2 });
+    state = gameReducer(state, { type: 'START_PLAYER_SPIN', playerId: idOf(state, 'D') });
+
+    // The round line is suppressed mid-spin to avoid spoiling the result, but a
+    // countdown spoils nothing and is already painted on the rim.
+    expect(describeSituation(state) ?? '').toContain('🧨');
   });
 });
 

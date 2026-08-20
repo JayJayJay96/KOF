@@ -28,7 +28,12 @@ export type SoundName =
   | 'duel'
   | 'revive'
   | 'phaseChange'
-  | 'winner';
+  | 'winner'
+  // The C4 countdown. Two cues rather than one: the urgent variant is higher,
+  // harder and doubled, so the last two rounds of a fuse sound different from
+  // the first three without anyone having to read the number.
+  | 'c4Tick'
+  | 'c4TickUrgent';
 
 export type AudioLevels = {
   master: number;
@@ -231,6 +236,25 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number,
 
     case 'wallGain':
       tone(ctx, out, { type: 'sine', from: 620, to: 1240, at: now, duration: 0.26, peak: 0.28 });
+      break;
+    // A dry mechanical knock. Deliberately short and unmusical — it has to sit
+    // under whatever else is happening each round without becoming the round.
+    case 'c4Tick':
+      tone(ctx, out, { type: 'square', from: 420, to: 300, at: now, duration: 0.09, peak: 0.2 });
+      break;
+
+    // Fuse 2 and 1. Higher, doubled, and the second knock lands late enough to
+    // read as a heartbeat rather than an echo.
+    case 'c4TickUrgent':
+      tone(ctx, out, { type: 'square', from: 660, to: 460, at: now, duration: 0.08, peak: 0.3 });
+      tone(ctx, out, {
+        type: 'square',
+        from: 660,
+        to: 420,
+        at: now + 0.16,
+        duration: 0.1,
+        peak: 0.34,
+      });
       break;
 
     case 'deathMark':
