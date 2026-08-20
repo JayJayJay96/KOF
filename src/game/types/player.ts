@@ -13,8 +13,8 @@ export type Player = {
   name: string;
   status: PlayerStatus;
 
-  /** MVP range is 0 or 1 (PROJECT_SPEC.md §11.2). */
-  shield: number;
+  /** Walls block one hit, then break. Range is 0 or 1 (PROJECT_SPEC.md §11.2). */
+  wall: number;
   deathMark: boolean;
 
   /**

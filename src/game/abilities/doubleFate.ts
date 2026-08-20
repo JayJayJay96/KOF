@@ -10,8 +10,8 @@
  * CONFLICT RULES (spec §12 requires these be explicit before shipping):
  *
  *   - Both Fates resolve in the order drawn, through the normal event queue.
- *     Shield then Eliminate means the Shield is up in time to absorb the hit;
- *     Eliminate then Shield means the player is already gone and the Shield is
+ *     Wall then Eliminate means the Wall is up in time to absorb the hit;
+ *     Eliminate then Wall means the player is already gone and the Wall is
  *     discarded, because `eventResolver` refuses to arm an eliminated player.
  *   - Eliminate twice cannot happen: draws are without replacement.
  *   - A Fate whose target is already dead simply produces no events, because

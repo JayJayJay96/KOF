@@ -8,7 +8,7 @@
  *   - the opponent is never the initiator (excludePlayerIds)
  *   - with exactly two players alive the opponent is forced, which falls out of
  *     the exclusion rather than needing a special case (spec §38)
- *   - Shield blocks the resulting elimination, via the shared attack flow
+ *   - Wall blocks the resulting elimination, via the shared attack flow
  *
  * The coin flip happens when the opponent lands, before the host clicks through
  * WAIT_FOR_HOST. That matches how both wheels already work: the engine decides

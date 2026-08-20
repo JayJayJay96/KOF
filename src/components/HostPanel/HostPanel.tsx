@@ -232,7 +232,7 @@ export function HostPanel({
               <span className={player.status === 'eliminated' ? 'is-out' : undefined}>
                 {player.name}
               </span>
-              {player.shield > 0 && <span title="Shield">🛡</span>}
+              {player.wall > 0 && <span title="Wall">🧱</span>}
               {player.deathMark && <span title="Death Mark">💀</span>}
               {rosterEditable && (
                 <button

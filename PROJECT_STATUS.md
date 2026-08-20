@@ -68,7 +68,7 @@ Auto-deploys from `main` on push (live ~15s after push).
 
 **Play real games.** Enhancement Phase 3a is the ship point for the framework
 half of the ability expansion: the branch is releasable as it stands and the
-host may play it. Part 3b (the pool rework — new Fates, removals, the Shield →
+host may play it. Part 3b (the pool rework — new Fates, removals, the Wall →
 Wall rename) has **not started**.
 
 Three rounds of change have now landed without a full session between them. The
@@ -174,8 +174,8 @@ lasting one round is a transition animation rather than a phase.
 plus four of the optional ones — and held for the whole game.
 `getAvailableAbilities` filters on it.
 
-Mandatory today: `eliminate`, `shield`, `death_mark`, `hunter`, `duel`.
-Optional today: `safe`, `close_call`, `revive`, `steal_shield`, `double_fate`,
+Mandatory today: `eliminate`, `wall`, `death_mark`, `hunter`, `duel`.
+Optional today: `safe`, `close_call`, `revive`, `steal_wall`, `double_fate`,
 `bomb` — six, drawn four at a time, so C(6,4) = **15 distinct pools** and any
 one optional Fate sits out about one game in three.
 
@@ -204,11 +204,13 @@ and fails later, far from the cause. Version 3 therefore **rejects every v1 and
 v2 save** — a host with a game in progress across this deploy loses it, which is
 the correct trade against a white screen.
 
-## Not part of 3a
+## Part 3b — in progress
 
-Part 3b — remove Close Call / Steal Shield / Bomb, rename Shield to Wall
-(code as well as UI), add Gale, Demolition, C4, Fate Swap and Purify — is
-**designed but not started**. Do not describe any of it as done.
+Part 3b renames Shield to Wall (code as well as UI), removes Close Call,
+Steal Wall and Bomb, and adds Gale, Demolition, C4, Fate Swap and Purify.
+
+Only the **rename has landed**. Everything else is designed but not started —
+do not describe any of it as done.
 
 ---
 
@@ -293,7 +295,7 @@ it types `setAudioLevels`, which is used.
 `npm run test:run` is the single pass.
 
 `src/game/engine/gameEngine.test.ts` covers every case the roadmap names —
-Shield blocks attack, Death Mark triggers once, Hunter excludes self, Duel
+Wall blocks attack, Death Mark triggers once, Hunter excludes self, Duel
 excludes self, Revive only draws from the eliminated pool, winner detection,
 phase transitions, weighted Fate selection — plus Bomb's whole pass / tick /
 detonate cycle, which shipped after that list was written.
@@ -325,7 +327,7 @@ Phase 7.
 1137px chip inside a 1528px roster. It did not overflow, which is why an earlier
 numeric check passed it, but it consumed 74% of the row and pushed the other 19
 players onto a second line, hiding everyone's status. Only the **name** is now
-clamped, not the chip, so the 💣/🛡/💀 badges stay visible; the full name moves
+clamped, not the chip, so the 💣/🧱/💀 badges stay visible; the full name moves
 to the chip's `title`. Measured after: 198px, 13% of the row, all chips back on
 one line, `🔥🔥🔥💣3` still intact.
 
@@ -474,7 +476,7 @@ Round animation: **12.9s → 8.2s**. Host can switch back from the Host Panel.
 
 ## 3. A live situation line
 
-> *"death mark on A but he has a shield. at least describe it there."*
+> *"death mark on A but he has a wall. at least describe it there."*
 
 `game/narration/situation.ts` derives one line from state. Nothing is stored.
 
@@ -487,12 +489,12 @@ While resolving it shows the last few events joined, not just the latest —
 Hunter's payoff is three events and the causality is the point:
 
 ```text
-Jason hunts Chris · ☠ Chris eliminated · 🛡 Jason gains a Shield
+Jason hunts Chris · ☠ Chris eliminated · 🧱 Jason gains a Wall
 ```
 
-`deathMarkTrigger` now names the Shield in its headline, which is the host's
+`deathMarkTrigger` now names the Wall in its headline, which is the host's
 literal example and the game's most confusing moment ("the mark fired and he
-lived?"). Hunter dropped its bounty `SHOW_MESSAGE` — `ADD_SHIELD` already
+lived?"). Hunter dropped its bounty `SHOW_MESSAGE` — `ADD_WALL` already
 narrates itself, and the burst was printing the same fact twice.
 
 ## 4. Story rail on the main screen
@@ -542,7 +544,7 @@ correctness gain.
 - **Player spin flows into the Fate spin** — one click, not two. Contradicted
   PROJECT_SPEC.md §3, so the spec was amended rather than left to drift. Does
   not fire after Again, and cancels when a Death Mark intercepts.
-- **Hunter bounty** — a successful hunt earns the hunter a Shield. A blocked
+- **Hunter bounty** — a successful hunt earns the hunter a Wall. A blocked
   hunt pays nothing; the reward tracks the kill, not the attempt.
 
 ## `b374d59` — wheel skip bug
@@ -576,10 +578,10 @@ Driven by measurement over 5,220 rolls: 19.4% of rolls changed nothing, and only
 reaction came from.
 
 - **Again removed**, replaced by **Double Fate** (two Fates, order drawn).
-- **Close Call** replaces most of Safe: shielded → Shield destroyed; unshielded →
+- **Close Call** replaces most of Safe: walled → Wall destroyed; unwalled →
   survives but marked. Always leaves something on the board.
-- **Steal Shield** promoted from Post-MVP. No target spin needed.
-- **Status rims on the wheel** — purple Death Mark, light blue Shield, concentric
+- **Steal Wall** promoted from Post-MVP. No target spin needed.
+- **Status rims on the wheel** — purple Death Mark, light blue Wall, concentric
   when both. Status uses the **rim**, the landed result uses the **fill**, so
   both read at once.
 - Weights retuned across all four phases.
@@ -590,7 +592,7 @@ reaction came from.
 | Rolls that change nothing | 19.4% | **3.3%** |
 | Rolls involving a second player | 20.7% | **37.1%** |
 
-180 games: all reached valid winners, zero stuck states, Shield cap never broken.
+180 games: all reached valid winners, zero stuck states, Wall cap never broken.
 
 ---
 
@@ -639,8 +641,8 @@ ability and status modules:
 const player = context.state.players.find((c) => c.id === selectedPlayerId);
 ```
 
-Spread across `closeCall` (2), `deathMark`, `stealShield` (2), `eliminate`,
-`hunter` (4), `safe`, `shield`, `bomb`, `doubleFate`, `duel` (4), `bombTrigger`,
+Spread across `closeCall` (2), `deathMark`, `stealWall` (2), `eliminate`,
+`hunter` (4), `safe`, `wall`, `bomb`, `doubleFate`, `duel` (4), `bombTrigger`,
 `deathMarkTrigger`. The remedy is one import and a mechanical substitution per
 file — abilities already import from `engine/selectors` (`revive.ts`,
 `abilities/index.ts`), so no boundary changes.
@@ -689,7 +691,7 @@ watch, in rough order of how likely they are to be wrong:
 - **Is the rail worth a fifth of the width?** Judge it on a real stream, not on a
   desktop. If not, close it and it costs nothing.
 - **Is Hunter dominant?** Carried over and still unanswered: 16.9% of rolls *and*
-  a Shield bounty on a kill. If it feels oppressive, drop the bounty to later
+  a Wall bounty on a kill. If it feels oppressive, drop the bounty to later
   phases or make it one-off.
 - **Does Close Call read as relief or punishment?** It always costs something.
 - **Is Double Fate legible?** Two Fates in sequence may be hard to follow live.
@@ -724,7 +726,7 @@ timer alongside Death Mark and Bomb.
 depth, the cheaper move is interaction between the Fates that already exist
 rather than a twelfth one.
 
-### Related: Steal Shield taking the Bomb
+### Related: Steal Wall taking the Bomb
 
 Asked and answered in the same session. Rejected, and the reasoning is worth
 keeping because the idea will occur again:
@@ -734,7 +736,7 @@ to the next selected player, so moving it by any other means does not change who
 dies — only which rim carries the marker in the meantime. A "steal the bomb"
 Fate would be pure spectacle.
 
-It would also invert Steal Shield's valence: one Fate name that is sometimes a
+It would also invert Steal Wall's valence: one Fate name that is sometimes a
 gain and sometimes a self-inflicted loss, against the one-Fate-one-legible-
 outcome rule Waves 1 and 2 were built on.
 
@@ -758,7 +760,7 @@ and a transfer is the only way out.
 
 No blockers.
 
-- **Double Fate can waste half a roll.** Close Call (unshielded) and Death Mark
+- **Double Fate can waste half a roll.** Close Call (unwalled) and Death Mark
   both emit `ADD_DEATH_MARK`. `deathMark` is a boolean so it is harmless, but the
   pairing produces one effect from two Fates. Fixable by excluding
   effect-colliding pairs; deliberately left to see if it annoys in play.
@@ -875,7 +877,7 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | All 10 abilities implement `describeStakes` | PASS |
 | No situation line during `spinning_player` / `spinning_both` (spoiler check) | PASS, 0 leaks |
 | 466 Fate spins each carried a board-state line, none naming the Fate | PASS |
-| Death Mark on a shielded player narrates the Shield; still consumes it, still spends the mark | PASS |
+| Death Mark on a walled player narrates the Wall; still consumes it, still spends the mark | PASS |
 | Live UI: Main reveals at 6.92s, Fate at 8.24s, 1.32s apart | PASS |
 | Fate Wheel measurably still at 0.9s / 1.7s / 2.5s, moving from 3.7s | PASS |
 | Reset during the 3s delay clears the pending timer — no stray spin, no errors | PASS |
@@ -895,12 +897,12 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 | Cannot start below `MIN_PLAYERS_TO_START` | PASS |
 | Rapid double clicks: second spin ignored, second complete a no-op | PASS |
 | Undo after elimination restores the roster; undo past the start is safe | PASS |
-| Refresh mid-game: unicode names, bomb fuse, shield and mark all survive | PASS |
+| Refresh mid-game: unicode names, bomb fuse, wall and mark all survive | PASS |
 | Wrong `saveVersion` and corrupt JSON both rejected, not guessed at | PASS |
 | Hunter / Duel with two alive: target forced, self excluded | PASS |
-| Hunter vs Shield: blocked, shield spent, no bounty paid | PASS |
+| Hunter vs Wall: blocked, wall spent, no bounty paid | PASS |
 | Revive with one candidate; repeat revival increments `revivedCount` | PASS |
-| Revived player returns clean (no shield, mark or bomb) | PASS |
+| Revived player returns clean (no wall, mark or bomb) | PASS |
 | Duel coin flip exact at the 0.5 threshold; 50.1% over 4,000 samples | PASS |
 | 20 players + worst-case names at 1280×720 and 1920×1080: no overflow | PASS |
 | Resize mid-spin, twice, including during the 3s stagger — still resolves | PASS |
@@ -912,7 +914,7 @@ Exercised against the real modules, in the browser, through Vite's module graph:
 |---|---|
 | Full cycle: planted 3 → passes 2 → 1 → detonates on the player selected at 0 | PASS |
 | The Fate still runs on passing rounds; only the detonating tick replaces it | PASS |
-| Shield blocks the blast, is consumed, and the bomb is spent either way | PASS |
+| Wall blocks the blast, is consumed, and the bomb is spent either way | PASS |
 | Death Mark consumes the round — bomb does not pass, fuse unchanged | PASS |
 | Re-selecting the holder: keeps it, fuse still ticks | PASS |
 | Unavailable while a bomb is live, and below 4 alive; absent from the wheel | PASS |
@@ -971,7 +973,7 @@ point for the framework half of the ability expansion — the branch is releasab
 and the host may play it. Prefer a real game over starting 3b.
 
 **If you do start 3b**, read the ordering constraint in the plan first: the
-removals run after the additions, because deleting Close Call and Steal Shield
+removals run after the additions, because deleting Close Call and Steal Wall
 while the new Fates are still outstanding drops the optional pool to exactly
 four, and a draw of four from four is the same pool every session.
 

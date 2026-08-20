@@ -142,10 +142,10 @@ Under the WHO → WHAT readout sits one line of plain language explaining the st
 
 ```text
 while both wheels turn   (nothing — a line here would spoil the result)
-Main Wheel lands         "Ali is up — 🛡 holding a Shield, 💀 already Marked."
-Fate Wheel lands         "Ali is hit — 🛡 the Shield takes it."
+Main Wheel lands         "Ali is up — 🧱 behind a Wall, 💀 already Marked."
+Fate Wheel lands         "Ali is hit — 🧱 the Wall takes it."
 awaiting a target spin   "Jason becomes the Hunter — spin for a target."
-resolving                "Jason hunts Chris · ☠ Chris eliminated · 🛡 Jason gains a Shield"
+resolving                "Jason hunts Chris · ☠ Chris eliminated · 🧱 Jason gains a Wall"
 ```
 
 Two rules make it safe to show:
@@ -414,7 +414,7 @@ Available Fate entries should depend on:
 Example:
 
 - `Revive` should not appear if nobody is eliminated.
-- `Steal Shield` should not appear if nobody has a shield.
+- `Steal Wall` should not appear if nobody has a wall.
 - `Double Kill` should be disabled near the final stage if it could break the intended ending.
 
 ---
@@ -634,8 +634,8 @@ The selected player receives an elimination attack.
 Resolution:
 
 ```text
-If Shield > 0
-    consume Shield
+If Wall > 0
+    consume Wall
     player survives
 Else
     eliminate player
@@ -652,34 +652,46 @@ Presentation:
 
 ---
 
-## 11.2 SHIELD
+## 11.2 WALL
 
 Icon:
 
 ```text
-🛡
+🧱
 ```
 
 Effect:
 
-Selected player gains one Shield charge.
+Selected player gains one Wall charge.
 
 MVP rule:
 
-- maximum Shield stack: 1
+- maximum Wall stack: 1
 
 Future versions may make this configurable.
 
+Why "Wall" and not "Shield":
+
+A shield is worn, so it only ever reads as protection. A wall is a thing you
+stand behind — which means it can also fall on you. Enhancement Phase 3b adds a
+Fate that turns armour into a liability, and that mechanic is instant to
+understand with a wall and needs a beat of thought with a shield. Renaming it
+here, rather than at the point of use, keeps one word across the code, the
+screen and this document.
+
+The renamed vocabulary is `ADD_WALL`, `REMOVE_WALL`, `WALL_BLOCK`,
+`Player.wall` and `MAX_WALL` (§18).
+
 Presentation:
 
-- metallic / barrier sound,
-- shield flash,
+- stone / barrier impact sound,
+- wall flash,
 - badge appears beside player.
 
 Example:
 
 ```text
-JASON 🛡
+JASON 🧱
 ```
 
 ---
@@ -741,11 +753,11 @@ Effect:
 The player survives, but never for free:
 
 ```text
-Has a Shield  →  the Shield is destroyed absorbing the graze
-No Shield     →  survives, but gains a Death Mark
+Has a Wall  →  the Wall is destroyed absorbing the graze
+No Wall     →  survives, but gains a Death Mark
 ```
 
-That branch is what keeps it from being a reskin of Death Mark. For a shielded
+That branch is what keeps it from being a reskin of Death Mark. For a walled
 player it is a real loss with no lingering threat; for an exposed player it is
 survival bought on credit.
 
@@ -783,7 +795,7 @@ SPIN TARGET
 
 Target receives an elimination attack.
 
-Shield can block the attack.
+Wall can block the attack.
 
 The original Hunter does not get eliminated by the Hunter ability.
 
@@ -793,16 +805,16 @@ Target selection must exclude the Hunter.
 
 *Added after Phase 7 playtesting.*
 
-If the hunt **kills**, the Hunter gains one Shield.
+If the hunt **kills**, the Hunter gains one Wall.
 
 ```text
-Target eliminated  →  Hunter gains 🛡
+Target eliminated  →  Hunter gains 🧱
 Target blocked     →  no reward
 ```
 
-This turns Hunter from a coin-flip you survive into an outcome worth rolling. A Shielded target blocks the attack, so a blocked hunt pays nothing — the reward tracks the kill, not the attempt.
+This turns Hunter from a coin-flip you survive into an outcome worth rolling. A walled target blocks the attack, so a blocked hunt pays nothing — the reward tracks the kill, not the attempt.
 
-The Shield stack cap of 1 (§11.2) still applies, so a Hunter who already holds a Shield gains nothing.
+The Wall stack cap of 1 (§11.2) still applies, so a Hunter who already has a Wall up gains nothing.
 
 Presentation:
 
@@ -847,15 +859,15 @@ The next time that player is selected by the Main Wheel:
 - player receives an elimination attack,
 - Death Mark is consumed.
 
-Shield interaction:
+Wall interaction:
 
 MVP recommendation:
 
-A Shield **can block** Death Mark activation.
+A Wall **can block** Death Mark activation.
 
 This keeps status rules consistent:
 
-> Shield blocks one elimination attack regardless of source.
+> Wall blocks one elimination attack regardless of source.
 
 ---
 
@@ -879,7 +891,7 @@ The revived player:
 
 - returns to Alive,
 - re-enters the Main Wheel,
-- returns without Shield,
+- returns without Wall,
 - returns without Death Mark.
 
 MVP selection:
@@ -924,9 +936,9 @@ Host starts Duel
 Loser receives elimination attack
 ```
 
-Shield interaction:
+Wall interaction:
 
-Shield can block the resulting elimination.
+Wall can block the resulting elimination.
 
 Duel opponent must exclude the initiating player.
 
@@ -956,7 +968,7 @@ Selected player exchanges temporary status effects with another random player.
 
 Possible statuses:
 
-- Shield
+- Wall
 - Death Mark
 - future Bomb
 - future Curse
@@ -964,22 +976,22 @@ Possible statuses:
 
 ---
 
-## STEAL SHIELD
+## STEAL WALL
 
 *Promoted to the live pool after Phase 7 playtesting.*
 
-Selected player steals a Shield from another Shielded player.
+Selected player steals a Wall from another walled player.
 
-If nobody owns a Shield, ability should not appear.
+If nobody owns a Wall, ability should not appear.
 
 Chosen because only ~21% of rolls involved a second player and those were the
-moments people actually reacted to. Steal Shield is the cheapest way to add
-another: it needs no target spin, because the victim is simply whoever is
-holding a Shield.
+moments people actually reacted to. Steal Wall is the cheapest way to add
+another: it needs no target spin, because the victim is simply whoever
+already has one up.
 
-The thief's own Shield is irrelevant — a second is still capped at the MVP
+The thief's own Wall is irrelevant — a second is still capped at the MVP
 maximum of 1 (§11.2), but the victim loses theirs regardless, which is the
-point of the roll. If the only Shield holder turns out to be the thief, the
+point of the roll. If the only Wall holder turns out to be the thief, the
 Fate announces that nothing was stolen rather than silently doing nothing.
 
 ---
@@ -1019,7 +1031,7 @@ tick. The bomb is a countdown everyone can see, wearing someone's name.
 - **One bomb at a time.** The Fate is unavailable while one is live. Two
   countdowns at once would break §45's simplicity requirement.
 - **At least four players alive**, or the potato has nowhere to travel.
-- **Shield blocks the blast**, through the shared attack flow, and the bomb is
+- **Wall blocks the blast**, through the shared attack flow, and the bomb is
   spent either way — the same rule as a Death Mark.
 - **It does not eat the round.** A pass happens alongside the normal Fate. Only
   the detonating tick replaces the Fate Wheel, exactly as a Death Mark does.
@@ -1054,8 +1066,8 @@ Current selected player receives two Fate rolls.
 Conflict rules, now that it ships:
 
 - Both Fates resolve **in the order drawn**, through the normal event queue.
-  Shield then Eliminate means the Shield is up in time to absorb the hit;
-  Eliminate then Shield means the player is already gone and the Shield is
+  Wall then Eliminate means the Wall is up in time to absorb the hit;
+  Eliminate then Wall means the player is already gone and the Wall is
   discarded, because an eliminated player can never be armed.
 - Draws are **without replacement**, so the same Fate never lands twice.
 - A Fate whose target is already dead produces no events rather than
@@ -1071,7 +1083,7 @@ Exclusions:
   follow.
 
 Note that two different Fates can still produce the same effect — Close Call
-without a Shield and Death Mark both mark the player. `deathMark` is a boolean,
+without a Wall and Death Mark both mark the player. `deathMark` is a boolean,
 so this is harmless, but it does waste half the roll.
 
 ---
@@ -1108,16 +1120,16 @@ At `START_GAME` the engine draws the **session pool**: every mandatory Fate, plu
 Always in, every session:
 
 - Eliminate
-- Shield
+- Wall
 - Death Mark
 - Hunter
 - Duel
 
-These are what keeps a game moving. They also make category quotas unnecessary: the two failure modes worth guarding against are a session with no defence and a session with no Fate involving a second player, and Shield rules out the first while Hunter and Duel rule out the second. A quota system would be a second mechanism enforcing something already structurally true.
+These are what keeps a game moving. They also make category quotas unnecessary: the two failure modes worth guarding against are a session with no defence and a session with no Fate involving a second player, and Wall rules out the first while Hunter and Duel rule out the second. A quota system would be a second mechanism enforcing something already structurally true.
 
 ## Drawn
 
-Four of the six optional Fates — Safe, Close Call, Revive, Steal Shield, Double Fate, Bomb.
+Four of the six optional Fates — Safe, Close Call, Revive, Steal Wall, Double Fate, Bomb.
 
 Four is the draw size because C(6,4) = 15 distinct pools, and any one optional Fate sits out roughly one game in three. Drawing more would show most of the same Fates every session and the draw would stop being felt.
 
@@ -1143,10 +1155,10 @@ Default active state.
 
 Player no longer appears in the active Main Wheel.
 
-### Shield
+### Wall
 
 ```ts
-shield: number
+wall: number
 ```
 
 MVP range:
@@ -1170,10 +1182,10 @@ Status badges should be visible near player names.
 Example:
 
 ```text
-Jason      🛡
+Jason      🧱
 Kelvin     💀
 Amy
-Daniel     🛡
+Daniel     🧱
 ```
 
 The goal is to let viewers remember ongoing player stories.
@@ -1190,7 +1202,7 @@ type Player = {
   name: string;
   status: "alive" | "eliminated";
 
-  shield: number;
+  wall: number;
   deathMark: boolean;
 
   eliminatedAtRound?: number;
@@ -1262,7 +1274,7 @@ weight is not above 0.
 
 `isAvailable` is therefore reserved for conditions the weight table cannot
 express — board state such as "somebody is eliminated" or "somebody owns a
-Shield". A phase restriction written as an availability check is duplicating
+Wall". A phase restriction written as an availability check is duplicating
 what the table already says, and the two can then disagree.
 
 ---
@@ -1305,7 +1317,7 @@ REQUEST_TARGET_SPIN
 TARGET_SELECTED: Kelvin
 SHOW_VERSUS: Jason vs Kelvin
 ATTACK_PLAYER: Kelvin
-SHIELD_CHECK: Kelvin
+WALL_CHECK: Kelvin
 ELIMINATE_PLAYER: Kelvin
 SHOW_KO: Kelvin
 END_ABILITY
@@ -1335,8 +1347,8 @@ type GameEvent =
   | { type: "WAIT_FOR_HOST" }
   | { type: "REQUEST_PLAYER_SPIN"; purpose: string }
   | { type: "ATTACK_PLAYER"; playerId: string; source: string }
-  | { type: "SHIELD_BLOCK"; playerId: string }
-  | { type: "ADD_SHIELD"; playerId: string }
+  | { type: "WALL_BLOCK"; playerId: string }
+  | { type: "ADD_WALL"; playerId: string }
   | { type: "ADD_DEATH_MARK"; playerId: string }
   | { type: "REMOVE_DEATH_MARK"; playerId: string }
   | { type: "ELIMINATE_PLAYER"; playerId: string }
@@ -1407,10 +1419,10 @@ Suggested desktop composition:
 │                WHO?                    WHAT?                 │
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
-│ JASON 🛡   AMY   KELVIN 💀   DANIEL   HAN   ...             │
+│ JASON 🧱   AMY   KELVIN 💀   DANIEL   HAN   ...             │
 ├─────────────────────────────────────────────────────────────┤
 │ LAST EVENT                                                  │
-│ 🎯 Jason hunted Kelvin — Kelvin blocked with Shield         │
+│ 🎯 Jason hunted Kelvin — Kelvin blocked with Wall         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -1561,7 +1573,7 @@ Example:
 
 ```text
 Round 01
-Jason → 🛡 Shield
+Jason → 🧱 Wall
 
 Round 02
 Amy → ☠ Eliminated
@@ -1569,7 +1581,7 @@ Amy → ☠ Eliminated
 Round 03
 Kelvin → 🎯 Hunter
 Kelvin targeted Daniel
-Daniel → 🛡 Blocked
+Daniel → 🧱 Blocked
 
 Round 04
 Han → 💀 Death Mark
@@ -1626,7 +1638,7 @@ whoosh
 → K.O. sting
 ```
 
-## Shield
+## Wall
 
 ```text
 impact
@@ -1692,9 +1704,9 @@ ELIMINATE_PLAYER
 → grayscale player
 → wheel removal
 
-SHIELD_BLOCK
+WALL_BLOCK
 → white/blue flash
-→ shield burst
+→ wall burst
 → metallic sound
 
 ADD_DEATH_MARK
@@ -1813,7 +1825,7 @@ Future configuration areas:
 
 ```text
 ☑ Eliminate
-☑ Shield
+☑ Wall
 ☑ Hunter
 ☑ Duel
 ☐ Revive
@@ -1828,7 +1840,7 @@ Example:
 
 ```text
 Eliminate    30
-Shield       15
+Wall       15
 Hunter       10
 ```
 
@@ -2003,7 +2015,7 @@ src/
 │   │
 │   ├── abilities/
 │   │   ├── eliminate.ts
-│   │   ├── shield.ts
+│   │   ├── wall.ts
 │   │   ├── safe.ts
 │   │   ├── again.ts
 │   │   ├── hunter.ts
@@ -2085,7 +2097,7 @@ The MVP should be playable from start to finish.
 ### Abilities
 
 - Eliminate
-- Shield
+- Wall
 - Safe
 - Again
 - Hunter
@@ -2110,7 +2122,7 @@ At minimum:
 - wheel stop,
 - fate reveal,
 - eliminate impact,
-- Shield block,
+- Wall block,
 - phase transition,
 - winner celebration.
 
@@ -2165,7 +2177,7 @@ The MVP is considered complete when:
 4. Fate Wheel activates only after a valid player selection.
 5. Fate result follows current phase rules.
 6. Every MVP ability resolves correctly.
-7. Shield correctly blocks one elimination attack.
+7. Wall correctly blocks one elimination attack.
 8. Death Mark correctly activates on the player's next Main Wheel selection.
 9. Hunter cannot target the Hunter.
 10. Duel cannot select the same player twice.
@@ -2226,23 +2238,23 @@ This creates more chaotic comeback moments.
 
 Can be changed later.
 
-### Shield + Death Mark
+### Wall + Death Mark
 
-If Death Mark activates while Shield exists:
+If Death Mark activates while Wall exists:
 
 ```text
 Death Mark consumed
-Shield consumed
+Wall consumed
 Player survives
 ```
 
-### Shield + Duel loss
+### Wall + Duel loss
 
-Shield blocks the Duel elimination.
+Wall blocks the Duel elimination.
 
-### Shield + Hunter attack
+### Wall + Hunter attack
 
-Shield blocks the Hunter attack.
+Wall blocks the Hunter attack.
 
 ### Again loops
 
@@ -2422,7 +2434,7 @@ Recommended implementation sequence:
 12. Fate spin.
 13. Eliminate.
 14. Safe.
-15. Shield.
+15. Wall.
 16. Again.
 
 At this point, create the first fully playable vertical slice.
@@ -2577,7 +2589,7 @@ These do **not** block development and can be decided during implementation:
 6. Exact audio pack.
 7. Exact colour palette.
 8. Exact amount of screen shake / visual intensity.
-9. Whether Shield stacking will ever be allowed.
+9. Whether Wall stacking will ever be allowed.
 10. Whether Fate Wheel segment sizes visually match probability or stay equal.
 
 Current recommendations in this document can be used as defaults until play-testing proves otherwise.

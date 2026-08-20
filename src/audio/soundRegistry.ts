@@ -20,16 +20,16 @@ export function soundForEvent(event: GameEvent): SoundName | null {
     case 'ELIMINATE_PLAYER':
       return 'eliminate';
 
-    case 'SHIELD_BLOCK':
-      return 'shieldBlock';
+    case 'WALL_BLOCK':
+      return 'wallBlock';
 
-    case 'ADD_SHIELD':
-      return 'shieldGain';
+    case 'ADD_WALL':
+      return 'wallGain';
 
-    // Losing a Shield to theft or a graze reuses the block cue: from the
+    // Losing a Wall to theft or a graze reuses the block cue: from the
     // victim's side it is the same metallic "your armour just went" moment.
-    case 'REMOVE_SHIELD':
-      return 'shieldBlock';
+    case 'REMOVE_WALL':
+      return 'wallBlock';
 
     case 'ADD_DEATH_MARK':
       return 'deathMark';

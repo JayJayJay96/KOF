@@ -14,27 +14,27 @@ import { selectWeightedItem } from '../../utils/random';
 import { ABILITY_WEIGHTS } from '../config/abilityWeights';
 import { filterAlive, getEliminatedPlayers } from '../engine/selectors';
 import { eliminateAbility } from './eliminate';
-import { shieldAbility } from './shield';
+import { wallAbility } from './wall';
 import { safeAbility } from './safe';
 import { closeCallAbility } from './closeCall';
 import { deathMarkAbility } from './deathMark';
 import { hunterAbility } from './hunter';
 import { reviveAbility } from './revive';
 import { duelAbility } from './duel';
-import { stealShieldAbility } from './stealShield';
+import { stealWallAbility } from './stealWall';
 import { bombAbility } from './bomb';
 import { DOUBLE_FATE_ID, doubleFateAbility, setDoubleFatePoolProvider } from './doubleFate';
 
 export const ABILITIES: readonly AbilityDefinition[] = [
   eliminateAbility,
-  shieldAbility,
+  wallAbility,
   safeAbility,
   closeCallAbility,
   deathMarkAbility,
   hunterAbility,
   reviveAbility,
   duelAbility,
-  stealShieldAbility,
+  stealWallAbility,
   doubleFateAbility,
   bombAbility,
 ];

@@ -21,8 +21,8 @@ export type SoundName =
   | 'wheelStop'
   | 'fateReveal'
   | 'eliminate'
-  | 'shieldBlock'
-  | 'shieldGain'
+  | 'wallBlock'
+  | 'wallGain'
   | 'deathMark'
   | 'hunter'
   | 'duel'
@@ -216,7 +216,7 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number,
       });
       break;
 
-    case 'shieldBlock':
+    case 'wallBlock':
       tone(ctx, out, { type: 'square', from: 1180, to: 900, at: now, duration: 0.2, peak: 0.3 });
       tone(ctx, out, {
         type: 'square',
@@ -229,7 +229,7 @@ function render(name: SoundName, ctx: AudioContext, out: AudioNode, now: number,
       noise(ctx, out, { at: now, duration: 0.05, peak: 0.2, cutoff: 4200 });
       break;
 
-    case 'shieldGain':
+    case 'wallGain':
       tone(ctx, out, { type: 'sine', from: 620, to: 1240, at: now, duration: 0.26, peak: 0.28 });
       break;
 

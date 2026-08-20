@@ -14,8 +14,8 @@ import type { GameEvent } from './eventTypes';
 import type { GameState } from '../types/game';
 import type { Player } from '../types/player';
 
-/** MVP Shield stack cap (PROJECT_SPEC.md §11.2). */
-export const MAX_SHIELD = 1;
+/** MVP Wall stack cap (PROJECT_SPEC.md §11.2). */
+export const MAX_WALL = 1;
 
 function mapPlayer(
   state: GameState,
@@ -38,25 +38,25 @@ function mapPlayer(
 export function applyGameEvent(state: GameState, event: GameEvent): GameState {
   switch (event.type) {
     // Eliminated players cannot be armed. Double Fate can roll Eliminate and
-    // then Shield in one resolution, and a Shield on a corpse would reappear if
+    // then Wall in one resolution, and a Wall on a corpse would reappear if
     // that player were later revived.
-    case 'ADD_SHIELD':
+    case 'ADD_WALL':
       return mapPlayer(state, event.playerId, (player) =>
         player.status === 'alive'
-          ? { ...player, shield: Math.min(MAX_SHIELD, player.shield + 1) }
+          ? { ...player, wall: Math.min(MAX_WALL, player.wall + 1) }
           : player,
       );
 
-    case 'REMOVE_SHIELD':
+    case 'REMOVE_WALL':
       return mapPlayer(state, event.playerId, (player) => ({
         ...player,
-        shield: Math.max(0, player.shield - 1),
+        wall: Math.max(0, player.wall - 1),
       }));
 
-    case 'SHIELD_BLOCK':
+    case 'WALL_BLOCK':
       return mapPlayer(state, event.playerId, (player) => ({
         ...player,
-        shield: Math.max(0, player.shield - 1),
+        wall: Math.max(0, player.wall - 1),
       }));
 
     case 'ADD_DEATH_MARK':
@@ -67,7 +67,7 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
 
     // Moving the bomb clears it from everyone else in the same step, so two
     // holders cannot exist even briefly. An eliminated target is refused for
-    // the same reason a corpse cannot be armed with a Shield.
+    // the same reason a corpse cannot be armed with a Wall.
     case 'SET_BOMB':
       return {
         ...state,
@@ -93,7 +93,7 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
           ? {
               ...player,
               status: 'eliminated',
-              shield: 0,
+              wall: 0,
               deathMark: false,
               // NOTE: `bombFuse` is deliberately NOT cleared here.
               //
@@ -116,7 +116,7 @@ export function applyGameEvent(state: GameState, event: GameEvent): GameState {
           ? {
               ...player,
               status: 'alive',
-              shield: 0,
+              wall: 0,
               deathMark: false,
               bombFuse: undefined,
               eliminatedAtRound: undefined,

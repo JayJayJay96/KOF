@@ -10,7 +10,7 @@
  * chosen id (PROJECT_SPEC.md §8-9), so a wheel always spins toward a result
  * the engine already decided. Everything else draws inside the reducer as it
  * resolves: an ability's `resolve()` may call randomness directly (Duel's
- * coin flip, Revive's pick, Steal Shield's victim), and so does drawing the
+ * coin flip, Revive's pick, Steal Wall's victim), and so does drawing the
  * session's Fate pool at START_GAME — nothing animates toward "which Fates
  * are in this session", so there is no caller to hoist the draw to. That is
  * exactly why undo (Phase 6B, see undo.ts) snapshots whole states instead of
@@ -465,12 +465,12 @@ function selectAbility(state: GameState, abilityId: string): GameState {
 /**
  * Direct elimination.
  *
- * Phase 0 has no Shield check — the shared attack abstraction that consumes
- * Shield first lands in Phase 3 (DEVELOPMENT_ROADMAP.md Phase 3, "Attack
+ * Phase 0 has no Wall check — the shared attack abstraction that consumes
+ * Wall first lands in Phase 3 (DEVELOPMENT_ROADMAP.md Phase 3, "Attack
  * abstraction"). Until then this is the raw elimination primitive that the
  * attack flow will call.
  *
- * Shield and Death Mark are cleared on elimination so a revived player always
+ * Wall and Death Mark are cleared on elimination so a revived player always
  * returns clean (PROJECT_SPEC.md §11.7).
  */
 function eliminatePlayer(state: GameState, playerId: string): GameState {
@@ -482,7 +482,7 @@ function eliminatePlayer(state: GameState, playerId: string): GameState {
       ? {
           ...player,
           status: 'eliminated' as const,
-          shield: 0,
+          wall: 0,
           deathMark: false,
           eliminatedAtRound: state.round,
         }

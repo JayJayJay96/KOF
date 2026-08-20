@@ -27,13 +27,13 @@ export function effectForEvent(event: GameEvent): ScreenEffect | null {
     case 'ELIMINATE_PLAYER':
       return { title: 'K.O.', tone: 'kill', flash: true, shake: true };
 
-    case 'SHIELD_BLOCK':
+    case 'WALL_BLOCK':
       return { title: 'BLOCK', tone: 'block', flash: true, shake: false };
 
-    case 'ADD_SHIELD':
-      return { title: 'SHIELD', tone: 'cool', flash: true, shake: false };
+    case 'ADD_WALL':
+      return { title: 'WALL', tone: 'cool', flash: true, shake: false };
 
-    case 'REMOVE_SHIELD':
+    case 'REMOVE_WALL':
       return { title: 'STOLEN', tone: 'dark', flash: true, shake: false };
 
     case 'ADD_DEATH_MARK':

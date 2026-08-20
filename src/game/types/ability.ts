@@ -49,7 +49,7 @@ export type AbilityDefinition = {
    * One line describing what this Fate is about to do, given the board.
    *
    * Shown after the Fate Wheel lands and before the host resolves it, which is
-   * the moment "Eliminate — but Ali's Shield will take it" is worth saying. It
+   * the moment "Eliminate — but Ali's Wall will take it" is worth saying. It
    * lives on the ability so narration stays data like everything else: a new
    * Fate arrives with its own wording and no component learns its name.
    *

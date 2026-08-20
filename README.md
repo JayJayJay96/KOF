@@ -10,7 +10,7 @@ Enter players, then `Spin Player → Spin Fate → Resolve → Next Round` until
 winner remains — with impact effects, sound, phase transitions and a winner
 screen along the way.
 
-All eight MVP Fates work — Eliminate, Shield, Safe, Again, Death Mark, Hunter,
+All eight MVP Fates work — Eliminate, Wall, Safe, Again, Death Mark, Hunter,
 Revive, Duel — alongside undo, save/resume and the host panel.
 
 Every MVP feature is built, so **the next step is playing real games**, not
@@ -100,7 +100,7 @@ change to `src/game/`.
 Write an `AbilityDefinition` in `src/game/abilities/`, then add it to `ABILITIES`
 in `src/game/abilities/index.ts`. That is the whole change — no component, wheel
 or reducer edit. Anything that causes elimination must go through
-`attackPlayer()` in `src/game/engine/attack.ts` so Shield keeps working.
+`attackPlayer()` in `src/game/engine/attack.ts` so Wall keeps working.
 
 Abilities return events; they never mutate state. `events/eventResolver.ts` owns
 what an event does, `events/eventQueue.ts` owns ordering. A multi-step ability

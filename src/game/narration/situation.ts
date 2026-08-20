@@ -6,9 +6,9 @@
  * asked for, and what produces each:
  *
  * ```text
- * "Ali is up — 🛡 holding a Shield, 💀 already Marked."                 board state
+ * "Ali is up — 🧱 behind a Wall, 💀 already Marked."                 board state
  * "Jason becomes the Hunter — spin for a target."                     a suspended ability
- * "Jason hunts Chris · ☠ Chris eliminated · 🛡 Jason gains a Shield"   the burst
+ * "Jason hunts Chris · ☠ Chris eliminated · 🧱 Jason gains a Wall"   the burst
  * ```
  *
  * Everything here is DERIVED. Nothing new is stored, nothing is decided, and no
@@ -53,7 +53,7 @@ export function describeSituation(state: GameState): string | null {
       return describeStanding(getCurrentPlayer(state));
 
     // The Fate has landed but the host has not resolved it. This is the moment
-    // where "Eliminate, but he has a Shield" is worth saying out loud.
+    // where "Eliminate, but he has a Wall" is worth saying out loud.
     case 'fate_selected':
       return describeStakes(state);
 
@@ -73,7 +73,7 @@ function describeStanding(player: Player | null): string | null {
   if (!player) return null;
 
   const carried: string[] = [];
-  if (player.shield > 0) carried.push('🛡 holding a Shield');
+  if (player.wall > 0) carried.push('🧱 behind a Wall');
   if (player.deathMark) carried.push('💀 already Marked');
 
   return carried.length > 0

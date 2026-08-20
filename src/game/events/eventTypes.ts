@@ -24,10 +24,11 @@ export type GameEvent =
   // for another Fate roll without the reducer switching on ability id.
   | { type: 'REQUEST_FATE_SPIN'; purpose: string }
   | { type: 'ATTACK_PLAYER'; playerId: string; source: string }
-  | { type: 'SHIELD_BLOCK'; playerId: string }
-  | { type: 'ADD_SHIELD'; playerId: string }
-  // Distinct from SHIELD_BLOCK: the Shield is taken, not spent absorbing a hit.
-  | { type: 'REMOVE_SHIELD'; playerId: string }
+  | { type: 'WALL_BLOCK'; playerId: string }
+  | { type: 'ADD_WALL'; playerId: string }
+  // Distinct from WALL_BLOCK: the Wall is taken or destroyed, not spent
+  // absorbing a hit.
+  | { type: 'REMOVE_WALL'; playerId: string }
   | { type: 'ADD_DEATH_MARK'; playerId: string }
   | { type: 'REMOVE_DEATH_MARK'; playerId: string }
   // Moves the bomb TO playerId and sets its fuse, clearing it from whoever held

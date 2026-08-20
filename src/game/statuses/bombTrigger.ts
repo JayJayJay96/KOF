@@ -11,7 +11,7 @@
  *   displayed   💣 badge with the fuse, plus an orange rim on the wheel
  *   triggers    EVERY Main Wheel selection while it is live — it passes
  *   removed     on detonation, and on its holder's elimination by anything else
- *   Shield      yes, Shield blocks the blast, via the shared attack flow
+ *   Wall        yes, Wall blocks the blast, via the shared attack flow
  *   Revive      revival returns a player clean, bomb included
  *   persists    across rounds until the fuse runs out
  *
@@ -126,7 +126,7 @@ export const bombTrigger: StatusTrigger = {
       { type: 'SET_BOMB', playerId, fuse: 0 },
       { type: 'SHOW_MESSAGE', message: `💣 TIME UP — the bomb is in ${name}'s hands` },
       { type: 'WAIT_FOR_HOST' },
-      // Cleared before the attack, so the bomb is spent even when a Shield
+      // Cleared before the attack, so the bomb is spent even when a Wall
       // absorbs the blast. Same rule as the Death Mark.
       { type: 'CLEAR_BOMB' },
       ...attackPlayer(context.state, playerId, 'bomb'),

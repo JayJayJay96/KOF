@@ -7,7 +7,7 @@
  *
  * ONLY THE TINT MOVES. It reaches the rim, the gutters and the hub ring, never a
  * slice fill. That is what keeps the four status colours — gold for the landed
- * slice, purple for Death Mark, light blue for Shield, orange for Bomb — legible
+ * slice, purple for Death Mark, stone for Wall, orange for Bomb — legible
  * in every phase. A full per-phase reskin was considered and rejected for
  * exactly this reason: Danger's orange and Sudden Death's red both collide with
  * the Bomb marker, and the whole status palette would have needed re-picking.

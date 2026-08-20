@@ -6,10 +6,10 @@
  * session, so two games with the same roster still play differently.
  *
  * CURRENT STATE: six optional Fates exist today (safe, close_call, revive,
- * steal_shield, double_fate, bomb) and the defensive mandatory Fate is still
- * called Shield. The "eight optional" / "Wall" language below describes where
- * this phase ENDS UP, not what is registered right now — later tasks add two
- * more optional Fates and rename Shield to Wall.
+ * steal_wall, double_fate, bomb) and the defensive mandatory Fate is now
+ * called Wall. The "eight optional" language below describes where this phase
+ * ENDS UP, not what is registered right now — later tasks add two more
+ * optional Fates.
  *
  * WHY FOUR
  *

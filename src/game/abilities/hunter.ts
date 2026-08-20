@@ -8,8 +8,8 @@
  * Rules:
  *   - the hunter cannot target itself (excludePlayerIds)
  *   - the hunter is never eliminated by its own Hunter roll
- *   - Shield can block the attack, via the shared attack flow
- *   - a successful hunt rewards the hunter with a Shield; a blocked one does not
+ *   - a Wall can block the attack, via the shared attack flow
+ *   - a successful hunt rewards the hunter with a Wall; a blocked one does not
  *   - with exactly two players alive the target is forced to be the other one,
  *     which falls out of the exclusion rather than needing a special case
  *
@@ -50,18 +50,18 @@ export const hunterAbility: AbilityDefinition = {
 
     const attack = attackPlayer(context.state, targetPlayerId, 'hunter');
 
-    // A hunt that actually lands earns the hunter a Shield — the bounty makes
-    // rolling Hunter something to want rather than merely survive. A Shielded
-    // target blocks the attack, so no kill and no bounty.
+    // A hunt that actually lands earns the hunter a Wall — the bounty makes
+    // rolling Hunter something to want rather than merely survive. A target
+    // behind a Wall blocks the attack, so no kill and no bounty.
     //
-    // ADD_SHIELD is capped at the MVP maximum of 1 by the event resolver, so a
-    // hunter already holding a Shield gains nothing and the cap still holds.
+    // ADD_WALL is capped at the MVP maximum of 1 by the event resolver, so a
+    // hunter already behind a Wall gains nothing and the cap still holds.
     const killed = attack.some((event) => event.type === 'ELIMINATE_PLAYER');
 
-    // ADD_SHIELD already narrates itself as "gains a Shield", and the situation
+    // ADD_WALL already narrates itself as "gains a Wall", and the situation
     // line now shows the whole burst — hunt, kill, bounty — so a second message
     // saying the same thing only crowded it out.
-    const bounty: GameEvent[] = killed ? [{ type: 'ADD_SHIELD', playerId: selectedPlayerId }] : [];
+    const bounty: GameEvent[] = killed ? [{ type: 'ADD_WALL', playerId: selectedPlayerId }] : [];
 
     return [
       {
@@ -80,6 +80,6 @@ export const hunterAbility: AbilityDefinition = {
     const hunter = context.state.players.find((player) => player.id === selectedPlayerId);
     if (!hunter) return null;
 
-    return `${hunter.name} becomes the Hunter — a kill earns them a 🛡 Shield.`;
+    return `${hunter.name} becomes the Hunter — a kill earns them a 🧱 Wall.`;
   },
 };

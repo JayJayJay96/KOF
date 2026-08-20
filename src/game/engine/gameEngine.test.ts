@@ -3,7 +3,7 @@
  *
  * The roadmap names the cases this file must cover:
  *
- *   Shield blocks attack        Death Mark triggers once
+ *   Wall blocks attack        Death Mark triggers once
  *   Hunter excludes self        Duel excludes self
  *   Revive only uses eliminated pool
  *   Winner detection            Phase transitions
@@ -111,17 +111,17 @@ afterEach(() => {
   resetRandomSource();
 });
 
-// --- Shield ------------------------------------------------------------------
+// --- Wall ------------------------------------------------------------------
 
-describe('Shield', () => {
+describe('Wall', () => {
   it('blocks an attack instead of eliminating', () => {
-    const state = withStatus(startGame(['A', 'B', 'C']), 'A', { shield: 1 });
+    const state = withStatus(startGame(['A', 'B', 'C']), 'A', { wall: 1 });
     const events = attackPlayer(state, idOf(state, 'A'), 'test');
 
-    expect(events.map((event) => event.type)).toEqual(['ATTACK_PLAYER', 'SHIELD_BLOCK']);
+    expect(events.map((event) => event.type)).toEqual(['ATTACK_PLAYER', 'WALL_BLOCK']);
   });
 
-  it('eliminates when there is no Shield', () => {
+  it('eliminates when there is no Wall', () => {
     const state = startGame(['A', 'B', 'C']);
     const events = attackPlayer(state, idOf(state, 'A'), 'test');
 
@@ -129,11 +129,11 @@ describe('Shield', () => {
   });
 
   it('is consumed by the block, so it only saves once', () => {
-    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { shield: 1 });
+    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { wall: 1 });
 
     state = playRound(state, 'A', 'eliminate');
     expect(playerOf(state, 'A').status).toBe('alive');
-    expect(playerOf(state, 'A').shield).toBe(0);
+    expect(playerOf(state, 'A').wall).toBe(0);
 
     state = gameReducer(state, { type: 'NEXT_ROUND' });
     state = playRound(state, 'A', 'eliminate');
@@ -141,10 +141,10 @@ describe('Shield', () => {
   });
 
   it('never stacks above the MVP cap of 1', () => {
-    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { shield: 1 });
-    state = playRound(state, 'A', 'shield');
+    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { wall: 1 });
+    state = playRound(state, 'A', 'wall');
 
-    expect(playerOf(state, 'A').shield).toBe(1);
+    expect(playerOf(state, 'A').wall).toBe(1);
   });
 });
 
@@ -160,12 +160,12 @@ describe('Death Mark', () => {
     expect(playerOf(state, 'A').deathMark).toBe(false);
   });
 
-  it('is spent even when a Shield absorbs the attack', () => {
-    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { deathMark: true, shield: 1 });
+  it('is spent even when a Wall absorbs the attack', () => {
+    let state = withStatus(startGame(['A', 'B', 'C']), 'A', { deathMark: true, wall: 1 });
 
     state = selectOnly(state, 'A');
     expect(playerOf(state, 'A').status).toBe('alive');
-    expect(playerOf(state, 'A').shield).toBe(0);
+    expect(playerOf(state, 'A').wall).toBe(0);
     expect(playerOf(state, 'A').deathMark).toBe(false);
   });
 
@@ -197,10 +197,10 @@ describe('Hunter', () => {
     expect(getTargetPool(state).map((player) => player.name)).toEqual(['B']);
   });
 
-  it('pays a Shield bounty for a kill but not for a blocked hunt', () => {
-    const hunt = (targetHasShield: boolean) => {
+  it('pays a Wall bounty for a kill but not for a blocked hunt', () => {
+    const hunt = (targetHasWall: boolean) => {
       let state = startGame(['A', 'B', 'C', 'D']);
-      if (targetHasShield) state = withStatus(state, 'B', { shield: 1 });
+      if (targetHasWall) state = withStatus(state, 'B', { wall: 1 });
       state = playRound(state, 'A', 'hunter');
       state = gameReducer(state, { type: 'START_TARGET_SPIN', playerId: idOf(state, 'B') });
       return drain(gameReducer(state, { type: 'PLAYER_SPIN_COMPLETE' }));
@@ -208,11 +208,11 @@ describe('Hunter', () => {
 
     const killed = hunt(false);
     expect(playerOf(killed, 'B').status).toBe('eliminated');
-    expect(playerOf(killed, 'A').shield).toBe(1);
+    expect(playerOf(killed, 'A').wall).toBe(1);
 
     const blocked = hunt(true);
     expect(playerOf(blocked, 'B').status).toBe('alive');
-    expect(playerOf(blocked, 'A').shield).toBe(0);
+    expect(playerOf(blocked, 'A').wall).toBe(0);
   });
 });
 
@@ -263,13 +263,13 @@ describe('Revive', () => {
 
   it('returns a player clean, and counts repeat revivals', () => {
     let state = startGame(['A', 'B', 'C', 'D']);
-    state = withStatus(state, 'D', { shield: 1, deathMark: true, bombFuse: 2 });
+    state = withStatus(state, 'D', { wall: 1, deathMark: true, bombFuse: 2 });
     state = gameReducer(state, { type: 'ELIMINATE_PLAYER', playerId: idOf(state, 'D') });
     state = playRound(state, 'A', 'revive');
 
     const revived = playerOf(state, 'D');
     expect(revived.status).toBe('alive');
-    expect(revived.shield).toBe(0);
+    expect(revived.wall).toBe(0);
     expect(revived.deathMark).toBe(false);
     expect(revived.bombFuse).toBeUndefined();
     expect(revived.revivedCount).toBe(1);
@@ -325,13 +325,13 @@ describe('Bomb', () => {
     expect(getBombHolder(state.players)).toBeNull();
   });
 
-  it('is blocked by a Shield, and is spent either way', () => {
+  it('is blocked by a Wall, and is spent either way', () => {
     let state = withStatus(startGame(four), 'A', { bombFuse: 1 });
-    state = withStatus(state, 'B', { shield: 1 });
+    state = withStatus(state, 'B', { wall: 1 });
     state = selectOnly(state, 'B');
 
     expect(playerOf(state, 'B').status).toBe('alive');
-    expect(playerOf(state, 'B').shield).toBe(0);
+    expect(playerOf(state, 'B').wall).toBe(0);
     expect(getBombHolder(state.players)).toBeNull();
   });
 
@@ -712,7 +712,7 @@ describe('session pool', () => {
     let state = startGame(roster);
     state = {
       ...state,
-      sessionAbilityIds: ['eliminate', 'shield', 'death_mark', 'hunter', 'duel'],
+      sessionAbilityIds: ['eliminate', 'wall', 'death_mark', 'hunter', 'duel'],
     };
 
     const availableIds = getAvailableAbilities(state).map((ability) => ability.id);
@@ -728,7 +728,7 @@ describe('session pool', () => {
 
   it('holds the same pool for the whole game', () => {
     const state = startGame(roster);
-    const after = playRound(state, 'A', 'shield');
+    const after = playRound(state, 'A', 'wall');
 
     expect(after.sessionAbilityIds).toEqual(state.sessionAbilityIds);
   });

@@ -366,7 +366,7 @@ Use only four simple abilities:
 
 ```text
 Eliminate
-Shield
+Wall
 Safe
 Again
 ```
@@ -410,11 +410,11 @@ Jason selected
 
 [ SPIN FATE ]
 ↓
-Shield selected
+Wall selected
 
 [ RESOLVE ]
 ↓
-Jason gets Shield
+Jason gets Wall
 
 [ NEXT ROUND ]
 ```
@@ -477,12 +477,12 @@ resolve()
 ### Eliminate
 
 - attacks current player.
-- Shield blocks it.
+- Wall blocks it.
 - otherwise player becomes eliminated.
 
-### Shield
+### Wall
 
-- grants one Shield.
+- grants one Wall.
 - MVP max stack = 1.
 
 ### Safe
@@ -509,8 +509,8 @@ attackPlayer(playerId, source)
 It handles:
 
 ```text
-Shield?
-    YES → consume Shield → survive
+Wall?
+    YES → consume Wall → survive
     NO  → eliminate
 ```
 
@@ -521,7 +521,7 @@ Future abilities such as Hunter, Duel, Death Mark and Double Kill must reuse thi
 Add simple player list:
 
 ```text
-Jason 🛡
+Jason 🧱
 Amy
 Kelvin
 Daniel
@@ -538,7 +538,7 @@ Example:
 ```text
 ABILITY_SELECTED
 SHOW_RESULT
-ADD_SHIELD
+ADD_WALL
 END_ROUND
 ```
 
@@ -550,7 +550,7 @@ The purpose is architectural separation.
 
 - adding a new ability does not require editing the Wheel component,
 - all current abilities resolve through the Game Engine,
-- Shield can block Eliminate,
+- Wall can block Eliminate,
 - Again correctly loops back to Fate selection,
 - status display reflects GameState.
 
@@ -583,11 +583,11 @@ Rule:
   - attack that player,
   - remove Death Mark.
 
-Shield interaction:
+Wall interaction:
 
 ```text
 Death Mark consumed
-Shield consumed
+Wall consumed
 Player survives
 ```
 
@@ -628,7 +628,7 @@ Rules:
 
 - Hunter cannot target self.
 - target must be alive.
-- Shield can block.
+- Wall can block.
 - target spin uses a temporary eligible pool.
 
 ---
@@ -647,7 +647,7 @@ Rules:
 - revive one random eliminated player.
 - revived player returns:
   - alive,
-  - Shield = 0,
+  - Wall = 0,
   - Death Mark = false.
 
 Track:
@@ -694,7 +694,7 @@ All eight MVP abilities function:
 
 ```text
 Eliminate
-Shield
+Wall
 Safe
 Again
 Death Mark
@@ -841,7 +841,7 @@ Log important events:
 
 ```text
 Round 01
-Jason → Shield
+Jason → Wall
 
 Round 02
 Amy → Eliminated
@@ -849,7 +849,7 @@ Amy → Eliminated
 Round 03
 Kelvin → Hunter
 Kelvin targeted Daniel
-Daniel blocked with Shield
+Daniel blocked with Wall
 ```
 
 ---
@@ -971,12 +971,12 @@ flash
 → K.O.
 ```
 
-### Shield
+### Wall
 
 ```text
 impact
 → block flash
-→ SHIELD
+→ WALL
 ```
 
 ### Death Mark
@@ -1018,7 +1018,7 @@ Required:
 - wheel tick,
 - wheel stop,
 - Fate result impact,
-- Shield block,
+- Wall block,
 - Eliminate / KO,
 - phase transition,
 - winner horn/sting.
@@ -1059,9 +1059,9 @@ Use both normal and intentionally awkward scenarios.
 Test:
 
 - repeated Again.
-- Death Mark + Shield.
-- Hunter + Shield.
-- Duel + Shield.
+- Death Mark + Wall.
+- Hunter + Wall.
+- Duel + Wall.
 - Revive with one eliminated player.
 - multiple Revives.
 - Revive crossing phase boundary.
@@ -1182,7 +1182,7 @@ Review:
 Prioritise unit tests for Game Engine behaviour:
 
 ```text
-Shield blocks attack
+Wall blocks attack
 Death Mark triggers once
 Hunter excludes self
 Duel excludes self
@@ -1300,10 +1300,10 @@ Plan: `docs/superpowers/plans/2026-08-14-ability-expansion.md`
 - phase thresholds scale to the starting roster
 - per-session Fate pool: 5 mandatory + 4 of the optional set
 
-## 3B — Pool (NOT STARTED)
+## 3B — Pool (IN PROGRESS — rename landed, Fates not yet added)
 
-Removed: Close Call, Steal Shield, Bomb.
-Renamed: Shield becomes Wall, through the code as well as the UI.
+Removed: Close Call, Steal Wall, Bomb.
+Renamed: Shield became Wall, through the code as well as the UI. **DONE**
 Added: Gale, Demolition, C4, Fate Swap, Purify.
 
 ## Deferred, not dropped
@@ -1461,7 +1461,7 @@ Make the game easy to manage live.
 
 Add:
 
-- manually add/remove Shield.
+- manually add/remove Wall.
 - manually add/remove Death Mark.
 - revive selected player.
 - eliminate selected player.
@@ -1804,7 +1804,7 @@ Eligibility
 Weight
 Target rules
 Resolution
-Shield interaction
+Wall interaction
 Phase availability
 Edge cases
 Event log wording
@@ -1820,7 +1820,7 @@ How acquired
 How displayed
 When triggered
 When removed
-Whether Shield interacts
+Whether Wall interacts
 Whether Revive clears it
 Whether Fate Swap can move it
 ```

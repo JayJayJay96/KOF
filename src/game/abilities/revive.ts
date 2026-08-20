@@ -1,7 +1,7 @@
 /**
  * ❤️ Revive — PROJECT_SPEC.md §11.7
  *
- * Restores one random eliminated player. They return alive with no Shield and
+ * Restores one random eliminated player. They return alive with no Wall and
  * no Death Mark, and `revivedCount` increments — all handled by REVIVE_PLAYER
  * in the event resolver, so repeat revivals of the same player just work.
  *

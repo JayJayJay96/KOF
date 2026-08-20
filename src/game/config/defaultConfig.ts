@@ -22,14 +22,14 @@ export const DEFAULT_GAME_CONFIG: GameConfig = {
   // writes into it when the host tunes a Fate.
   abilities: {
     eliminate: { enabled: true, weights: {} },
-    shield: { enabled: true, weights: {} },
+    wall: { enabled: true, weights: {} },
     safe: { enabled: true, weights: {} },
     close_call: { enabled: true, weights: {} },
     hunter: { enabled: true, weights: {} },
     death_mark: { enabled: true, weights: {} },
     revive: { enabled: true, weights: {} },
     duel: { enabled: true, weights: {} },
-    steal_shield: { enabled: true, weights: {} },
+    steal_wall: { enabled: true, weights: {} },
     double_fate: { enabled: true, weights: {} },
     bomb: { enabled: true, weights: {} },
     fate_swap: { enabled: false, weights: {} },

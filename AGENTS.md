@@ -259,7 +259,7 @@ Effects must not directly:
 
 - eliminate players,
 - revive players,
-- add Shield,
+- add Wall,
 - add Death Mark,
 - choose Fate.
 
@@ -329,7 +329,7 @@ Examples:
 - Death Mark
 - future Double Kill
 
-Shield interaction should not be reimplemented separately in every ability.
+Wall interaction should not be reimplemented separately in every ability.
 
 ---
 
@@ -341,7 +341,7 @@ Every persistent status must define:
 - how it is displayed,
 - when it triggers,
 - when it is removed,
-- whether Shield interacts,
+- whether Wall interacts,
 - whether Revive clears it,
 - whether Fate Swap can move it,
 - whether it persists across rounds.
@@ -386,7 +386,7 @@ SHOW_MESSAGE
 REQUEST_TARGET_SPIN
 TARGET_SELECTED
 ATTACK_PLAYER
-SHIELD_BLOCK
+WALL_BLOCK
 ELIMINATE_PLAYER
 END_ABILITY
 ```
@@ -430,7 +430,7 @@ When tests exist, add or update tests for logic changes.
 
 High-priority logic to test:
 
-- Shield blocks one attack.
+- Wall blocks one attack.
 - Death Mark triggers exactly once.
 - Hunter excludes self.
 - Duel excludes self.
@@ -611,9 +611,9 @@ A change should be explainable as one unit, for example:
 
 ```text
 Implement deterministic Main Wheel landing
-Add Shield status and shared attack resolution
+Add Wall status and shared attack resolution
 Add Phase Resolver
-Fix Death Mark + Shield interaction
+Fix Death Mark + Wall interaction
 ```
 
 Avoid mixing unrelated visual redesign, game-rule changes, and refactors in one task.

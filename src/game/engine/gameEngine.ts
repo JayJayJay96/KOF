@@ -23,7 +23,7 @@ export function createPlayer(name: string): Player {
     id: createPlayerId(),
     name,
     status: 'alive',
-    shield: 0,
+    wall: 0,
     deathMark: false,
     revivedCount: 0,
   };
@@ -59,7 +59,7 @@ export function resetPlayerForNewGame(player: Player): Player {
     id: player.id,
     name: player.name,
     status: 'alive',
-    shield: 0,
+    wall: 0,
     deathMark: false,
     revivedCount: 0,
   };

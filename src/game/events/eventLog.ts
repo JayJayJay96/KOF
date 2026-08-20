@@ -56,14 +56,14 @@ export function describeEventLine(event: GameEvent, players: readonly Player[]):
     case 'SHOW_MESSAGE':
       return { text: event.message, tone: 'info' };
 
-    case 'ADD_SHIELD':
-      return { text: `🛡 ${nameOf(players, event.playerId)} gains a Shield`, tone: 'save' };
+    case 'ADD_WALL':
+      return { text: `🧱 ${nameOf(players, event.playerId)} gains a Wall`, tone: 'save' };
 
-    case 'SHIELD_BLOCK':
-      return { text: `🛡 ${nameOf(players, event.playerId)} blocked it`, tone: 'save' };
+    case 'WALL_BLOCK':
+      return { text: `🧱 ${nameOf(players, event.playerId)} blocked it`, tone: 'save' };
 
-    case 'REMOVE_SHIELD':
-      return { text: `🪝 ${nameOf(players, event.playerId)} loses their Shield`, tone: 'threat' };
+    case 'REMOVE_WALL':
+      return { text: `🪝 ${nameOf(players, event.playerId)} loses their Wall`, tone: 'threat' };
 
     case 'ADD_DEATH_MARK':
       return { text: `💀 ${nameOf(players, event.playerId)} is marked`, tone: 'threat' };

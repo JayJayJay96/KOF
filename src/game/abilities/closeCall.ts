@@ -7,13 +7,13 @@
  * Close Call keeps the relief but always leaves a mark on the board:
  *
  * ```text
- * has a Shield  ->  the Shield is destroyed absorbing the graze
- * no Shield     ->  survives, but picks up a Death Mark
+ * has a Wall  ->  the Wall takes the graze and comes down
+ * no Wall     ->  survives, but picks up a Death Mark
  * ```
  *
  * That branch is what keeps it distinct from Death Mark rather than a reskin of
- * it: for a shielded player it is a real loss with no lingering threat, and for
- * an exposed player it is survival bought on credit.
+ * it: behind a Wall it is a real loss with no lingering threat, and out in the
+ * open it is survival bought on credit.
  *
  * Either way the player lives, so it still reads as relief in the moment.
  *
@@ -35,10 +35,10 @@ export const closeCallAbility: AbilityDefinition = {
     const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
     const name = player?.name ?? 'Player';
 
-    if (player && player.shield > 0) {
+    if (player && player.wall > 0) {
       return [
-        { type: 'SHOW_MESSAGE', message: `CLOSE CALL — ${name}'s Shield takes it` },
-        { type: 'REMOVE_SHIELD', playerId: selectedPlayerId },
+        { type: 'SHOW_MESSAGE', message: `CLOSE CALL — ${name}'s Wall takes it` },
+        { type: 'REMOVE_WALL', playerId: selectedPlayerId },
       ];
     }
 
@@ -54,8 +54,8 @@ export const closeCallAbility: AbilityDefinition = {
     const player = context.state.players.find((candidate) => candidate.id === selectedPlayerId);
     if (!player) return null;
 
-    return player.shield > 0
-      ? `${player.name} lives — 🛡 the Shield is destroyed absorbing it.`
+    return player.wall > 0
+      ? `${player.name} lives — 🧱 the Wall comes down absorbing it.`
       : `${player.name} lives — and picks up a 💀 Death Mark for it.`;
   },
 };

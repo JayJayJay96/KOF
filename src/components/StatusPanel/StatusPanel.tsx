@@ -44,9 +44,9 @@ export function StatusPanel({ alive, eliminated, selectedId }: StatusPanelProps)
                   💣{player.bombFuse}
                 </span>
               )}
-              {player.shield > 0 && (
-                <span className="status__badge" title="Shield" aria-label="Shield">
-                  🛡
+              {player.wall > 0 && (
+                <span className="status__badge" title="Wall" aria-label="Wall">
+                  🧱
                 </span>
               )}
               {player.deathMark && (
