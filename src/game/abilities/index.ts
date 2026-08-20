@@ -16,12 +16,10 @@ import { filterAlive, getEliminatedPlayers } from '../engine/selectors';
 import { eliminateAbility } from './eliminate';
 import { wallAbility } from './wall';
 import { safeAbility } from './safe';
-import { closeCallAbility } from './closeCall';
 import { deathMarkAbility } from './deathMark';
 import { hunterAbility } from './hunter';
 import { reviveAbility } from './revive';
 import { duelAbility } from './duel';
-import { stealWallAbility } from './stealWall';
 import { c4Ability } from './c4';
 import { galeAbility } from './gale';
 import { demolitionAbility } from './demolition';
@@ -33,12 +31,10 @@ export const ABILITIES: readonly AbilityDefinition[] = [
   eliminateAbility,
   wallAbility,
   safeAbility,
-  closeCallAbility,
   deathMarkAbility,
   hunterAbility,
   reviveAbility,
   duelAbility,
-  stealWallAbility,
   doubleFateAbility,
   c4Ability,
   galeAbility,

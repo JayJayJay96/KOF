@@ -10,7 +10,7 @@
  * chosen id (PROJECT_SPEC.md §8-9), so a wheel always spins toward a result
  * the engine already decided. Everything else draws inside the reducer as it
  * resolves: an ability's `resolve()` may call randomness directly (Duel's
- * coin flip, Revive's pick, Steal Wall's victim), and so does drawing the
+ * coin flip, Revive's pick, Fate Swap's partner), and so does drawing the
  * session's Fate pool at START_GAME — nothing animates toward "which Fates
  * are in this session", so there is no caller to hoist the draw to. That is
  * exactly why undo (Phase 6B, see undo.ts) snapshots whole states instead of

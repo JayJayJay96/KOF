@@ -5,21 +5,23 @@
  * moving. Everything else is drawn once at START_GAME and held for the whole
  * session, so two games with the same roster still play differently.
  *
- * CURRENT STATE: six optional Fates exist today (safe, close_call, revive,
- * steal_wall, double_fate, c4) and the defensive mandatory Fate is now
- * called Wall. The "eight optional" language below describes where this phase
- * ENDS UP, not what is registered right now — later tasks add two more
- * optional Fates.
+ * The five mandatory Fates are Eliminate, Wall, Death Mark, Hunter and Duel.
+ * The eight optional ones are Safe, Revive, Double Fate, C4, Gale, Demolition,
+ * Fate Swap and Purify.
  *
  * WHY FOUR
  *
- * Today: six optional Fates choosing four gives C(6,4) = 15 distinct pools,
- * and any one Fate is left out of 1 draw in 3 (5 of the 15 combinations omit
- * it). At the end state of this phase, once two more optional Fates land:
- * eight optional Fates choosing four gives C(8,4) = 70 distinct pools and
- * every game genuinely omits half of them. Drawing six — the number
- * originally proposed, against that larger eight-Fate pool — would show 75%
- * of the same Fates every session and the draw would stop being felt.
+ * Eight optional Fates choosing four gives C(8,4) = 70 distinct pools, and
+ * every game genuinely omits half of them. Drawing six — the number originally
+ * proposed — would show 75% of the same Fates every session and the draw would
+ * stop being felt at all.
+ *
+ * The count is load-bearing in the other direction too. If the optional pool
+ * ever shrinks to four, the draw becomes degenerate: one possible pool, every
+ * session identical, and the feature silently stops working. That nearly
+ * happened during this phase — deleting two optional Fates before adding the
+ * new ones would have hit exactly that — so the removals were reordered to run
+ * last. Keep `SESSION_OPTIONAL_COUNT` comfortably below the optional count.
  *
  * WHY NO CATEGORY QUOTAS
  *

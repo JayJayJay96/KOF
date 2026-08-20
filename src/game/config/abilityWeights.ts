@@ -40,12 +40,10 @@ export const ABILITY_WEIGHTS: Record<string, PhaseWeights> = {
   // Pure relief, now rare. Kept because if EVERY roll matters the tension
   // flatlines — an occasional clean escape is what makes the rest land.
   safe: { chaos: 5, danger: 3, bloodbath: 2, final_four: 2, sudden_death: 0 },
-  close_call: { chaos: 10, danger: 8, bloodbath: 6, final_four: 6, sudden_death: 8 },
   hunter: { chaos: 14, danger: 15, bloodbath: 16, final_four: 18, sudden_death: 20 },
   death_mark: { chaos: 10, danger: 12, bloodbath: 12, final_four: 8, sudden_death: 0 },
   revive: { chaos: 6, danger: 4, bloodbath: 2, final_four: 0, sudden_death: 0 },
   duel: { chaos: 12, danger: 14, bloodbath: 15, final_four: 16, sudden_death: 0 },
-  steal_wall: { chaos: 9, danger: 8, bloodbath: 6, final_four: 6, sudden_death: 6 },
   double_fate: { chaos: 8, danger: 8, bloodbath: 7, final_four: 6, sudden_death: 0 },
   demolition: { chaos: 6, danger: 7, bloodbath: 8, final_four: 6, sudden_death: 6 },
   gale: { chaos: 6, danger: 8, bloodbath: 10, final_four: 10, sudden_death: 12 },

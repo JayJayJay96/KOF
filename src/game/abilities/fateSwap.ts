@@ -14,10 +14,10 @@
  *   phases        Chaos through Final Four
  *   edge cases    a swap of nothing is possible but rare, and is narrated
  *
- * Promoted from post-MVP, replacing Steal Wall. Both are two-player Fates — the
- * category playtesting showed produces every reaction, measured at only ~21% of
- * rolls before Wave 1 — but this one is valence-neutral, which is why it is
- * also the honest home for moving a live charge. "Steal the C4" as its own Fate
+ * Promoted from post-MVP, replacing the old Steal Shield. Both are two-player
+ * Fates — the category playtesting showed produces every reaction, measured at
+ * only ~21% of rolls before Wave 1 — but this one is valence-neutral, which is
+ * why it is also the honest home for moving a live charge. "Steal the C4" as its own Fate
  * would be a name that is sometimes a gain and sometimes suicide.
  *
  * WHY THE PARTNER IS CHOSEN, NOT SPUN FOR
